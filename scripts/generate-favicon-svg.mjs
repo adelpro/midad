@@ -1,3 +1,20 @@
+/**
+ * generate-favicon-svg.mjs
+ *
+ * Generates the adaptive web favicon (assets/images/favicon.svg) from the
+ * brand logo path (assets/brand/midad.svg).
+ *
+ * The favicon is an SVG with a transparent background whose logo color
+ * adapts to the browser theme via `prefers-color-scheme`:
+ *   - light tabs → ink logo (#05060A)
+ *   - dark tabs  → warm paper logo (#F7F6F3)
+ *
+ * The generated file is committed to assets/images/favicon.svg and served
+ * on web through /public/favicon.svg (a copy is kept in the public folder
+ * for Expo static output). Run after changing the brand logo:
+ *
+ *   node scripts/generate-favicon-svg.mjs
+ */
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

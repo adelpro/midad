@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Navigation shell (Phase 2):**
+  - Onboarding screen: brand intro (Amiri wordmark), feature highlights, and
+    Arabic/English language picker with RTL switching
+  - Bottom tabs via `expo-router/js-tabs`: Gallery (لوحتي) and Settings (الإعدادات)
+  - Gallery screen: FlashList two-column grid of saved designs, empty state with
+    calligraphic glyph, "new design" flow that creates a project and opens the editor
+  - Settings screen: language, appearance (System/Light/Dark manual override),
+    and About section with version + font credits
+  - Editor placeholder screen (`/editor`) — the canvas engine lands in Phase 3
+- **Manual theme override:** `theme` preference (`system` | `light` | `dark`)
+  persisted in settings; `useTheme()` honors it before falling back to the
+  system scheme
+- Arabic copy polished with the **fasaha** skill (imperative agreement, fluent
+  phrasing, removed redundancy)
+
+### Added
 - Full **dark mode** support:
   - Warm charcoal/ink palette that inverts the paper–ink relationship
   - `useTheme()` hook resolving the active palette from the system color scheme

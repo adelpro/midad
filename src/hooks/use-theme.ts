@@ -1,5 +1,6 @@
 import { useColorScheme } from 'react-native';
 
+import { useSettings, type ThemePreference } from '@/storage/settings';
 import { palettes, type ColorScheme, type MidadPalette } from '@/theme/tokens';
 
 export interface ThemeValue {
@@ -8,10 +9,21 @@ export interface ThemeValue {
   colors: MidadPalette;
 }
 
-/** Resolve the active palette from the system color scheme. */
+function resolveScheme(preference: ThemePreference, system: string | null): ColorScheme {
+  if (preference === 'light') {
+    return 'light';
+  }
+  if (preference === 'dark') {
+    return 'dark';
+  }
+  return system === 'dark' ? 'dark' : 'light';
+}
+
+/** Resolve the active palette from the user's theme preference (or system). */
 export function useTheme(): ThemeValue {
   const system = useColorScheme();
-  const scheme: ColorScheme = system === 'dark' ? 'dark' : 'light';
+  const theme = useSettings((s) => s.theme);
+  const scheme = resolveScheme(theme, system);
   return {
     scheme,
     isDark: scheme === 'dark',

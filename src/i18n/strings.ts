@@ -57,6 +57,11 @@ export interface Translation {
     title: string;
     languageSection: string;
     languageHint: string;
+    themeSection: string;
+    themeHint: string;
+    themeSystem: string;
+    themeLight: string;
+    themeDark: string;
     defaultsSection: string;
     defaultCanvas: string;
     aboutSection: string;
@@ -64,26 +69,27 @@ export interface Translation {
     version: string;
     credits: string;
   };
-  editor: {
-    newProject: string;
-    projectName: string;
-    canvasSize: string;
-    background: string;
-    select: string;
-    text: string;
-    glyphs: string;
-    shapes: string;
-    colors: string;
-    undo: string;
-    redo: string;
-    zoom: string;
-    grid: string;
-    export: string;
-    saveProject: string;
-    backgroundImage: string;
-    transparent: string;
-    paper: string;
-  };
+editor: {
+      newProject: string;
+      projectName: string;
+      canvasSize: string;
+      background: string;
+      select: string;
+      text: string;
+      glyphs: string;
+      shapes: string;
+      colors: string;
+      undo: string;
+      redo: string;
+      zoom: string;
+      grid: string;
+      export: string;
+      saveProject: string;
+      backgroundImage: string;
+      transparent: string;
+      paper: string;
+      comingSoon: string;
+    };
 }
 
 export const strings: Record<Language, Translation> = {
@@ -118,7 +124,7 @@ export const strings: Record<Language, Translation> = {
       welcome: 'مرحباً بك في مداد',
       sub: 'صمّم لوحات الخط العربي بأسلوبك الخاص.',
       slide1Title: 'تكوينات باهرة',
-      slide1Body: 'أضف كلماتك وحرّك مقاطعها وربطها بحرية لتكوين تركيبات معقدة.',
+      slide1Body: 'أضف كلماتك وحرّك مقاطعها واربطها بحرية لتكوين تركيبات معقدة.',
       slide2Title: 'خطوط عربية أصيلة',
       slide2Body: 'نسخ، ثلث، رقعة، كوفي — مجموعة خطوط عربية تليق بإبداعك.',
       slide3Title: 'احفظ وشارك',
@@ -138,13 +144,18 @@ export const strings: Record<Language, Translation> = {
     settings: {
       title: 'الإعدادات',
       languageSection: 'اللغة',
-      languageHint: 'اللغة المستخدمة في واجهة التطبيق',
+      languageHint: 'لغة واجهة التطبيق',
+      themeSection: 'المظهر',
+      themeHint: 'مظهر واجهة التطبيق',
+      themeSystem: 'تلقائي',
+      themeLight: 'فاتح',
+      themeDark: 'داكن',
       defaultsSection: 'الافتراضيات',
       defaultCanvas: 'مقاس اللوحة الافتراضي',
       aboutSection: 'حول',
       aboutBody: 'مداد — استوديو الخط العربي.',
       version: 'الإصدار',
-      credits: 'الخطوط بترخيص SIL Open Font License',
+      credits: 'الخطوط مرخّصة بموجب رخصة SIL Open Font License',
     },
     editor: {
       newProject: 'لوحة جديدة',
@@ -165,6 +176,7 @@ export const strings: Record<Language, Translation> = {
       backgroundImage: 'صورة خلفية',
       transparent: 'شفاف',
       paper: 'ورق',
+      comingSoon: 'سيأتي محرّر اللوحات في مرحلة لاحقة.',
     },
   },
   en: {
@@ -219,6 +231,11 @@ export const strings: Record<Language, Translation> = {
       title: 'Settings',
       languageSection: 'Language',
       languageHint: 'Language used in the app interface',
+      themeSection: 'Appearance',
+      themeHint: 'App appearance',
+      themeSystem: 'System',
+      themeLight: 'Light',
+      themeDark: 'Dark',
       defaultsSection: 'Defaults',
       defaultCanvas: 'Default canvas size',
       aboutSection: 'About',
@@ -245,6 +262,7 @@ export const strings: Record<Language, Translation> = {
       backgroundImage: 'Background image',
       transparent: 'Transparent',
       paper: 'Paper',
+      comingSoon: 'The canvas editor arrives in the next phase.',
     },
   },
 };

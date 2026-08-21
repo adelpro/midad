@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { Language } from '@/i18n/strings';
 
+export type ThemePreference = 'system' | 'light' | 'dark';
+
 export interface CanvasSize {
   labelAr: string;
   labelEn: string;
@@ -22,8 +24,10 @@ export const DEFAULT_CANVASES: CanvasSize[] = [
 interface SettingsState {
   language: Language;
   defaultCanvasIndex: number;
+  theme: ThemePreference;
   setLanguage: (lang: Language) => void;
   setDefaultCanvas: (index: number) => void;
+  setTheme: (theme: ThemePreference) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -31,8 +35,10 @@ export const useSettings = create<SettingsState>()(
     (set) => ({
       language: 'ar',
       defaultCanvasIndex: 0,
+      theme: 'system',
       setLanguage: (language) => set({ language }),
       setDefaultCanvas: (defaultCanvasIndex) => set({ defaultCanvasIndex }),
+      setTheme: (theme) => set({ theme }),
     }),
     {
       name: 'midad:settings',

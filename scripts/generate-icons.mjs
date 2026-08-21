@@ -1,3 +1,23 @@
+/**
+ * generate-icons.mjs
+ *
+ * Regenerates all raster app icon assets from the brand logo
+ * (assets/brand/midad.svg) into assets/images/:
+ *
+ *   - icon.png                      App icon (1024, logo on warm paper)
+ *   - splash-icon.png               Splash image (512, transparent, centered)
+ *   - favicon.png                   PNG favicon fallback (48, transparent)
+ *   - android-icon-foreground.png   Android adaptive foreground (transparent)
+ *   - android-icon-monochrome.png   Android adaptive monochrome (white logo)
+ *   - android-icon-background.png   Android adaptive background (solid paper)
+ *
+ * Run after changing assets/brand/midad.svg so the icons stay in sync:
+ *
+ *   node scripts/generate-icons.mjs
+ *
+ * Requires the `sharp` dev dependency. The warm-paper color (#F7F6F3) must
+ * match the `backgroundColor` values in app.json.
+ */
 import sharp from 'sharp';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
