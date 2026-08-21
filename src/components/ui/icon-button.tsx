@@ -1,7 +1,8 @@
 import type { PropsWithChildren } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { colors, radius } from '@/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { radius } from '@/theme';
 
 export interface IconButtonProps extends PropsWithChildren {
   onPress?: () => void;
@@ -19,8 +20,8 @@ export function IconButton({
   size = 40,
   children,
 }: IconButtonProps) {
-  const bg =
-    variant === 'ink' ? colors.ink : variant === 'surface' ? colors.surface : 'transparent';
+  const { colors: c } = useTheme();
+  const bg = variant === 'ink' ? c.ink : variant === 'surface' ? c.surface : 'transparent';
   return (
     <Pressable
       accessibilityRole="button"
@@ -33,6 +34,7 @@ export function IconButton({
           height: size,
           borderRadius: radius.lg,
           backgroundColor: bg,
+          borderColor: c.border,
           opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
         },
       ]}>
@@ -46,6 +48,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
   },
 });

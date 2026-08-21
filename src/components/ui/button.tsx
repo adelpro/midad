@@ -1,7 +1,8 @@
 import { forwardRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
-import { colors, motion, radius, spacing } from '@/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { motion, radius, spacing, type MidadPalette } from '@/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -17,12 +18,18 @@ export interface ButtonProps {
   testID?: string;
 }
 
-const variantColors: Record<ButtonVariant, { bg: string; text: string; border?: string; pressed: string }> = {
-  primary: { bg: colors.ink, text: colors.onInk, pressed: '#333333' },
-  secondary: { bg: colors.surfaceAlt, text: colors.ink, border: colors.border, pressed: colors.surfacePressed },
-  ghost: { bg: 'transparent', text: colors.inkSoft, pressed: colors.surfacePressed },
-  danger: { bg: colors.danger, text: colors.onInk, pressed: '#7A2221' },
-};
+function variantColors(variant: ButtonVariant, c: MidadPalette) {
+  switch (variant) {
+    case 'primary':
+      return { bg: c.ink, text: c.onInk, pressed: c.inkSoft };
+    case 'secondary':
+      return { bg: c.surfaceAlt, text: c.ink, border: c.border, pressed: c.surfacePressed };
+    case 'ghost':
+      return { bg: 'transparent', text: c.inkSoft, pressed: c.surfacePressed };
+    case 'danger':
+      return { bg: c.danger, text: '#FFFFFF', pressed: c.dangerBg };
+  }
+}
 
 const heights = { md: 44, lg: 52 };
 
@@ -30,7 +37,8 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
   { onPress, label, variant = 'primary', disabled, loading, fullWidth, size = 'md', style, testID },
   ref,
 ) {
-  const vc = variantColors[variant];
+  const { colors: c } = useTheme();
+  const vc = variantColors(variant, c);
   const dimmed = disabled || loading;
   return (
     <Pressable

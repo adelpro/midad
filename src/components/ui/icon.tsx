@@ -1,8 +1,9 @@
 import type { ReactElement } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import Svg, { Circle, G, Line, Path, Polyline, Rect } from 'react-native-svg';
 
-import { colors, typeScale } from '@/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { typeScale } from '@/theme';
 
 export type IconName =
   | 'plus'
@@ -212,10 +213,12 @@ export interface IconProps {
 }
 
 /** Curated stroke icon set — consistent 1.8 stroke, technical/utilitarian. */
-export function Icon({ name, size = 20, color = colors.ink }: IconProps) {
+export function Icon({ name, size = 20, color }: IconProps) {
+  const { colors: c } = useTheme();
+  const resolved = color ?? c.ink;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Glyph name={name} color={color} />
+      <Glyph name={name} color={resolved} />
     </Svg>
   );
 }
@@ -226,8 +229,9 @@ export function DirectionIcon({ isRTL, color, size }: { isRTL: boolean; color?: 
 }
 
 /** Fallback for tiny labels when an SVG icon isn't wanted. */
-export function IconLabel({ label, color = colors.ink }: { label: string; color?: string }) {
-  return <Text style={[styles.label, { color }]}>{label}</Text>;
+export function IconLabel({ label, color }: { label: string; color?: string }) {
+  const { colors: c } = useTheme();
+  return <Text style={[styles.label, { color: color ?? c.ink }]}>{label}</Text>;
 }
 
 const styles = StyleSheet.create({

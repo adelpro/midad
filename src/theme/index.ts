@@ -1,5 +1,5 @@
-export { colors, spacing, radius, shadows, motion, typeScale, tagType } from './tokens';
-export type { MidadColor, TypeVariant } from './tokens';
+export { colors, palettes, spacing, radius, motion, typeScale, tagType } from './tokens';
+export type { MidadPalette, ColorScheme, TypeVariant } from './tokens';
 export {
   fontAssets,
   fontRoles,

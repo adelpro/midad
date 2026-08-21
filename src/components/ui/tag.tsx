@@ -1,18 +1,21 @@
 import type { PropsWithChildren } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, tagType } from '@/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { radius, tagType, type MidadPalette } from '@/theme';
 
 export type TagTone = 'neutral' | 'red' | 'blue' | 'green' | 'yellow' | 'accent';
 
-const tones: Record<TagTone, { bg: string; text: string }> = {
-  neutral: { bg: colors.surfaceAlt, text: colors.muted },
-  red: colors.paleRed,
-  blue: colors.paleBlue,
-  green: colors.paleGreen,
-  yellow: colors.paleYellow,
-  accent: { bg: colors.accentSoft, text: colors.accentText },
-};
+function tones(c: MidadPalette): Record<TagTone, { bg: string; text: string }> {
+  return {
+    neutral: { bg: c.surfaceAlt, text: c.muted },
+    red: c.paleRed,
+    blue: c.paleBlue,
+    green: c.paleGreen,
+    yellow: c.paleYellow,
+    accent: { bg: c.accentSoft, text: c.accentText },
+  };
+}
 
 export interface TagProps extends PropsWithChildren {
   tone?: TagTone;
@@ -20,10 +23,11 @@ export interface TagProps extends PropsWithChildren {
 
 /** Pill tag with micro uppercase wide-tracked type (per minimalist-ui). */
 export function Tag({ children, tone = 'neutral' }: TagProps) {
-  const c = tones[tone];
+  const { colors: c } = useTheme();
+  const t = tones(c)[tone];
   return (
-    <View style={[styles.base, { backgroundColor: c.bg }]}>
-      <Text style={[styles.label, { color: c.text }]}>{children}</Text>
+    <View style={[styles.base, { backgroundColor: t.bg }]}>
+      <Text style={[styles.label, { color: t.text }]}>{children}</Text>
     </View>
   );
 }
