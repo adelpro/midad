@@ -198,6 +198,7 @@ export default function EditorScreen() {
 
   const exportSvg = useCallback(() => {
     if (!project || exporting) return;
+    const dialogTitle = t.editor.exportSvgAction;
     void runExport('svg', async () => {
       const faces = await collectSvgFontFaces(collectUsedFamilies(project));
       const svg = projectToSvg(project, faces);
@@ -206,23 +207,24 @@ export default function EditorScreen() {
         fileName: `${project.name || 'midad-design'}.svg`,
         mimeType: 'image/svg+xml',
         uti: 'public.svg-image',
-        dialogTitle: t.editor.exportSvgAction,
+        dialogTitle,
       });
     });
-  }, [project, exporting, runExport]);
+  }, [project, exporting, runExport, t]);
 
   const exportFile = useCallback(() => {
     if (!project || exporting) return;
+    const dialogTitle = t.editor.exportProjectFile;
     void runExport('file', async () => {
       await shareFile({
         data: JSON.stringify(project),
         fileName: `${project.name || 'midad'}.midad.json`,
         mimeType: 'application/json',
         uti: 'public.json',
-        dialogTitle: t.editor.exportProjectFile,
+        dialogTitle,
       });
     });
-  }, [project, exporting, runExport]);
+  }, [project, exporting, runExport, t]);
 
   const setBgColor = useCallback(
     (color: string) => {
