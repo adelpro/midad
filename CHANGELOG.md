@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Phosphor icon system:** replaced the hand-rolled SVG icon set with
+  `phosphor-react-native` as the single icon source across all platforms
+  (iOS, Android, web) for a unified identity. `Icon`/`IconName` wrapper
+  maps the app's icon vocabulary to Phosphor glyphs (regular/bold/fill
+  weights).
+- **Onboarding refinements:**
+  - Step dots centered horizontally
+  - Professional illustrations: large Phosphor glyph (PenNib / TextAa /
+    Export) inside a hairline ring on a tinted disk, replacing the
+    hand-drawn line art
+  - Language picker redesigned as a refined segmented control
+- **Multi-step onboarding** with self-coded pager, vector illustrations, and CTAs:
+  - Three refined-approach steps: Compose (كوّن لوحتك بنفسك) → Fonts (خطوطٌ أصيلة
+    من التراث) → Share (صدّر لوحتك وشاركها)
+  - Custom line-art vector illustrations (`OnboardingArt`) per step, theme-aware
+  - Self-coded step pager (`StepPager`) built on reanimated + gesture-handler —
+    pan-to-swipe with snapping, RTL-aware, no third-party dependency
+  - Step dots indicator (`StepDots`), skip link, per-step CTA with final «ابدأ»
+  - Onboarding copy rewritten in refined formal MSA (per the fasaha skill)
 - **Navigation shell (Phase 2):**
   - Onboarding screen: brand intro (Amiri wordmark), feature highlights, and
     Arabic/English language picker with RTL switching

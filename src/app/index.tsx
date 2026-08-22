@@ -1,67 +1,87 @@
+import { useCallback, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { LanguagePicker, OnboardingArt, StepDots, StepPager, type OnboardingArtVariant } from '@/components/onboarding';
 import { Button } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
-import { useSettings } from '@/storage/settings';
 import { fontRoles, spacing, typeScale } from '@/theme';
 
-const FEATURES = ['slide1', 'slide2', 'slide3'] as const;
+const STEPS: { art: OnboardingArtVariant; titleKey: 'slide1Title' | 'slide2Title' | 'slide3Title'; bodyKey: 'slide1Body' | 'slide2Body' | 'slide3Body' }[] = [
+  { art: 'craft', titleKey: 'slide1Title', bodyKey: 'slide1Body' },
+  { art: 'fonts', titleKey: 'slide2Title', bodyKey: 'slide2Body' },
+  { art: 'share', titleKey: 'slide3Title', bodyKey: 'slide3Body' },
+];
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { t, language, setLanguage } = useT();
+  const { t, language } = useT();
   const { colors: c } = useTheme();
   const fonts = fontRoles[language];
 
-  const start = () => router.replace('/(tabs)/gallery');
+  const [index, setIndex] = useState(0);
+
+  const goToGallery = useCallback(() => router.replace('/(tabs)/gallery'), [router]);
+
+  const renderStep = useCallback(
+    (stepIndex: number) => {
+      const step = STEPS[stepIndex];
+      return (
+        <View style={styles.step}>
+          <OnboardingArt variant={step.art} />
+          <Text style={[styles.stepTitle, { fontFamily: fonts.display, color: c.ink }]}>
+            {t.onboarding[step.titleKey]}
+          </Text>
+          <Text style={[styles.stepBody, { fontFamily: fonts.ui, color: c.muted }]}>
+            {t.onboarding[step.bodyKey]}
+          </Text>
+        </View>
+      );
+    },
+    [t, fonts, c],
+  );
+
+  const isLast = index === STEPS.length - 1;
+  const next = () => {
+    if (isLast) {
+      goToGallery();
+    } else {
+      setIndex(index + 1);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.paper }]}>
-      <View style={styles.content}>
-        <View style={styles.hero}>
-          <Text style={[styles.wordmark, { fontFamily: fonts.display, color: c.ink }]}>مداد</Text>
-          <Text style={[styles.latin, { fontFamily: 'Geist', color: c.muted }]}>midad</Text>
-          <Text style={[styles.tagline, { fontFamily: fonts.ui, color: c.inkSoft }]}>
-            {t.tagline}
-          </Text>
-        </View>
+      {/* top bar: wordmark + skip */}
+      <View style={styles.topBar}>
+        <Text style={[styles.wordmark, { fontFamily: fonts.display, color: c.ink }]}>مداد</Text>
+        <Text onPress={goToGallery} style={[styles.skip, { fontFamily: fonts.ui, color: c.muted }]}>
+          {t.onboarding.skip}
+        </Text>
+      </View>
 
-        <View style={styles.features}>
-          {FEATURES.map((key) => (
-            <View key={key} style={[styles.featureRow, { borderColor: c.border }]}>
-              <Text style={[styles.featureTitle, { fontFamily: fonts.ui, color: c.ink }]}>
-                {t.onboarding[`${key}Title`]}
-              </Text>
-              <Text style={[styles.featureBody, { fontFamily: fonts.ui, color: c.muted }]}>
-                {t.onboarding[`${key}Body`]}
-              </Text>
-            </View>
-          ))}
-        </View>
+      <StepPager
+        count={STEPS.length}
+        index={index}
+        onIndexChange={setIndex}
+        renderStep={renderStep}
+        isRTL={language === 'ar'}
+      />
 
-        <View style={styles.footer}>
+      {/* footer: dots + language + CTA */}
+      <View style={styles.footer}>
+        <StepDots count={STEPS.length} index={index} />
+
+        <View style={styles.langBox}>
           <Text style={[styles.langLabel, { fontFamily: fonts.ui, color: c.muted }]}>
             {t.onboarding.chooseLanguage}
           </Text>
-          <View style={styles.langRow}>
-            <Button
-              label={t.onboarding.arabic}
-              variant={language === 'ar' ? 'primary' : 'secondary'}
-              onPress={() => setLanguage('ar')}
-              style={styles.langBtn}
-            />
-            <Button
-              label={t.onboarding.english}
-              variant={language === 'en' ? 'primary' : 'secondary'}
-              onPress={() => setLanguage('en')}
-              style={styles.langBtn}
-            />
-          </View>
-          <Button label={t.common.start} onPress={start} fullWidth />
+          <LanguagePicker />
         </View>
+
+        <Button label={isLast ? t.onboarding.startLabel : t.onboarding.continueLabel} onPress={next} fullWidth />
       </View>
     </SafeAreaView>
   );
@@ -71,62 +91,48 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
-  content: {
-    flex: 1,
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xl,
-  },
-  hero: {
-    alignItems: 'center',
-    marginTop: spacing.xxxl,
+    paddingTop: spacing.lg,
   },
   wordmark: {
-    fontSize: 88,
-    lineHeight: 104,
+    fontSize: 34,
+    lineHeight: 40,
   },
-  latin: {
-    fontSize: typeScale.subheading.size,
-    letterSpacing: 0.18,
-    textTransform: 'uppercase',
-    marginTop: -spacing.lg,
+  skip: {
+    fontSize: typeScale.small.size,
   },
-  tagline: {
+  step: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.lg,
+  },
+  stepTitle: {
+    fontSize: typeScale.title.size,
+    lineHeight: typeScale.title.lineHeight,
+    textAlign: 'center',
+  },
+  stepBody: {
     fontSize: typeScale.body.size,
     lineHeight: typeScale.body.lineHeight,
     textAlign: 'center',
-    marginTop: spacing.lg,
-  },
-  features: {
-    gap: spacing.lg,
-  },
-  featureRow: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    gap: spacing.xs,
-  },
-  featureTitle: {
-    fontSize: typeScale.subheading.size,
-    lineHeight: typeScale.subheading.lineHeight,
-    fontWeight: '600',
-  },
-  featureBody: {
-    fontSize: typeScale.small.size,
-    lineHeight: typeScale.small.lineHeight,
+    maxWidth: 340,
   },
   footer: {
-    gap: spacing.md,
+    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xl,
+    paddingTop: spacing.lg,
+  },
+  langBox: {
+    gap: spacing.sm,
   },
   langLabel: {
     fontSize: typeScale.caption.size,
-  },
-  langRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  langBtn: {
-    flex: 1,
   },
 });

@@ -8,7 +8,7 @@ export { Kbd } from './kbd';
 export { Divider } from './divider';
 export { IconButton } from './icon-button';
 export type { IconButtonProps } from './icon-button';
-export { Icon, DirectionIcon, IconLabel } from './icon';
+export { Icon, DirectionIcon, renderIcon } from './icon';
 export type { IconName, IconProps } from './icon';
 export { Sheet } from './sheet';
 export type { SheetProps } from './sheet';

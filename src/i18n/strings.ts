@@ -44,6 +44,9 @@ export interface Translation {
     chooseLanguage: string;
     arabic: string;
     english: string;
+    continueLabel: string;
+    startLabel: string;
+    skip: string;
   };
   gallery: {
     title: string;
@@ -122,16 +125,19 @@ export const strings: Record<Language, Translation> = {
     },
     onboarding: {
       welcome: 'مرحباً بك في مداد',
-      sub: 'صمّم لوحات الخط العربي بأسلوبك الخاص.',
-      slide1Title: 'تكوينات باهرة',
-      slide1Body: 'أضف كلماتك وحرّك مقاطعها واربطها بحرية لتكوين تركيبات معقدة.',
-      slide2Title: 'خطوط عربية أصيلة',
-      slide2Body: 'نسخ، ثلث، رقعة، كوفي — مجموعة خطوط عربية تليق بإبداعك.',
-      slide3Title: 'احفظ وشارك',
-      slide3Body: 'صدّر تصميمك كصورة واحفظه في أي وقت وشاركه مع العالم.',
+      sub: 'استوديو الخط العربي — صمّم لوحاتك بنفسك.',
+      slide1Title: 'كوّن لوحتك بنفسك',
+      slide1Body: 'أضِف كلماتك، وحرّك مقاطعها، واربطها بحرّيةٍ لتشكيل لوحةٍ خطّيةٍ فريدة.',
+      slide2Title: 'خطوطٌ أصيلة من التراث',
+      slide2Body: 'من النسخ إلى الثلث والكوفي، مجموعةُ خطوطٍ عربيةٍ تليق بإبداعك.',
+      slide3Title: 'صدّر لوحتك وشاركها',
+      slide3Body: 'احفظ تصميمك بجودةٍ عاليةٍ وشاركه مع العالم في لحظات.',
       chooseLanguage: 'اختر لغة الواجهة',
       arabic: 'العربية',
       english: 'English',
+      continueLabel: 'التالي',
+      startLabel: 'ابدأ',
+      skip: 'تخطَّ',
     },
     gallery: {
       title: 'لوحتي',
@@ -208,16 +214,19 @@ export const strings: Record<Language, Translation> = {
     },
     onboarding: {
       welcome: 'Welcome to midad',
-      sub: 'Create Arabic calligraphy artwork your way.',
-      slide1Title: 'Striking compositions',
-      slide1Body: 'Add your words, then move, nest and link segments freely to build complex designs.',
-      slide2Title: 'Authentic Arabic fonts',
-      slide2Body: 'Naskh, Thuluth, Ruqaa, Kufi — a set of Arabic typefaces worthy of your craft.',
-      slide3Title: 'Save and share',
-      slide3Body: 'Export your design as an image, save it anytime, and share it with the world.',
+      sub: 'The Arabic calligraphy studio — compose your own artwork.',
+      slide1Title: 'Compose your own artwork',
+      slide1Body: 'Add your words, move their segments, and link them freely to shape a unique calligraphic piece.',
+      slide2Title: 'Authentic heritage typefaces',
+      slide2Body: 'From Naskh to Thuluth and Kufi — a set of Arabic fonts worthy of your craft.',
+      slide3Title: 'Export and share your artwork',
+      slide3Body: 'Save your design in high quality and share it with the world in moments.',
       chooseLanguage: 'Choose interface language',
       arabic: 'العربية',
       english: 'English',
+      continueLabel: 'Next',
+      startLabel: 'Start',
+      skip: 'Skip',
     },
     gallery: {
       title: 'Gallery',
