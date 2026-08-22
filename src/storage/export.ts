@@ -67,24 +67,13 @@ export async function saveImageToLibrary({ data, format, fileName }: ExportOptio
  */
 export async function shareImage({ data, format, fileName }: ExportOptions): Promise<boolean> {
   if (hasShareSheet) {
-    const { File, Paths } = await import('expo-file-system');
-    const tmp = new File(Paths.cache, `share-${Date.now()}.${extensionFor(format)}`);
-    if (tmp.exists) {
-      tmp.delete();
-    }
-    tmp.create();
-    if (typeof data === 'string') {
-      const base64 = data.includes(',') ? data.split(',')[1] : data;
-      tmp.write(base64, { encoding: 'base64' });
-    } else {
-      tmp.write(new Uint8Array(await data.arrayBuffer()));
-    }
-    await Sharing.shareAsync(tmp.uri, {
+    return writeTempAndShare({
+      data,
+      fileName: `${fileName ?? 'midad-design'}.${extensionFor(format)}`,
       mimeType: mimeFor(format),
+      uti: format === 'png' ? 'public.png' : 'public.jpeg',
       dialogTitle: fileName ?? 'midad design',
-      UTI: format === 'png' ? 'public.png' : 'public.jpeg',
     });
-    return true;
   }
 
   // Web share API.
@@ -104,6 +93,73 @@ export async function shareImage({ data, format, fileName }: ExportOptions): Pro
   }
 
   downloadBlob(data, `${fileName ?? 'midad-design'}.${extensionFor(format)}`, mimeFor(format));
+  return true;
+}
+
+export interface FileShareOptions {
+  data: string | Blob;
+  fileName: string;
+  mimeType: string;
+  /** iOS UTI hint for the share sheet. */
+  uti?: string;
+  dialogTitle?: string;
+}
+
+/**
+ * Share an arbitrary file (SVG, JSON, ...). Same platform behavior as
+ * `shareImage`: native share sheet, Web Share API, or browser download.
+ */
+export async function shareFile({ data, fileName, mimeType, uti, dialogTitle }: FileShareOptions): Promise<boolean> {
+  if (hasShareSheet) {
+    return writeTempAndShare({ data, fileName, mimeType, uti, dialogTitle });
+  }
+  if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    try {
+      const file = new File([data], fileName, { type: mimeType });
+      const shareData = { files: [file] } as ShareData;
+      if (navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+        return true;
+      }
+    } catch {
+      // fall through to download
+    }
+  }
+  downloadBlob(data, fileName, mimeType);
+  return true;
+}
+
+interface SharePayload {
+  data: string | Blob;
+  fileName: string;
+  mimeType: string;
+  uti?: string;
+  dialogTitle?: string;
+}
+
+async function writeTempAndShare({ data, fileName, mimeType, uti, dialogTitle }: SharePayload): Promise<boolean> {
+  const { File, Paths } = await import('expo-file-system');
+  const tmp = new File(Paths.cache, `share-${Date.now()}-${fileName}`);
+  if (tmp.exists) {
+    tmp.delete();
+  }
+  tmp.create();
+  if (typeof data === 'string') {
+    if (!mimeType.startsWith('image/')) {
+      // Text payloads (svg/json) are written as UTF-8, not base64.
+      tmp.write(data);
+    } else {
+      const base64 = data.includes(',') ? data.split(',')[1] : data;
+      tmp.write(base64, { encoding: 'base64' });
+    }
+  } else {
+    tmp.write(new Uint8Array(await data.arrayBuffer()));
+  }
+  await Sharing.shareAsync(tmp.uri, {
+    mimeType,
+    dialogTitle: dialogTitle ?? fileName,
+    UTI: uti,
+  });
   return true;
 }
 
