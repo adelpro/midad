@@ -10,6 +10,7 @@ import {
 } from '@shopify/react-native-skia';
 
 import { useTextLayouts, textObjectSize } from '@/editor/skia/use-text-layouts';
+import { SHAPE_BASE_SIZE } from '@/editor/skia/shape-geometry';
 import { ShapeRenderer } from '@/editor/skia/shapes';
 import { hitTest, type SizedObject } from '@/editor/hit-test';
 import { useEditorStore } from '@/editor/store';
@@ -31,7 +32,7 @@ function objectBox(obj: DesignObject, layouts: ReturnType<typeof useTextLayouts>
     }
     case 'shape':
     case 'glyph': {
-      const base = 120 * (obj.transform.scale || 1);
+      const base = SHAPE_BASE_SIZE * (obj.transform.scale || 1);
       return { width: base, height: base };
     }
   }

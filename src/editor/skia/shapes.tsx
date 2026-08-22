@@ -1,33 +1,12 @@
 import { Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
 
+import { buildStarPath, buildTrianglePath } from '@/editor/skia/shape-geometry';
 import type { ShapeObject } from '@/storage/project-schema';
 
 export type ShapeRenderProps = {
   shape: ShapeObject;
   size: number;
 };
-
-function buildStarPath(size: number): string {
-  const cx = size / 2;
-  const cy = size / 2;
-  const outer = size / 2;
-  const inner = outer * 0.45;
-  const points: string[] = [];
-  for (let i = 0; i < 10; i++) {
-    const r = i % 2 === 0 ? outer : inner;
-    const angle = (Math.PI / 5) * i - Math.PI / 2;
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle);
-    points.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`);
-  }
-  points.push('Z');
-  return points.join(' ');
-}
-
-function buildTrianglePath(size: number): string {
-  const h = size * 0.86;
-  return `M ${size / 2} ${(size - h) / 2} L ${size - 2} ${size - 2} L 2 ${size - 2} Z`;
-}
 
 /** Render a decorative shape object (fill or stroke) centered in a `size` box. */
 export function ShapeRenderer({ shape, size }: ShapeRenderProps) {
