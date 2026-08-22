@@ -91,7 +91,7 @@ editor: {
       backgroundImage: string;
       transparent: string;
       paper: string;
-      comingSoon: string;
+      enterText: string;
     };
 }
 
@@ -182,7 +182,7 @@ export const strings: Record<Language, Translation> = {
       backgroundImage: 'صورة خلفية',
       transparent: 'شفاف',
       paper: 'ورق',
-      comingSoon: 'سيأتي محرّر اللوحات في مرحلة لاحقة.',
+      enterText: 'اكتب نصك هنا…',
     },
   },
   en: {
@@ -271,7 +271,7 @@ export const strings: Record<Language, Translation> = {
       backgroundImage: 'Background image',
       transparent: 'Transparent',
       paper: 'Paper',
-      comingSoon: 'The canvas editor arrives in the next phase.',
+      enterText: 'Type your text…',
     },
   },
 };

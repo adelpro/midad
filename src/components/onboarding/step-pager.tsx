@@ -47,6 +47,9 @@ function StepPagerBase({ count, index, onIndexChange, renderStep, isRTL = false 
 
   // Keep the initial offset correct when the viewport width changes.
   useEffect(() => {
+    // Reanimated shared values are intentionally mutated here; the compiler's
+    // immutability rule does not model shared-value writes in effects.
+    // eslint-disable-next-line react-hooks/immutability
     x.value = withTiming(-current.value * width, { duration: 0 });
   }, [width, x, current]);
 
@@ -56,6 +59,7 @@ function StepPagerBase({ count, index, onIndexChange, renderStep, isRTL = false 
     })
     .onUpdate((e) => {
       // In RTL the strip still translates the same way; direction mirrors.
+      // eslint-disable-next-line react-hooks/immutability
       x.value = gestureStartX.value + e.translationX;
     })
     .onEnd((e) => {
@@ -71,7 +75,9 @@ function StepPagerBase({ count, index, onIndexChange, renderStep, isRTL = false 
       } else if (e.translationX * dir > half) {
         target = Math.max(0, target - 1);
       }
+      // eslint-disable-next-line react-hooks/immutability
       current.value = target;
+      // eslint-disable-next-line react-hooks/immutability
       x.value = withTiming(-target * width, { duration: motion.base });
       if (target !== index) {
         runOnJS(onIndexChange)(target);

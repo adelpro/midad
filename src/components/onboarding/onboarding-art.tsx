@@ -2,7 +2,6 @@ import { StyleSheet, View } from 'react-native';
 import { PenNib, Sparkle, Export, TextAa, type IconProps } from 'phosphor-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
-import { radius, spacing } from '@/theme';
 
 export type OnboardingArtVariant = 'craft' | 'fonts' | 'share';
 

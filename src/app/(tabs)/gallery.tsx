@@ -51,16 +51,20 @@ export default function GalleryScreen() {
   const [projects, setProjects] = useState<MidadProject[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const reload = useCallback(async () => {
-    setLoading(true);
-    const list = await listProjects();
-    setProjects(list);
-    setLoading(false);
-  }, []);
-
+  // Fetch projects on mount. All setState calls happen after the async
+  // `listProjects()` resolves, so they are not synchronous within the effect.
   useEffect(() => {
-    reload();
-  }, [reload]);
+    let active = true;
+    listProjects().then((list) => {
+      if (active) {
+        setProjects(list);
+        setLoading(false);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const createNew = useCallback(async () => {
     const project = makeNewProject(defaultCanvasIndex);

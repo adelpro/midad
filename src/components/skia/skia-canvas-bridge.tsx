@@ -9,6 +9,8 @@ export interface SkiaCanvasBridgeProps {
    */
   getComponent: () => Promise<{ default: React.ComponentType<any> }>;
   fallback?: React.ReactNode;
+  /** Props forwarded to the lazily-loaded component once CanvasKit is ready. */
+  componentProps?: Record<string, unknown>;
 }
 
 /**
@@ -20,9 +22,9 @@ export interface SkiaCanvasBridgeProps {
  *
  * Use `Platform.OS === 'web' ? <SkiaCanvasBridge ... /> : <RealCanvas />`.
  */
-export function SkiaCanvasBridge({ getComponent, fallback }: SkiaCanvasBridgeProps) {
+export function SkiaCanvasBridge({ getComponent, fallback, componentProps }: SkiaCanvasBridgeProps) {
   if (Platform.OS !== 'web') {
     return null;
   }
-  return <WithSkiaWeb getComponent={getComponent} fallback={fallback} />;
+  return <WithSkiaWeb getComponent={getComponent} fallback={fallback} componentProps={componentProps} />;
 }

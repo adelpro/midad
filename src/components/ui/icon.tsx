@@ -3,6 +3,10 @@ import { type ComponentType, type ReactElement } from 'react';
 import {
   ArrowClockwise,
   ArrowCounterClockwise,
+  ArrowDown,
+  ArrowUp,
+  ArrowsClockwise,
+  ArrowsCounterClockwise,
   CaretLeft,
   CaretRight,
   Check,
@@ -18,6 +22,7 @@ import {
   Image,
   LockSimple,
   LockSimpleOpen,
+  Minus,
   PaintBrush,
   PencilSimple,
   PenNib,
@@ -30,7 +35,6 @@ import {
   TextAa,
   Translate,
   Trash,
-  UploadSimple,
   X,
   type IconProps as PhosphorIconProps,
   type IconWeight,
@@ -45,6 +49,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 export type IconName =
   | 'plus'
+  | 'minus'
   | 'grid'
   | 'chevronLeft'
   | 'chevronRight'
@@ -67,6 +72,10 @@ export type IconName =
   | 'globe'
   | 'flip'
   | 'flipV'
+  | 'rotateCw'
+  | 'rotateCcw'
+  | 'layerUp'
+  | 'layerDown'
   | 'layers'
   | 'edit'
   | 'more'
@@ -77,6 +86,7 @@ export type IconName =
 
 const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   plus: Plus,
+  minus: Minus,
   grid: GridFour,
   chevronLeft: CaretLeft,
   chevronRight: CaretRight,
@@ -99,6 +109,10 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   globe: GlobeSimple,
   flip: FlipHorizontal,
   flipV: FlipVertical,
+  rotateCw: ArrowsClockwise,
+  rotateCcw: ArrowsCounterClockwise,
+  layerUp: ArrowUp,
+  layerDown: ArrowDown,
   layers: StackSimple,
   edit: PencilSimple,
   more: DotsThree,

@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Canvas editor (Phase 3):**
+  - Full object editor core on `react-native-skia`: fit-to-view canvas scaling,
+    background colors, and an optional grid overlay
+  - Arabic calligraphy text shaped via the Skia **Paragraph API** (HarfBuzz):
+    correct contextual forms, ligatures, and RTL direction — bundled fonts are
+    registered through a typeface provider
+  - Gestures: tap-to-select, grab-and-drag any object (select-and-move in one
+    gesture), pinch-to-scale, two-finger rotate; view coordinates map to design
+    units through a shared fit viewport
+  - Selection context bar: scale ±10%, rotate ±90°, horizontal flip, duplicate,
+    bring-to-front / send-to-back, delete
+  - Text tool sheet: add or re-edit text objects across the 8 calligraphy styles
+  - Multi-level undo/redo (50 snapshots) with pre-mutation history semantics
+  - Save to the versioned `.midad.json` project store
+- **Web Skia bridge:** CanvasKit WASM now loads via `WithSkiaWeb` before any
+  Skia component renders (`EditorCanvasHost` platform split: direct import on
+  native, lazy bridge + spinner fallback on web); font assets normalized
+  per-platform for Skia's `useFonts` (`{ uri }` wrappers on web)
+- **Phosphor icon additions:** rotate (ArrowsClockwise/CounterClockwise) and
+  layer order (ArrowUp/ArrowDown) mapped to `rotateCw`/`rotateCcw`/`layerUp`/
+  `layerDown`
 - **Phosphor icon system:** replaced the hand-rolled SVG icon set with
   `phosphor-react-native` as the single icon source across all platforms
   (iOS, Android, web) for a unified identity. `Icon`/`IconName` wrapper
@@ -41,6 +62,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   system scheme
 - Arabic copy polished with the **fasaha** skill (imperative agreement, fluent
   phrasing, removed redundancy)
+
+### Changed
+- React Compiler compliance across the onboarding pager and editor gesture
+  hooks (shared-value writes annotated, ref/state access moved into the store);
+  gallery project fetch restructured out of the synchronous render path
 
 ### Added
 - Full **dark mode** support:

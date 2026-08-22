@@ -2,7 +2,7 @@ import { forwardRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
-import { motion, radius, spacing, type MidadPalette } from '@/theme';
+import { radius, spacing, type MidadPalette } from '@/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
