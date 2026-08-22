@@ -7,11 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { EditorCanvasHost } from '@/editor/EditorCanvasHost';
 import { useObjectGestures } from '@/editor/use-object-gestures';
 import { useEditorStore } from '@/editor/store';
+import { renderProjectToPng } from '@/editor/render/offscreen';
+import { useParagraphFonts } from '@/editor/skia/text';
 import { Button, Icon, IconButton, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { calligraphyFonts, fontRoles, spacing, typeScale } from '@/theme';
 import { saveProject, loadProject as loadProjectFile } from '@/storage/projects';
+import { THUMB_MAX_WIDTH_PX, saveThumb } from '@/storage/thumbs';
 import type { ObjectTransform } from '@/storage/project-schema';
 
 type ActiveTool = 'select' | 'text' | 'color' | 'background';
@@ -56,6 +59,9 @@ export default function EditorScreen() {
   }, [id, loadProject]);
 
   const { gestures, tapPoint } = useObjectGestures(tool === 'select');
+
+  // Loaded once for offscreen rendering (thumbnails, exports).
+  const skiaFonts = useParagraphFonts();
 
   const handleTapResult = useCallback(
     (objId: string | null) => {
@@ -144,10 +150,17 @@ export default function EditorScreen() {
   }, [selectedIds]);
 
   const save = useCallback(async () => {
-    if (project) {
-      await saveProject(project);
+    if (!project) {
+      return;
     }
-  }, [project]);
+    await saveProject(project);
+    try {
+      const png = renderProjectToPng(project, skiaFonts, { maxWidthPx: THUMB_MAX_WIDTH_PX });
+      await saveThumb(project.id, png.base64DataUri);
+    } catch {
+      // Thumbnail is best-effort; the project itself is saved.
+    }
+  }, [project, skiaFonts]);
 
   const setBgColor = useCallback(
     (color: string) => {

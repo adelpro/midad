@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 
@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { DEFAULT_CANVASES, useSettings } from '@/storage/settings';
 import { listProjects, saveProject } from '@/storage/projects';
+import { getThumb } from '@/storage/thumbs';
 import { fontRoles, spacing, typeScale } from '@/theme';
 import type { MidadProject } from '@/storage/project-schema';
 
@@ -49,16 +50,23 @@ export default function GalleryScreen() {
   const { defaultCanvasIndex } = useSettings();
 
   const [projects, setProjects] = useState<MidadProject[]>([]);
+  const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
 
   // Fetch projects on mount. All setState calls happen after the async
   // `listProjects()` resolves, so they are not synchronous within the effect.
   useEffect(() => {
     let active = true;
-    listProjects().then((list) => {
+    listProjects().then(async (list) => {
       if (active) {
         setProjects(list);
         setLoading(false);
+      }
+      const entries = await Promise.all(
+        list.map(async (p) => [p.id, await getThumb(p.id)] as const),
+      );
+      if (active) {
+        setThumbs(Object.fromEntries(entries));
       }
     });
     return () => {
@@ -117,6 +125,7 @@ export default function GalleryScreen() {
           ]}
           renderItem={({ item }) => {
             const ratio = item.canvas.height / item.canvas.width;
+            const thumbUri = thumbs[item.id];
             return (
               <Card onPress={() => openProject(item.id)} style={styles.card}>
                 <View
@@ -128,7 +137,11 @@ export default function GalleryScreen() {
                       borderColor: c.border,
                     },
                   ]}>
-                  <Icon name="sparkle" color={c.faint} size={22} />
+                  {thumbUri ? (
+                    <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="contain" />
+                  ) : (
+                    <Icon name="sparkle" color={c.faint} size={22} />
+                  )}
                 </View>
                 <View style={styles.cardBody}>
                   <Text
