@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Export & share (Phase 4):**
+  - Offscreen PNG rasterizer mirroring the editor canvas (zIndex order,
+    transforms, flips, centered shaped paragraphs) at any target resolution
+  - Share-first export sheet: share image via the native system share sheet /
+    Web Share API with automatic browser-download fallback, plus vector **SVG**
+    export with embedded `@font-face` TTFs and `.midad.json` project-file export
+  - Gallery thumbnails: generated on save into a platform-split thumbnail
+    store; cards render real design previews with graceful placeholders
+  - Project import: pick or drop a `.midad.json` file from the gallery
+    (document picker on native, hidden file input on web) with schema
+    validation and collision-safe ids
 - **Canvas editor (Phase 3):**
   - Full object editor core on `react-native-skia`: fit-to-view canvas scaling,
     background colors, and an optional grid overlay
