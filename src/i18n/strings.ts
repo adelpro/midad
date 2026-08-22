@@ -55,6 +55,8 @@ export interface Translation {
     newDesign: string;
     designCard: string;
     untitled: string;
+    importDesigns: string;
+    importFailed: string;
   };
   settings: {
     title: string;
@@ -92,6 +94,11 @@ editor: {
       transparent: string;
       paper: string;
       enterText: string;
+      exportShareImage: string;
+      exportSvgAction: string;
+      exportProjectFile: string;
+      exporting: string;
+      exportFailed: string;
     };
 }
 
@@ -146,6 +153,8 @@ export const strings: Record<Language, Translation> = {
       newDesign: 'تصميم جديد',
       designCard: 'تصميم بدون عنوان',
       untitled: 'بدون عنوان',
+      importDesigns: 'استيراد',
+      importFailed: 'تعذّر استيراد الملف',
     },
     settings: {
       title: 'الإعدادات',
@@ -183,6 +192,11 @@ export const strings: Record<Language, Translation> = {
       transparent: 'شفاف',
       paper: 'ورق',
       enterText: 'اكتب نصك هنا…',
+      exportShareImage: 'مشاركة الصورة',
+      exportSvgAction: 'تصدير SVG',
+      exportProjectFile: 'تصدير ملف المشروع',
+      exporting: 'جارٍ التصدير…',
+      exportFailed: 'فشل التصدير',
     },
   },
   en: {
@@ -235,6 +249,8 @@ export const strings: Record<Language, Translation> = {
       newDesign: 'New design',
       designCard: 'Untitled design',
       untitled: 'Untitled',
+      importDesigns: 'Import',
+      importFailed: 'Could not import file',
     },
     settings: {
       title: 'Settings',
@@ -272,6 +288,11 @@ export const strings: Record<Language, Translation> = {
       transparent: 'Transparent',
       paper: 'Paper',
       enterText: 'Type your text…',
+      exportShareImage: 'Share image',
+      exportSvgAction: 'Export SVG',
+      exportProjectFile: 'Export project file',
+      exporting: 'Exporting…',
+      exportFailed: 'Export failed',
     },
   },
 };

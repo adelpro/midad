@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, TextInput as RNTextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput as RNTextInput, View } from 'react-native';
 import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,11 +9,13 @@ import { useObjectGestures } from '@/editor/use-object-gestures';
 import { useEditorStore } from '@/editor/store';
 import { renderProjectToPng } from '@/editor/render/offscreen';
 import { useParagraphFonts } from '@/editor/skia/text';
+import { collectSvgFontFaces, collectUsedFamilies, projectToSvg } from '@/editor/export/svg';
 import { Button, Icon, IconButton, Sheet } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { calligraphyFonts, fontRoles, spacing, typeScale } from '@/theme';
 import { saveProject, loadProject as loadProjectFile } from '@/storage/projects';
+import { shareFile, shareImage } from '@/storage/export';
 import { THUMB_MAX_WIDTH_PX, saveThumb } from '@/storage/thumbs';
 import type { ObjectTransform } from '@/storage/project-schema';
 
@@ -44,6 +46,9 @@ export default function EditorScreen() {
   const [draftText, setDraftText] = useState('');
   const [draftFont, setDraftFont] = useState<string>(calligraphyFonts[0].key);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Load the project once.
   useEffect(() => {
@@ -162,6 +167,63 @@ export default function EditorScreen() {
     }
   }, [project, skiaFonts]);
 
+  const runExport = useCallback(
+    async (key: 'image' | 'svg' | 'file', fn: () => Promise<void>) => {
+      setExporting(key);
+      setExportError(null);
+      try {
+        await save();
+        await fn();
+        setExportOpen(false);
+      } catch (e) {
+        setExportError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setExporting(null);
+      }
+    },
+    [save],
+  );
+
+  const exportImage = useCallback(() => {
+    if (!project || exporting) return;
+    void runExport('image', async () => {
+      const png = renderProjectToPng(project, skiaFonts, { maxWidthPx: 2048 });
+      await shareImage({
+        data: png.base64DataUri,
+        format: 'png',
+        fileName: `${project.name || 'midad-design'}.png`,
+      });
+    });
+  }, [project, exporting, runExport, skiaFonts]);
+
+  const exportSvg = useCallback(() => {
+    if (!project || exporting) return;
+    void runExport('svg', async () => {
+      const faces = await collectSvgFontFaces(collectUsedFamilies(project));
+      const svg = projectToSvg(project, faces);
+      await shareFile({
+        data: svg,
+        fileName: `${project.name || 'midad-design'}.svg`,
+        mimeType: 'image/svg+xml',
+        uti: 'public.svg-image',
+        dialogTitle: t.editor.exportSvgAction,
+      });
+    });
+  }, [project, exporting, runExport]);
+
+  const exportFile = useCallback(() => {
+    if (!project || exporting) return;
+    void runExport('file', async () => {
+      await shareFile({
+        data: JSON.stringify(project),
+        fileName: `${project.name || 'midad'}.midad.json`,
+        mimeType: 'application/json',
+        uti: 'public.json',
+        dialogTitle: t.editor.exportProjectFile,
+      });
+    });
+  }, [project, exporting, runExport]);
+
   const setBgColor = useCallback(
     (color: string) => {
       useEditorStore.getState().setCanvas({
@@ -206,6 +268,13 @@ export default function EditorScreen() {
             </IconButton>
             <IconButton onPress={save}>
               <Icon name="download" size={18} />
+            </IconButton>
+            <IconButton
+              onPress={() => {
+                setExportError(null);
+                setExportOpen(true);
+              }}>
+              <Icon name="export" size={18} />
             </IconButton>
           </View>
         </View>
@@ -289,6 +358,26 @@ export default function EditorScreen() {
               ))}
             </View>
             <Button label={t.common.done} onPress={saveTextObject} fullWidth />
+          </View>
+        </Sheet>
+
+        {/* Export sheet */}
+        <Sheet visible={exportOpen} onClose={() => setExportOpen(false)} title={t.editor.export}>
+          <View style={styles.sheetBody}>
+            <Button
+              label={t.editor.exportShareImage}
+              onPress={exportImage}
+              fullWidth
+              variant={exporting === 'image' ? 'secondary' : 'primary'}
+            />
+            <Button label={t.editor.exportSvgAction} onPress={exportSvg} fullWidth variant="secondary" />
+            <Button label={t.editor.exportProjectFile} onPress={exportFile} fullWidth variant="secondary" />
+            {exporting && <ActivityIndicator color={c.ink} />}
+            {!!exportError && (
+              <Text style={{ color: '#7A1F1F', fontFamily: fonts.ui, fontSize: typeScale.small.size }}>
+                {t.editor.exportFailed}: {exportError}
+              </Text>
+            )}
           </View>
         </Sheet>
 
