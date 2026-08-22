@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 
@@ -10,6 +10,7 @@ import { useT } from '@/i18n';
 import { DEFAULT_CANVASES, useSettings } from '@/storage/settings';
 import { listProjects, saveProject } from '@/storage/projects';
 import { getThumb } from '@/storage/thumbs';
+import { importProjectFromJson } from '@/storage/import-project';
 import { fontRoles, spacing, typeScale } from '@/theme';
 import type { MidadProject } from '@/storage/project-schema';
 
@@ -52,27 +53,81 @@ export default function GalleryScreen() {
   const [projects, setProjects] = useState<MidadProject[]>([]);
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
+  const [importError, setImportError] = useState<string | null>(null);
 
-  // Fetch projects on mount. All setState calls happen after the async
-  // `listProjects()` resolves, so they are not synchronous within the effect.
+  const fetchAll = useCallback(async () => {
+    const list = await listProjects();
+    const entries = await Promise.all(
+      list.map(async (p) => [p.id, await getThumb(p.id)] as const),
+    );
+    return { list, thumbs: Object.fromEntries(entries) as Record<string, string | null> };
+  }, []);
+
+  // Fetch projects on mount. All setState calls happen inside the async
+  // resolution, never synchronously within the effect body.
   useEffect(() => {
     let active = true;
-    listProjects().then(async (list) => {
-      if (active) {
+    fetchAll()
+      .then(({ list, thumbs: nextThumbs }) => {
+        if (!active) return;
         setProjects(list);
+        setThumbs(nextThumbs);
         setLoading(false);
-      }
-      const entries = await Promise.all(
-        list.map(async (p) => [p.id, await getThumb(p.id)] as const),
-      );
-      if (active) {
-        setThumbs(Object.fromEntries(entries));
-      }
-    });
+      })
+      .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, []);
+  }, [fetchAll]);
+
+  const handleImportText = useCallback(
+    async (text: string) => {
+      const status = await importProjectFromJson(text);
+      if (status !== 'ok') {
+        setImportError(t.gallery.importFailed);
+        return;
+      }
+      setImportError(null);
+      const { list, thumbs: nextThumbs } = await fetchAll();
+      setProjects(list);
+      setThumbs(nextThumbs);
+    },
+    [fetchAll, t],
+  );
+
+  const importProject = useCallback(async () => {
+    setImportError(null);
+    if (Platform.OS === 'web') {
+      const el = document.createElement('input');
+      el.type = 'file';
+      el.accept = '.midad,application/json,.json';
+      el.onchange = () => {
+        const file = el.files?.[0];
+        if (!file) return;
+        file
+          .text()
+          .then(handleImportText)
+          .catch(() => setImportError(t.gallery.importFailed));
+      };
+      el.click();
+      return;
+    }
+    try {
+      const DocumentPicker = await import('expo-document-picker');
+      const res = await DocumentPicker.getDocumentAsync({
+        type: 'application/json',
+        copyToCacheDirectory: true,
+      });
+      if (res.canceled || !res.assets?.length) {
+        return;
+      }
+      const { File } = await import('expo-file-system');
+      const text = await new File(res.assets[0].uri).text();
+      await handleImportText(text);
+    } catch {
+      setImportError(t.gallery.importFailed);
+    }
+  }, [handleImportText, t]);
 
   const createNew = useCallback(async () => {
     const project = makeNewProject(defaultCanvasIndex);
@@ -98,8 +153,17 @@ export default function GalleryScreen() {
             {projects.length} · {t.gallery.designCard}
           </Text>
         </View>
-        <Button label={t.gallery.newDesign} onPress={createNew} />
+        <View style={styles.headerActions}>
+          <Button label={t.gallery.importDesigns} onPress={importProject} variant="secondary" />
+          <Button label={t.gallery.newDesign} onPress={createNew} />
+        </View>
       </View>
+
+      {!!importError && (
+        <Text style={[styles.importError, { color: '#7A1F1F', fontFamily: fonts.ui }]}>
+          {importError}
+        </Text>
+      )}
 
       {loading ? (
         <View style={styles.center}>
@@ -177,6 +241,16 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
     gap: spacing.xxs,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  importError: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.sm,
+    fontSize: typeScale.small.size,
   },
   title: {
     fontSize: typeScale.title.size,
