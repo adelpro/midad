@@ -204,7 +204,7 @@ export default function GalleryScreen() {
                   {thumbUri ? (
                     <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="contain" />
                   ) : (
-                    <Icon name="sparkle" color={c.faint} size={22} />
+                    <Icon name="pen" color={c.faint} size={22} />
                   )}
                 </View>
                 <View style={styles.cardBody}>
