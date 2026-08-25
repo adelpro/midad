@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import { WithSkiaWeb } from '@shopify/react-native-skia/lib/module/web';
 
+import { canvaskitWasmUrl } from '@/storage/platform';
+
 export interface SkiaCanvasBridgeProps {
   /**
    * Lazily imports the editor canvas module. Must resolve to a component whose
@@ -26,5 +28,14 @@ export function SkiaCanvasBridge({ getComponent, fallback, componentProps }: Ski
   if (Platform.OS !== 'web') {
     return null;
   }
-  return <WithSkiaWeb getComponent={getComponent} fallback={fallback} componentProps={componentProps} />;
+  return (
+    <WithSkiaWeb
+      getComponent={getComponent}
+      fallback={fallback}
+      componentProps={componentProps}
+      // Without locateFile, canvaskit-wasm resolves the .wasm relative to the
+      // Metro bundle URL (/node_modules/...) which does not exist.
+      opts={{ locateFile: () => canvaskitWasmUrl() }}
+    />
+  );
 }
