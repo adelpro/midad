@@ -1,9 +1,8 @@
-import { Platform } from 'react-native';
-
-import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 
-import { hasMediaLibrary, hasShareSheet } from '@/storage/platform';
+import { downloadBlob } from '@/storage/download';
+import { hasShareSheet } from '@/storage/platform';
+import { saveImageToPhotoLibrary } from '@/storage/photo-library';
 
 export type ImageExportFormat = 'png' | 'jpeg';
 
@@ -32,33 +31,8 @@ function extensionFor(format: ImageExportFormat): string {
  * On web, triggers a browser download of the image.
  */
 export async function saveImageToLibrary({ data, format, fileName }: ExportOptions): Promise<boolean> {
-  if (!hasMediaLibrary) {
-    // Web: browser download via Blob URL.
-    downloadBlob(data, `${fileName ?? 'midad-design'}.${extensionFor(format)}`, mimeFor(format));
-    return true;
-  }
-
-  // Native: write bytes to a temp file, then into the photo library.
-  const { File, Paths } = await import('expo-file-system');
-  const tmp = new File(Paths.cache, `${fileName ?? 'midad-design'}-${Date.now()}.${extensionFor(format)}`);
-  if (tmp.exists) {
-    tmp.delete();
-  }
-  tmp.create();
-  if (typeof data === 'string') {
-    const base64 = data.includes(',') ? data.split(',')[1] : data;
-    tmp.write(base64, { encoding: 'base64' });
-  } else {
-    tmp.write(new Uint8Array(await data.arrayBuffer()));
-  }
-
-  const { status } = await MediaLibrary.requestPermissionsAsync();
-  if (status !== 'granted') {
-    return false;
-  }
-  await MediaLibrary.saveToLibraryAsync(tmp.uri);
-  tmp.delete();
-  return true;
+  // Native: photo library (with permission). Web: browser download.
+  return saveImageToPhotoLibrary({ data, format, fileName });
 }
 
 /**
@@ -161,31 +135,4 @@ async function writeTempAndShare({ data, fileName, mimeType, uti, dialogTitle }:
     UTI: uti,
   });
   return true;
-}
-
-/** Trigger a browser download for a Blob (or data URI). */
-function downloadBlob(data: string | Blob, fileName: string, mimeType: string): void {
-  if (Platform.OS !== 'web' || typeof document === 'undefined') {
-    return;
-  }
-  const blob = typeof data === 'string' ? base64ToBlob(data, mimeType) : data;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-/** Convert a base64 data URI (e.g. `data:image/png;base64,...`) to a Blob. */
-function base64ToBlob(dataUri: string, mimeType: string): Blob {
-  const base64 = dataUri.includes(',') ? dataUri.split(',')[1] : dataUri;
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new Blob([bytes], { type: mimeType });
 }
