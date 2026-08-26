@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { PenNib, Sparkle, Export, TextAa, type IconProps } from 'phosphor-react-native';
+import { PenNib, Export, TextAa, type IconProps } from 'phosphor-react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 
@@ -26,7 +26,6 @@ export function OnboardingArt({ variant }: { variant: OnboardingArtVariant }) {
         <View style={[styles.disk, { backgroundColor: c.accentSoft }]}>
           <Glyph size={88} color={c.accent} weight="duotone" />
         </View>
-        <Sparkle size={20} color={c.faint} style={styles.sparkle} weight="bold" />
       </View>
     </View>
   );
@@ -51,10 +50,5 @@ const styles = StyleSheet.create({
     borderRadius: 66,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  sparkle: {
-    position: 'absolute',
-    top: 26,
-    right: 30,
   },
 });

@@ -10,6 +10,7 @@ export interface IconButtonProps extends PropsWithChildren {
   /** surface-tone background */
   variant?: 'ghost' | 'surface' | 'ink';
   size?: number;
+  accessibilityLabel?: string;
 }
 
 /** Square icon button for toolbar/rail actions. */
@@ -18,6 +19,7 @@ export function IconButton({
   disabled,
   variant = 'ghost',
   size = 40,
+  accessibilityLabel,
   children,
 }: IconButtonProps) {
   const { colors: c } = useTheme();
@@ -25,6 +27,7 @@ export function IconButton({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [

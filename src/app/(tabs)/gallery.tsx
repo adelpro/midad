@@ -1,18 +1,38 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Image, Platform, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  Platform,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { FlashList } from '@shopify/flash-list';
 
-import { Button, Card, EmptyState, Icon } from '@/components/ui';
+import { Button, Card, EmptyState, Icon, DirectionIcon, Sheet, ProjectCardSkeleton } from '@/components/ui';
+import { GALLERY_HEADER_LARGE, GalleryHeader } from '@/components/gallery/gallery-header';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
+import { formatGalleryCount } from '@/i18n/strings';
+import { rowStyle } from '@/i18n/rtl';
 import { DEFAULT_CANVASES, useSettings } from '@/storage/settings';
-import { listProjects, saveProject } from '@/storage/projects';
-import { getThumb } from '@/storage/thumbs';
+import { listProjects, loadProject, saveProject, deleteProject } from '@/storage/projects';
+import { getThumb, deleteThumb } from '@/storage/thumbs';
 import { importProjectFromJson } from '@/storage/import-project';
-import { fontRoles, spacing, typeScale } from '@/theme';
+import { breakpoint, fontRoles, spacing, typeScale } from '@/theme';
 import type { MidadProject } from '@/storage/project-schema';
+
+const MIN_COLUMN_WIDTH = 168;
+const THUMB_RATIO = 4 / 3;
+/** Centered content cap so the grid never sprawls on desktop/tablet. */
+const MAX_LIST_WIDTH = 920;
+const ROW_THUMB_W = 116;
 
 function makeNewProject(index: number): MidadProject {
   const now = new Date().toISOString();
@@ -20,7 +40,8 @@ function makeNewProject(index: number): MidadProject {
   return {
     version: 1,
     id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    name: 'Untitled',
+    // Empty name so the UI localizes "Untitled" per language.
+    name: '',
     createdAt: now,
     updatedAt: now,
     canvas: {
@@ -35,7 +56,8 @@ function makeNewProject(index: number): MidadProject {
 
 function formatDate(iso: string, language: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', {
+  // Latin digits for Arabic too (`ar-u-nu-latn`) — numerals stay Western by default.
+  return d.toLocaleDateString(language === 'ar' ? 'ar-u-nu-latn' : 'en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -44,16 +66,53 @@ function formatDate(iso: string, language: string): string {
 
 export default function GalleryScreen() {
   const router = useRouter();
-  const { t, language } = useT();
+  const { t, language, isRTL } = useT();
   const { colors: c } = useTheme();
   const fonts = fontRoles[language];
   const insets = useSafeAreaInsets();
   const { defaultCanvasIndex } = useSettings();
+  const { width: windowWidth } = useWindowDimensions();
+
+  // Phone-first: one card per line on narrow screens; multi-column grid on
+  // wide surfaces, capped so the list stays centered and scannable.
+  const isWide = windowWidth >= breakpoint.wide;
+  const effectiveWidth = Math.min(windowWidth, MAX_LIST_WIDTH);
+  const numColumns = !isWide
+    ? 1
+    : Math.min(6, Math.max(2, Math.floor(effectiveWidth / MIN_COLUMN_WIDTH)));
+  const contentTop = GALLERY_HEADER_LARGE + insets.top;
 
   const [projects, setProjects] = useState<MidadProject[]>([]);
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+
+  // Project action menu state.
+  const [menuProject, setMenuProject] = useState<MidadProject | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameText, setRenameText] = useState('');
+
+  // Scroll offset shared with the collapsible header.
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
+
+  // FlashList's grid manager lays out columns with absolute `left` positions,
+  // which never mirrors under RTL. Reverse each row's items so the grid reads
+  // right-to-left in Arabic without reshuffling which project sits in which row.
+  const displayData = useMemo(() => {
+    if (!isRTL || numColumns <= 1) {
+      return projects;
+    }
+    const out: MidadProject[] = [];
+    for (let i = 0; i < projects.length; i += numColumns) {
+      out.push(...projects.slice(i, i + numColumns).reverse());
+    }
+    return out;
+  }, [isRTL, numColumns, projects]);
 
   const fetchAll = useCallback(async () => {
     const list = await listProjects();
@@ -80,6 +139,17 @@ export default function GalleryScreen() {
     };
   }, [fetchAll]);
 
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const { list, thumbs: nextThumbs } = await fetchAll();
+      setProjects(list);
+      setThumbs(nextThumbs);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchAll]);
+
   const handleImportText = useCallback(
     async (text: string) => {
       const status = await importProjectFromJson(text);
@@ -88,11 +158,9 @@ export default function GalleryScreen() {
         return;
       }
       setImportError(null);
-      const { list, thumbs: nextThumbs } = await fetchAll();
-      setProjects(list);
-      setThumbs(nextThumbs);
+      await refresh();
     },
-    [fetchAll, t],
+    [refresh, t],
   );
 
   const importProject = useCallback(async () => {
@@ -142,64 +210,133 @@ export default function GalleryScreen() {
     [router],
   );
 
-  return (
-    <View style={[styles.safe, { backgroundColor: c.paper, paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={[styles.title, { fontFamily: fonts.uiBold, color: c.ink }]}>
-            {t.gallery.title}
-          </Text>
-          <Text style={[styles.subtitle, { fontFamily: fonts.ui, color: c.muted }]}>
-            {projects.length} · {t.gallery.designCard}
-          </Text>
-        </View>
-        <View style={styles.headerActions}>
-          <Button label={t.gallery.importDesigns} onPress={importProject} variant="secondary" />
-          <Button label={t.gallery.newDesign} onPress={createNew} />
-        </View>
+  const openMenu = useCallback(
+    (project: MidadProject) => {
+      setMenuProject(project);
+      setConfirmDelete(false);
+      setRenaming(false);
+      setRenameText(project.name || '');
+    },
+    [],
+  );
+
+  const closeMenu = useCallback(() => setMenuProject(null), []);
+
+  const duplicateProject = useCallback(async () => {
+    if (!menuProject) return;
+    const src = (await loadProject(menuProject.id)) ?? menuProject;
+    const now = new Date().toISOString();
+    const copy: MidadProject = {
+      ...src,
+      id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: src.name ? `${src.name}${t.gallery.copySuffix}` : '',
+      createdAt: now,
+      updatedAt: now,
+    };
+    await saveProject(copy);
+    closeMenu();
+    await refresh();
+  }, [closeMenu, menuProject, refresh, t]);
+
+  const renameProject = useCallback(async () => {
+    if (!menuProject) return;
+    const name = renameText.trim();
+    await saveProject({ ...menuProject, name, updatedAt: new Date().toISOString() });
+    closeMenu();
+    await refresh();
+  }, [closeMenu, menuProject, refresh, renameText]);
+
+  const removeProject = useCallback(async () => {
+    if (!menuProject) return;
+    await deleteProject(menuProject.id);
+    await deleteThumb(menuProject.id);
+    closeMenu();
+    await refresh();
+  }, [closeMenu, menuProject, refresh]);
+
+  const sheetTitle = menuProject?.name || t.gallery.untitled;
+
+  const renderImportError = () => (
+    <View
+      style={[
+        styles.importErrorWrap,
+        rowStyle(isRTL),
+        { backgroundColor: c.dangerBg },
+      ]}
+      accessibilityLiveRegion="polite">
+      <View style={styles.importErrorText}>
+        <Text style={[styles.importError, { color: c.danger }]}>{importError}</Text>
+        <Text style={[styles.importHint, { color: c.muted }]}>{t.gallery.importFailedHint}</Text>
       </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.common.close}
+        hitSlop={10}
+        onPress={() => setImportError(null)}>
+        <Icon name="close" size={16} color={c.muted} />
+      </Pressable>
+    </View>
+  );
 
-      {!!importError && (
-        <Text style={[styles.importError, { color: '#7A1F1F', fontFamily: fonts.ui }]}>
-          {importError}
-        </Text>
-      )}
-
+  return (
+    <View style={[styles.safe, { backgroundColor: c.paper }]}>
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={c.ink} />
+        <View
+          style={[
+            styles.skeletonWrap,
+            { paddingTop: contentTop + spacing.md, maxWidth: MAX_LIST_WIDTH },
+          ]}>
+          {Array.from({ length: isWide ? 4 : 6 }).map((_, i) => (
+            <ProjectCardSkeleton key={i} layout={isWide ? 'stack' : 'row'} />
+          ))}
         </View>
       ) : projects.length === 0 ? (
-        <View style={styles.center}>
-          <EmptyState
-            glyph="خط"
-            title={t.gallery.emptyTitle}
-            description={t.gallery.emptyBody}>
-            <Button label={t.gallery.newDesign} onPress={createNew} />
-          </EmptyState>
+        <View style={[styles.emptyWrap, { paddingTop: contentTop, maxWidth: MAX_LIST_WIDTH }]}>
+          {!!importError && renderImportError()}
+          <View style={styles.center}>
+            <EmptyState
+              glyph="خط"
+              title={t.gallery.emptyTitle}
+              description={t.gallery.emptyBody}>
+              <Button label={t.gallery.newDesign} onPress={createNew} />
+            </EmptyState>
+          </View>
         </View>
       ) : (
         <FlashList
-          data={projects}
-          numColumns={2}
+          key={numColumns}
+          data={displayData}
+          numColumns={numColumns}
           keyExtractor={(item) => item.id}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          style={{ ...styles.listWrap, maxWidth: MAX_LIST_WIDTH }}
+          ListHeaderComponent={importError ? renderImportError : undefined}
           contentContainerStyle={[
             styles.list,
-            { paddingBottom: spacing.xxxl + insets.bottom },
+            { paddingTop: contentTop, paddingBottom: spacing.xxxl + insets.bottom },
           ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={refresh}
+              tintColor={c.muted}
+              colors={[c.muted]}
+              progressBackgroundColor={c.surface}
+            />
+          }
           renderItem={({ item }) => {
-            const ratio = item.canvas.height / item.canvas.width;
             const thumbUri = thumbs[item.id];
             return (
-              <Card onPress={() => openProject(item.id)} style={styles.card}>
+              <Card
+                onPress={() => openProject(item.id)}
+                onLongPress={() => openMenu(item)}
+                style={[styles.card, !isWide && styles.cardRow, !isWide && rowStyle(isRTL)]}>
                 <View
                   style={[
                     styles.thumb,
-                    {
-                      aspectRatio: ratio,
-                      backgroundColor: item.canvas.background.color ?? c.surfaceAlt,
-                      borderColor: c.border,
-                    },
+                    !isWide && styles.thumbRow,
+                    { backgroundColor: c.surfaceAlt, borderColor: c.border },
                   ]}>
                   {thumbUri ? (
                     <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="contain" />
@@ -207,7 +344,7 @@ export default function GalleryScreen() {
                     <Icon name="pen" color={c.faint} size={22} />
                   )}
                 </View>
-                <View style={styles.cardBody}>
+                <View style={!isWide ? styles.cardBodyRow : styles.cardBody}>
                   <Text
                     numberOfLines={1}
                     style={[styles.cardName, { fontFamily: fonts.ui, color: c.ink }]}>
@@ -217,11 +354,74 @@ export default function GalleryScreen() {
                     {formatDate(item.updatedAt, language)}
                   </Text>
                 </View>
+                {!isWide && (
+                  <View style={styles.rowChevron}>
+                    <DirectionIcon isRTL={isRTL} color={c.faint} size={18} />
+                  </View>
+                )}
               </Card>
             );
           }}
         />
       )}
+
+      <GalleryHeader
+        scrollY={scrollY}
+        count={formatGalleryCount(projects.length, language)}
+        isWide={isWide}
+        onImport={importProject}
+        onCreate={createNew}
+      />
+
+      <Sheet visible={!!menuProject} onClose={closeMenu} title={sheetTitle}>
+        {confirmDelete ? (
+          <View style={styles.sheetBody}>
+            <Text style={[styles.confirmText, { color: c.ink, fontFamily: fonts.ui }]}>
+              {t.gallery.deleteTitle}
+            </Text>
+            <Text style={[styles.confirmSub, { color: c.muted, fontFamily: fonts.ui }]}>
+              {t.gallery.deleteBody}
+            </Text>
+            <Button label={t.common.delete} onPress={removeProject} variant="danger" fullWidth />
+            <Button label={t.common.cancel} onPress={() => setConfirmDelete(false)} variant="secondary" fullWidth />
+          </View>
+        ) : renaming ? (
+          <View style={styles.sheetBody}>
+            <TextInput
+              value={renameText}
+              onChangeText={setRenameText}
+              placeholder={t.gallery.untitled}
+              placeholderTextColor={c.faint}
+              autoFocus
+              style={[
+                styles.renameInput,
+                { backgroundColor: c.surfaceAlt, borderColor: c.border, color: c.ink, fontFamily: fonts.ui },
+              ]}
+            />
+            <Button label={t.common.save} onPress={renameProject} fullWidth />
+            <Button label={t.common.cancel} onPress={() => setRenaming(false)} variant="secondary" fullWidth />
+          </View>
+        ) : (
+          <View style={styles.sheetBody}>
+            <Button
+              label={t.common.open}
+              onPress={() => {
+                closeMenu();
+                openProject(menuProject!.id);
+              }}
+              fullWidth
+            />
+            <Button
+              label={t.common.rename}
+              onPress={() => setRenaming(true)}
+              variant="secondary"
+              fullWidth
+            />
+            <Button label={t.common.duplicate} onPress={duplicateProject} variant="secondary" fullWidth />
+            <Button label={t.common.delete} onPress={() => setConfirmDelete(true)} variant="danger" fullWidth />
+          </View>
+        )}
+      </Sheet>
     </View>
   );
 }
@@ -230,54 +430,74 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
-  header: {
+  importErrorWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    gap: spacing.md,
-  },
-  headerText: {
-    flex: 1,
-    gap: spacing.xxs,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 10,
     gap: spacing.sm,
   },
+  importErrorText: {
+    flex: 1,
+    gap: 2,
+  },
   importError: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.sm,
     fontSize: typeScale.small.size,
   },
-  title: {
-    fontSize: typeScale.title.size,
-    lineHeight: typeScale.title.lineHeight,
-    letterSpacing: typeScale.title.letterSpacing,
-  },
-  subtitle: {
+  importHint: {
     fontSize: typeScale.caption.size,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
   },
+  emptyWrap: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  listWrap: {
+    width: '100%',
+    alignSelf: 'center',
+  },
   list: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.sm,
     gap: spacing.md,
   },
   card: {
     flex: 1,
     overflow: 'hidden',
+    marginHorizontal: spacing.xs,
+  },
+  // Phone layout — horizontal row card.
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   thumb: {
+    aspectRatio: THUMB_RATIO,
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 1,
   },
+  thumbRow: {
+    width: ROW_THUMB_W,
+    height: ROW_THUMB_W / THUMB_RATIO,
+    borderEndWidth: 1,
+    borderBottomWidth: 0,
+  },
+  rowChevron: {
+    marginEnd: spacing.lg,
+  },
   cardBody: {
+    padding: spacing.md,
+    gap: spacing.xxs,
+  },
+  cardBodyRow: {
+    flex: 1,
     padding: spacing.md,
     gap: spacing.xxs,
   },
@@ -288,5 +508,30 @@ const styles = StyleSheet.create({
   },
   cardDate: {
     fontSize: typeScale.caption.size,
+  },
+  skeletonWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: spacing.sm,
+    gap: spacing.md,
+  },
+  sheetBody: {
+    gap: spacing.md,
+  },
+  confirmText: {
+    fontSize: typeScale.body.size,
+    lineHeight: typeScale.body.lineHeight,
+    fontWeight: '600',
+  },
+  confirmSub: {
+    fontSize: typeScale.small.size,
+    lineHeight: typeScale.small.lineHeight,
+  },
+  renameInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: typeScale.body.size,
   },
 });

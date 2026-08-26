@@ -53,10 +53,13 @@ export interface Translation {
     emptyTitle: string;
     emptyBody: string;
     newDesign: string;
-    designCard: string;
     untitled: string;
     importDesigns: string;
     importFailed: string;
+    deleteTitle: string;
+    deleteBody: string;
+    copySuffix: string;
+    importFailedHint: string;
   };
   settings: {
     title: string;
@@ -73,6 +76,7 @@ export interface Translation {
     aboutBody: string;
     version: string;
     credits: string;
+    restartNotice: string;
   };
 editor: {
       newProject: string;
@@ -151,10 +155,13 @@ export const strings: Record<Language, Translation> = {
       emptyTitle: 'لا توجد تصاميم بعد',
       emptyBody: 'ابدأ رحلتك مع الخط العربي وأنشئ أول لوحة.',
       newDesign: 'تصميم جديد',
-      designCard: 'تصميم بدون عنوان',
       untitled: 'بدون عنوان',
       importDesigns: 'استيراد',
       importFailed: 'تعذّر استيراد الملف',
+      deleteTitle: 'حذف التصميم؟',
+      deleteBody: 'سيُحذف التصميم وصورته المصغّرة نهائيًا ولا يمكن التراجع.',
+      copySuffix: ' — نسخة',
+      importFailedHint: 'تأكد من أن الملف بصيغة ‎.midad أو JSON صالح.',
     },
     settings: {
       title: 'الإعدادات',
@@ -171,6 +178,7 @@ export const strings: Record<Language, Translation> = {
       aboutBody: 'مداد — استوديو الخط العربي.',
       version: 'الإصدار',
       credits: 'الخطوط مرخّصة بموجب رخصة SIL Open Font License',
+      restartNotice: 'أعد تشغيل التطبيق ليُطبَّق اتجاه الواجهة الجديد بالكامل.',
     },
     editor: {
       newProject: 'لوحة جديدة',
@@ -247,10 +255,13 @@ export const strings: Record<Language, Translation> = {
       emptyTitle: 'No designs yet',
       emptyBody: 'Start your calligraphy journey and create your first artwork.',
       newDesign: 'New design',
-      designCard: 'Untitled design',
       untitled: 'Untitled',
       importDesigns: 'Import',
       importFailed: 'Could not import file',
+      deleteTitle: 'Delete this design?',
+      deleteBody: 'The design and its thumbnail will be permanently removed. This cannot be undone.',
+      copySuffix: ' (copy)',
+      importFailedHint: 'Make sure the file is a valid .midad or JSON file.',
     },
     settings: {
       title: 'Settings',
@@ -267,6 +278,7 @@ export const strings: Record<Language, Translation> = {
       aboutBody: 'midad — the Arabic calligraphy studio.',
       version: 'Version',
       credits: 'Fonts under the SIL Open Font License',
+      restartNotice: 'Restart the app to fully apply the new interface direction.',
     },
     editor: {
       newProject: 'New artwork',
@@ -296,3 +308,34 @@ export const strings: Record<Language, Translation> = {
     },
   },
 };
+
+/** Pluralized gallery subtitle: "3 designs" / "ثلاثة تصاميم". */
+const COUNT_TEMPLATES: Record<Language, Record<Intl.LDMLPluralRule, string>> = {
+  en: {
+    one: '{n} design',
+    two: '',
+    few: '',
+    many: '',
+    zero: '',
+    other: '{n} designs',
+  },
+  ar: {
+    zero: 'لا توجد تصاميم',
+    one: 'تصميم واحد',
+    two: 'تصميمان',
+    few: '{n} تصاميم',
+    many: '{n} تصميمًا',
+    other: '{n} تصميم',
+  },
+};
+
+/**
+ * Latin (Western) digits everywhere by default — Arabic text keeps its
+ * plural grammar but numerals stay `2026`-style unless the user opts in.
+ */
+export function formatGalleryCount(n: number, language: Language): string {
+  const category = new Intl.PluralRules(language === 'ar' ? 'ar' : 'en').select(n);
+  const template = COUNT_TEMPLATES[language][category];
+  const digits = n.toLocaleString('en-US');
+  return template.replace('{n}', digits);
+}

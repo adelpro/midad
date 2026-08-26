@@ -144,6 +144,11 @@ export const radius = {
   pill: 9999,
 } as const;
 
+/** Layout breakpoints (dp): phone-first; `wide` switches to tablet/desktop. */
+export const breakpoint = {
+  wide: 600,
+} as const;
+
 export const motion = {
   fast: 150,
   base: 250,
@@ -155,9 +160,11 @@ export const motion = {
 } as const;
 
 export const typeScale = {
-  display: { size: 40, lineHeight: 44, letterSpacing: -0.02 },
-  title: { size: 32, lineHeight: 36, letterSpacing: -0.02 },
-  heading: { size: 24, lineHeight: 30, letterSpacing: -0.01 },
+  // Negative letter-spacing visually breaks Arabic cursive joins, and the app
+  // is Arabic-first — keep tracking at 0 for display/title/heading sizes.
+  display: { size: 40, lineHeight: 44, letterSpacing: 0 },
+  title: { size: 32, lineHeight: 36, letterSpacing: 0 },
+  heading: { size: 24, lineHeight: 30, letterSpacing: 0 },
   subheading: { size: 18, lineHeight: 26, letterSpacing: 0 },
   body: { size: 16, lineHeight: 24, letterSpacing: 0 },
   small: { size: 14, lineHeight: 20, letterSpacing: 0 },

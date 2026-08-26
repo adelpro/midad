@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react';
-import { createContext, useContext, useEffect, useMemo } from 'react';
-import { I18nManager } from 'react-native';
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo } from 'react';
+import { I18nManager, Platform } from 'react-native';
 
 import * as Localization from 'expo-localization';
 
@@ -37,6 +37,18 @@ export function I18nProvider({ children }: PropsWithChildren) {
     const isRTL = language === 'ar';
     if (I18nManager.isRTL !== isRTL) {
       I18nManager.forceRTL(isRTL);
+    }
+  }, [language]);
+
+  // On web, react-native-web compiles to real CSS flexbox, which mirrors
+  // natively from the document direction — tab bar order, flex rows, logical
+  // margins. Setting `dir` here gives us live RTL mirroring without a reload.
+  // (useLayoutEffect so it applies before first paint, avoiding an LTR flash.)
+  useLayoutEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const isRTL = language === 'ar';
+      document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+      document.documentElement.lang = language;
     }
   }, [language]);
 

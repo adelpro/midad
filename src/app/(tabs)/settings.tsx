@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui';
@@ -46,6 +47,14 @@ export default function SettingsScreen() {
   const { colors: c } = useTheme();
   const fonts = fontRoles[language];
   const { theme, setTheme, language: lang, setLanguage } = useSettings();
+  const [languageJustChanged, setLanguageJustChanged] = useState(false);
+
+  const changeLanguage = (next: 'ar' | 'en') => {
+    if (next !== lang) {
+      setLanguage(next);
+      setLanguageJustChanged(true);
+    }
+  };
 
   const themeOptions: { key: ThemePreference; label: string }[] = [
     { key: 'system', label: t.settings.themeSystem },
@@ -69,15 +78,20 @@ export default function SettingsScreen() {
             <ChoiceButton
               label="العربية"
               active={lang === 'ar'}
-              onPress={() => setLanguage('ar')}
+              onPress={() => changeLanguage('ar')}
             />
             <ChoiceButton
               label="English"
               active={lang === 'en'}
-              onPress={() => setLanguage('en')}
+              onPress={() => changeLanguage('en')}
             />
           </View>
         </View>
+        {languageJustChanged && (
+          <Text style={[styles.restartNotice, { color: c.accentText, fontFamily: fonts.ui }]}>
+            {t.settings.restartNotice}
+          </Text>
+        )}
 
         <SectionLabel>{t.settings.themeSection}</SectionLabel>
         <View style={[styles.row, { backgroundColor: c.surface, borderColor: c.border }]}>
@@ -161,5 +175,10 @@ const styles = StyleSheet.create({
   choiceBtn: {
     flex: 1,
     minWidth: 96,
+  },
+  restartNotice: {
+    fontSize: typeScale.small.size,
+    lineHeight: typeScale.small.lineHeight,
+    paddingHorizontal: spacing.lg,
   },
 });

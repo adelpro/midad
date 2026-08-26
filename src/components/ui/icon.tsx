@@ -139,9 +139,9 @@ export function Icon({ name, size = 20, color, weight = 'regular' }: IconProps) 
   return <Cmp size={size} color={color ?? c.ink} weight={weight} />;
 }
 
-/** RTL-aware chevron (points left in RTL for "back", right in LTR). */
+/** RTL-aware chevron (mirrors with reading direction: right in LTR, left in RTL). */
 export function DirectionIcon({ isRTL, color, size }: { isRTL: boolean; color?: string; size?: number }) {
-  return <Icon name={isRTL ? 'chevronRight' : 'chevronLeft'} color={color} size={size} />;
+  return <Icon name={isRTL ? 'chevronLeft' : 'chevronRight'} color={color} size={size} />;
 }
 
 /** Convenience renderer for embedding an icon inline. */
