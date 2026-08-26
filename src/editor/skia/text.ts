@@ -75,10 +75,15 @@ export function layoutArabicText(spec: TextLayoutSpec, fonts: SkTypefaceFontProv
   // TextDirection enum: RTL=0, LTR=1
   const direction = isArabic ? 0 : 1;
 
-  const builder = Skia.ParagraphBuilder.Make({
-    textAlign: align,
-    textDirection: direction,
-  });
+  // The typeface provider is mandatory on web (no system font manager) and
+  // guarantees the bundled calligraphy fonts are used on native as well.
+  const builder = Skia.ParagraphBuilder.Make(
+    {
+      textAlign: align,
+      textDirection: direction,
+    },
+    fonts,
+  );
 
   const style = {
     fontFamilies: [family],

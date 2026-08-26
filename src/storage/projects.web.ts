@@ -1,15 +1,16 @@
-import { Directory, File, Paths } from "expo-file-system";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { MidadProject } from "@/storage/project-schema";
+import type { MidadProject } from '@/storage/project-schema';
 
-const DIR = "midad-projects";
+/**
+ * Web implementation: browser localStorage (via AsyncStorage).
+ * Mirrors the native file-based layout (index + one document per project).
+ */
 
-async function ensureDir(): Promise<Directory> {
-  const dir = new Directory(Paths.document, DIR);
-  if (!dir.exists) {
-    dir.create({ idempotent: true, intermediates: true });
-  }
-  return dir;
+const INDEX_KEY = 'midad-projects.index';
+
+function projectKey(id: string): string {
+  return `midad-projects:${id}`;
 }
 
 function fileName(id: string): string {
@@ -17,22 +18,16 @@ function fileName(id: string): string {
 }
 
 async function readIndex(): Promise<Record<string, string>> {
-  const dir = await ensureDir();
-  const indexFile = new File(dir, ".index.json");
-  if (!indexFile.exists) {
-    return {};
-  }
   try {
-    return JSON.parse(indexFile.textSync()) as Record<string, string>;
+    const raw = await AsyncStorage.getItem(INDEX_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
   } catch {
     return {};
   }
 }
 
 async function writeIndex(index: Record<string, string>): Promise<void> {
-  const dir = await ensureDir();
-  const indexFile = dir.createFile(".index.json", "application/json");
-  indexFile.write(JSON.stringify(index));
+  await AsyncStorage.setItem(INDEX_KEY, JSON.stringify(index));
 }
 
 export async function listProjects(): Promise<MidadProject[]> {
@@ -49,12 +44,8 @@ export async function listProjects(): Promise<MidadProject[]> {
 
 export async function loadProject(id: string): Promise<MidadProject | null> {
   try {
-    const dir = await ensureDir();
-    const file = new File(dir, fileName(id));
-    if (!file.exists) {
-      return null;
-    }
-    return JSON.parse(file.textSync()) as MidadProject;
+    const raw = await AsyncStorage.getItem(projectKey(id));
+    return raw ? (JSON.parse(raw) as MidadProject) : null;
   } catch {
     return null;
   }
@@ -64,14 +55,7 @@ export async function saveProject(project: MidadProject): Promise<void> {
   const index = await readIndex();
   index[project.id] = fileName(project.id);
   await writeIndex(index);
-
-  const dir = await ensureDir();
-  const file = new File(dir, fileName(project.id));
-  if (file.exists) {
-    file.delete();
-  }
-  file.create();
-  file.write(JSON.stringify(project));
+  await AsyncStorage.setItem(projectKey(project.id), JSON.stringify(project));
 }
 
 export async function deleteProject(id: string): Promise<void> {
@@ -80,18 +64,13 @@ export async function deleteProject(id: string): Promise<void> {
   await writeIndex(index);
 
   try {
-    const dir = await ensureDir();
-    const file = new File(dir, fileName(id));
-    if (file.exists) {
-      file.delete();
-    }
+    await AsyncStorage.removeItem(projectKey(id));
   } catch {
-    // ignore missing file
+    // ignore missing entry
   }
 }
 
-export async function projectFileUri(id: string): Promise<string | null> {
-  const dir = await ensureDir();
-  const file = new File(dir, fileName(id));
-  return file.exists ? file.uri : null;
+/** No real file URI exists on web; sharing reads project data directly. */
+export async function projectFileUri(_id: string): Promise<string | null> {
+  return null;
 }
