@@ -1,20 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet } from 'react-native';
 import {
   Canvas,
+  Circle,
+  DashPathEffect,
   Group,
   Line,
   Paragraph,
   Rect,
   vec,
-} from '@shopify/react-native-skia';
+} from "@shopify/react-native-skia";
+import { useEffect, useMemo, useState } from "react";
+import { StyleSheet } from "react-native";
 
-import { useTextLayouts, textObjectSize } from '@/editor/skia/use-text-layouts';
-import { SHAPE_BASE_SIZE } from '@/editor/skia/shape-geometry';
-import { ShapeRenderer } from '@/editor/skia/shapes';
-import { hitTest, type SizedObject } from '@/editor/hit-test';
-import { useEditorStore } from '@/editor/store';
-import type { DesignObject, MidadProject } from '@/storage/project-schema';
+import {
+  hitTest,
+  resizeHandles,
+  rotateHandle,
+  selectionPad,
+  type SizedObject,
+} from "@/editor/hit-test";
+import { SHAPE_BASE_SIZE } from "@/editor/skia/shape-geometry";
+import { ShapeRenderer } from "@/editor/skia/shapes";
+import { textObjectSize, useTextLayouts } from "@/editor/skia/use-text-layouts";
+import { useEditorStore } from "@/editor/store";
+import type { DesignObject, MidadProject } from "@/storage/project-schema";
 
 export interface EditorCanvasProps {
   project: MidadProject;
@@ -24,24 +32,35 @@ export interface EditorCanvasProps {
   onTapResult?: (id: string | null) => void;
 }
 
-function objectBox(obj: DesignObject, layouts: ReturnType<typeof useTextLayouts>): { width: number; height: number } {
+function objectBox(
+  obj: DesignObject,
+  layouts: ReturnType<typeof useTextLayouts>,
+): { width: number; height: number } {
   switch (obj.type) {
-    case 'text': {
+    case "text": {
       const layout = layouts[obj.id];
-      return textObjectSize(layout, obj.fontSize);
+      return textObjectSize(layout, obj.fontSize, obj.wrapWidth);
     }
-    case 'shape':
-    case 'glyph': {
+    case "shape":
+    case "glyph": {
       const base = SHAPE_BASE_SIZE * (obj.transform.scale || 1);
       return { width: base, height: base };
     }
   }
 }
 
-export function EditorCanvas({ project, selectedIds, tapPoint, onTapResult }: EditorCanvasProps) {
+export function EditorCanvas({
+  project,
+  selectedIds,
+  tapPoint,
+  onTapResult,
+}: EditorCanvasProps) {
   const [view, setView] = useState<{ w: number; h: number } | null>(null);
   const textObjects = useMemo(
-    () => project.objects.filter((o): o is Extract<DesignObject, { type: 'text' }> => o.type === 'text'),
+    () =>
+      project.objects.filter(
+        (o): o is Extract<DesignObject, { type: "text" }> => o.type === "text",
+      ),
     [project.objects],
   );
   const layouts = useTextLayouts(textObjects, project.canvas.width);
@@ -68,7 +87,10 @@ export function EditorCanvas({ project, selectedIds, tapPoint, onTapResult }: Ed
     if (!view || view.w === 0 || view.h === 0) {
       return { scale: 1, offsetX: 0, offsetY: 0 };
     }
-    const s = Math.min(view.w / project.canvas.width, view.h / project.canvas.height);
+    const s = Math.min(
+      view.w / project.canvas.width,
+      view.h / project.canvas.height,
+    );
     return {
       scale: s,
       offsetX: (view.w - project.canvas.width * s) / 2,
@@ -93,7 +115,8 @@ export function EditorCanvas({ project, selectedIds, tapPoint, onTapResult }: Ed
         .map((obj) => ({
           ...obj,
           box: objectBox(obj, layouts),
-          paragraph: obj.type === 'text' ? layouts[obj.id]?.paragraph : undefined,
+          paragraph:
+            obj.type === "text" ? layouts[obj.id]?.paragraph : undefined,
         }))
         .sort((a, b) => a.zIndex - b.zIndex),
     [project.objects, layouts],
@@ -101,16 +124,38 @@ export function EditorCanvas({ project, selectedIds, tapPoint, onTapResult }: Ed
 
   const { width, height } = project.canvas;
   const bg = project.canvas.background;
-  const paperColor = bg.type === 'paper' ? bg.color ?? '#F7F6F3' : '#FFFFFF';
+  const paperColor = bg.type === "paper" ? (bg.color ?? "#F7F6F3") : "#FFFFFF";
 
   return (
-    <Canvas style={styles.canvas} onLayout={(e) => setView({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-      <Group transform={[{ translateX: offsetX }, { translateY: offsetY }, { scale }]}>
+    <Canvas
+      style={styles.canvas}
+      onLayout={(e) =>
+        setView({
+          w: e.nativeEvent.layout.width,
+          h: e.nativeEvent.layout.height,
+        })
+      }
+    >
+      <Group
+        transform={[
+          { translateX: offsetX },
+          { translateY: offsetY },
+          { scale },
+        ]}
+      >
         {/* Background */}
-        <Rect x={0} y={0} width={width} height={height} color={bg.type === 'transparent' ? 'transparent' : paperColor} />
+        <Rect
+          x={0}
+          y={0}
+          width={width}
+          height={height}
+          color={bg.type === "transparent" ? "transparent" : paperColor}
+        />
 
         {/* Grid */}
-        {project.gridEnabled && <GridOverlay width={width} height={height} scale={scale} />}
+        {project.gridEnabled && (
+          <GridOverlay width={width} height={height} scale={scale} />
+        )}
 
         {/* Objects */}
         {objects.map((obj) => {
@@ -128,23 +173,25 @@ export function EditorCanvas({ project, selectedIds, tapPoint, onTapResult }: Ed
                 { scaleX },
                 { scaleY },
               ]}
-              origin={vec(0, 0)}>
-              {obj.type === 'text' && obj.paragraph ? (
-                <Paragraph paragraph={obj.paragraph} x={-obj.box.width / 2} y={-obj.box.height / 2} width={obj.box.width} />
-              ) : obj.type === 'shape' ? (
+              origin={vec(0, 0)}
+            >
+              {obj.type === "text" && obj.paragraph ? (
+                <Paragraph
+                  paragraph={obj.paragraph}
+                  x={-obj.box.width / 2}
+                  y={-obj.box.height / 2}
+                  width={obj.box.width}
+                />
+              ) : obj.type === "shape" ? (
                 <Group origin={vec(-obj.box.width / 2, -obj.box.height / 2)}>
                   <ShapeRenderer shape={obj} size={obj.box.width} />
                 </Group>
               ) : null}
               {selectedIds.includes(obj.id) && (
-                <Rect
-                  x={-obj.box.width / 2 - 4}
-                  y={-obj.box.height / 2 - 4}
-                  width={obj.box.width + 8}
-                  height={obj.box.height + 8}
-                  color="transparent"
-                  style="stroke"
-                  strokeWidth={1.5 / scale}
+                <SelectionOverlay
+                  box={obj.box}
+                  scale={scale}
+                  objectScale={Math.abs(t.scale) || 1}
                 />
               )}
             </Group>
@@ -155,16 +202,116 @@ export function EditorCanvas({ project, selectedIds, tapPoint, onTapResult }: Ed
   );
 }
 
-function GridOverlay({ width, height, scale }: { width: number; height: number; scale: number }) {
+function GridOverlay({
+  width,
+  height,
+  scale,
+}: {
+  width: number;
+  height: number;
+  scale: number;
+}) {
   const step = 40;
   const lines = [];
   for (let i = 1; i <= Math.floor(width / step); i++) {
-    lines.push(<Line key={`v${i}`} p1={vec(i * step, 0)} p2={vec(i * step, height)} color="rgba(0,0,0,0.08)" strokeWidth={1 / scale} />);
+    lines.push(
+      <Line
+        key={`v${i}`}
+        p1={vec(i * step, 0)}
+        p2={vec(i * step, height)}
+        color="rgba(0,0,0,0.08)"
+        strokeWidth={1 / scale}
+      />,
+    );
   }
   for (let j = 1; j <= Math.floor(height / step); j++) {
-    lines.push(<Line key={`h${j}`} p1={vec(0, j * step)} p2={vec(width, j * step)} color="rgba(0,0,0,0.08)" strokeWidth={1 / scale} />);
+    lines.push(
+      <Line
+        key={`h${j}`}
+        p1={vec(0, j * step)}
+        p2={vec(width, j * step)}
+        color="rgba(0,0,0,0.08)"
+        strokeWidth={1 / scale}
+      />,
+    );
   }
   return <Group>{lines}</Group>;
+}
+
+/**
+ * Dashed selection outline, eight resize handles, and a rotation grip around
+ * an object's bounding box. Drawn inside the object's own transform group so it
+ * rotates/flips with the object. Handles come from the shared geometry helpers
+ * so the overlay and the gesture hit-test always agree: corners scale
+ * proportionally, east/west edges re-flow text width, north/south edges scale
+ * the text size, and the grip above the top edge rotates about the centre.
+ */
+function SelectionOverlay({
+  box,
+  scale,
+  objectScale,
+}: {
+  box: { width: number; height: number };
+  scale: number;
+  objectScale: number;
+}) {
+  const chromePad = selectionPad(objectScale);
+  const pad = chromePad * 2;
+  const hw = box.width / 2 + chromePad;
+  const hh = box.height / 2 + chromePad;
+  const border = 1.5 / scale;
+  const handleR = 4 / scale;
+  const gripR = 5 / scale;
+  const positions = resizeHandles(box, objectScale);
+  const grip = rotateHandle(box, objectScale);
+  return (
+    <Group>
+      <Rect
+        x={-hw}
+        y={-hh}
+        width={box.width + pad}
+        height={box.height + pad}
+        color="transparent"
+        style="stroke"
+        strokeWidth={border}
+      >
+        <DashPathEffect intervals={[6 / scale, 5 / scale]} />
+      </Rect>
+      {positions.map((p) => (
+        <Circle
+          key={p.handle}
+          c={vec(p.x, p.y)}
+          r={handleR}
+          color="#111111"
+          style="stroke"
+          strokeWidth={2 / scale}
+        />
+      ))}
+      {positions.map((p) => (
+        <Circle
+          key={`c${p.handle}`}
+          c={vec(p.x, p.y)}
+          r={handleR}
+          color="#FFFFFF"
+        />
+      ))}
+      {/* Rotation grip, on a short stalk above the box's top edge */}
+      <Line
+        p1={vec(0, -hh)}
+        p2={vec(grip.x, grip.y)}
+        color="#111111"
+        strokeWidth={border}
+      />
+      <Circle
+        c={vec(grip.x, grip.y)}
+        r={gripR}
+        color="#111111"
+        style="stroke"
+        strokeWidth={2 / scale}
+      />
+      <Circle c={vec(grip.x, grip.y)} r={gripR} color="#FFFFFF" />
+    </Group>
+  );
 }
 
 const styles = StyleSheet.create({

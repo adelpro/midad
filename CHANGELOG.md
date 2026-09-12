@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - **Export & share (Phase 4):**
   - Offscreen PNG rasterizer mirroring the editor canvas (zIndex order,
     transforms, flips, centered shaped paragraphs) at any target resolution
@@ -75,11 +76,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   phrasing, removed redundancy)
 
 ### Changed
+
 - React Compiler compliance across the onboarding pager and editor gesture
   hooks (shared-value writes annotated, ref/state access moved into the store);
   gallery project fetch restructured out of the synchronous render path
+- **Editor resize handles are now axis-aware** (previously all eight handles
+  performed the same centre-anchored proportional scale, so dragging a side
+  handle resized the whole object and changed the font size):
+  - **Corner handles** scale proportionally, pinning the opposite corner
+  - **Top/bottom handles on text** change the font size, pinning the opposite edge
+  - **Left/right handles on text** change the wrap width so the glyphs re-flow
+    (narrowing can push a line onto two, widening can pull it back to one) while
+    the font size stays put; the new `wrapWidth` field is optional, so existing
+    `.midad.json` documents keep loading as auto-width text
+  - Handle geometry is shared between the gesture hit-test and the drawn
+    overlay, handle touch targets stay a constant size regardless of object
+    scale, and the SVG export reproduces soft wraps via Skia's line metrics
+    (falling back to explicit newlines if the metrics cannot be mapped)
+- **Text width is resolved before shaping**, so the selection box always matches
+  the glyphs. Auto-width text is measured unwrapped and then capped at the
+  canvas, so a short caption's box hugs it exactly and an over-long line wraps
+  at the canvas edge; a manual wrap width still takes precedence. This also
+  removes a mismatch where the box was measured at the canvas width while the
+  glyphs were laid out at the box width (which let centred text sit off-centre
+  and let the measured height drift from the painted one).
 
-### Added
+### Fixed
+
+- **Text boxes were always one unit too narrow, so every auto-width text wrapped
+  onto a second line** inside a container that looked too small. Skia truncates
+  a paragraph's layout width to an integer, and the width was taken straight
+  from `getLongestLine()` (a float), so shaping at it collapsed to its floor and
+  re-wrapped the very line it was measured from. The resolved width is now
+  rounded up, which keeps text that fits on one line on one line while a manual
+  wrap width and the canvas cap still behave as before.
+- **The rotation grip could swallow the top resize handle**, so vertical resize
+  silently became rotation on any object scaled below ~0.8 (and on very small
+  objects it could steal the side handles too). The grip's touch radius is a
+  constant size on screen while its distance from the box was expressed in local
+  units, so the two collided as the object shrank. Handle padding and the grip
+  gap are now authored in design units and converted through the object's scale,
+  exactly like the touch radii, and the closest target wins — verified for
+  object scales from 0.1 to 5 and rotations of 0°, -30° and 45°.
+
+- **Rotation grip** on the selection overlay: a handle on a stalk above the box
+  that turns the object about its centre, so rotation no longer requires the
+  two-finger gesture or the ±90° buttons. The angle accumulates in small
+  wrapped steps, so a drag can travel past 180° without the object snapping to
+  its mirrored angle. Available for every object type, and it rotates with the
+  object because it is drawn in the object's own frame.
+- **Fit to text** action in the selection context bar (text objects only),
+  which clears a manual wrap width so the object returns to auto width and hugs
+  its content again.
+- `fitText` icon (`ArrowsInLineHorizontal`) added to the icon set.
 - Full **dark mode** support:
   - Warm charcoal/ink palette that inverts the paper–ink relationship
   - `useTheme()` hook resolving the active palette from the system color scheme
@@ -90,6 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-08-21
 
 ### Added
+
 - Expo SDK 57 project scaffold (TypeScript, expo-router, new architecture, React Compiler)
 - Yarn as the package manager (`yarn.lock`)
 - Brand identity:
@@ -117,8 +167,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brand welcome screen with Amiri wordmark
 
 ### Changed
+
 - Removed Expo template demo code, demo assets, and unused dependencies
 - Migrated package management from npm to yarn
 
 ## [Unreleased] template history
+
 - This project was scaffolded from the Expo default template (SDK 57).

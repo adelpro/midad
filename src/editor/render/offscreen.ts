@@ -1,9 +1,15 @@
-import { PaintStyle, Skia } from '@shopify/react-native-skia';
-import type { SkPaint, SkTypefaceFontProvider } from '@shopify/react-native-skia';
+import type {
+  SkPaint,
+  SkTypefaceFontProvider,
+} from "@shopify/react-native-skia";
+import { PaintStyle, Skia } from "@shopify/react-native-skia";
 
-import { SHAPE_BASE_SIZE, drawShapeOnCanvas } from '@/editor/skia/shape-geometry';
-import { layoutArabicText } from '@/editor/skia/text';
-import type { MidadProject } from '@/storage/project-schema';
+import {
+  SHAPE_BASE_SIZE,
+  drawShapeOnCanvas,
+} from "@/editor/skia/shape-geometry";
+import { layoutArabicText } from "@/editor/skia/text";
+import type { MidadProject } from "@/storage/project-schema";
 
 export interface RenderedPngResult {
   base64DataUri: string;
@@ -39,22 +45,22 @@ export function renderProjectToPng(
   const w = Math.max(1, Math.round(W * s));
   const h = Math.max(1, Math.round(H * s));
 
-  const hasText = project.objects.some((o) => o.type === 'text');
+  const hasText = project.objects.some((o) => o.type === "text");
   if (hasText && !fonts) {
-    throw new Error('fonts-not-loaded');
+    throw new Error("fonts-not-loaded");
   }
 
   const surface = Skia.Surface.MakeOffscreen(w, h);
   if (!surface) {
-    throw new Error('offscreen-surface-unavailable');
+    throw new Error("offscreen-surface-unavailable");
   }
 
   const c = surface.getCanvas();
-  c.clear(Skia.Color('transparent'));
+  c.clear(Skia.Color("transparent"));
 
   const bg = project.canvas.background;
-  if (bg.type !== 'transparent') {
-    const color = bg.type === 'paper' ? bg.color ?? '#F7F6F3' : '#FFFFFF';
+  if (bg.type !== "transparent") {
+    const color = bg.type === "paper" ? (bg.color ?? "#F7F6F3") : "#FFFFFF";
     c.save();
     c.scale(s, s);
     c.drawRect(Skia.XYWHRect(0, 0, W, H), solidPaint(color));
@@ -66,14 +72,14 @@ export function renderProjectToPng(
 
   const sorted = [...project.objects].sort((a, b) => a.zIndex - b.zIndex);
   for (const obj of sorted) {
-    if (obj.type === 'glyph') continue; // parity with EditorCanvas: glyphs not rendered yet
+    if (obj.type === "glyph") continue; // parity with EditorCanvas: glyphs not rendered yet
     const t = obj.transform;
     c.save();
     c.translate(t.x, t.y);
     c.rotate(t.rotation, 0, 0);
     c.scale(t.flipH ? -t.scale : t.scale, t.flipV ? -t.scale : t.scale);
 
-    if (obj.type === 'text') {
+    if (obj.type === "text") {
       const rendered = layoutArabicText(
         {
           text: obj.text,
@@ -83,6 +89,7 @@ export function renderProjectToPng(
           align: obj.align,
           color: obj.color,
           opacity: obj.opacity,
+          wrapWidth: obj.wrapWidth,
           maxWidth: W,
           outline: obj.outline,
         },
@@ -105,7 +112,11 @@ export function renderProjectToPng(
   const image = surface.makeImageSnapshot();
   const b64 = image.encodeToBase64();
   if (!b64) {
-    throw new Error('png-encode-failed');
+    throw new Error("png-encode-failed");
   }
-  return { base64DataUri: `data:image/png;base64,${b64}`, widthPx: w, heightPx: h };
+  return {
+    base64DataUri: `data:image/png;base64,${b64}`,
+    widthPx: w,
+    heightPx: h,
+  };
 }

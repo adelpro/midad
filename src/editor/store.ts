@@ -1,7 +1,7 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-import type { DesignObject, MidadProject } from '@/storage/project-schema';
-import type { SizedObject } from '@/editor/hit-test';
+import type { ResizeHandle, SizedObject } from "@/editor/hit-test";
+import type { DesignObject, MidadProject } from "@/storage/project-schema";
 
 /**
  * Editor document state: the working design, selection, and undo/redo history.
@@ -30,6 +30,25 @@ interface GestureScratch {
   transformTargetId: string | null;
   scaleOrigin: number;
   rotationOrigin: number;
+  /** Object being resized via a handle drag. */
+  resizeTargetId: string | null;
+  resizeHandle: ResizeHandle | null;
+  /** Transform + box of the object as captured when the handle drag started. */
+  resizeOriginX: number;
+  resizeOriginY: number;
+  resizeOriginScale: number;
+  resizeOriginRotation: number;
+  resizeOriginFlipH: boolean;
+  resizeOriginFlipV: boolean;
+  resizeOriginBoxW: number;
+  resizeOriginBoxH: number;
+  /** Pointer position (design units + local units) when the drag started. */
+  resizeStartX: number;
+  resizeStartY: number;
+  resizeStartLocalX: number;
+  resizeStartLocalY: number;
+  /** Last pointer angle (degrees) seen during a rotation drag. */
+  resizeLastAngle: number;
 }
 
 const EMPTY_SCRATCH: GestureScratch = {
@@ -39,6 +58,21 @@ const EMPTY_SCRATCH: GestureScratch = {
   transformTargetId: null,
   scaleOrigin: 1,
   rotationOrigin: 0,
+  resizeTargetId: null,
+  resizeHandle: null,
+  resizeOriginX: 0,
+  resizeOriginY: 0,
+  resizeOriginScale: 1,
+  resizeOriginRotation: 0,
+  resizeOriginFlipH: false,
+  resizeOriginFlipV: false,
+  resizeOriginBoxW: 0,
+  resizeOriginBoxH: 0,
+  resizeStartX: 0,
+  resizeStartY: 0,
+  resizeStartLocalX: 0,
+  resizeStartLocalY: 0,
+  resizeLastAngle: 0,
 };
 
 interface EditorState {
@@ -68,7 +102,7 @@ interface EditorState {
   undo: () => void;
   redo: () => void;
 
-  setCanvas: (patch: Partial<MidadProject['canvas']>) => void;
+  setCanvas: (patch: Partial<MidadProject["canvas"]>) => void;
   setGrid: (enabled: boolean) => void;
   setName: (name: string) => void;
 }
@@ -105,7 +139,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     set((s) => {
       if (additive) {
-        return { selectedIds: s.selectedIds.includes(id) ? s.selectedIds.filter((x) => x !== id) : [...s.selectedIds, id] };
+        return {
+          selectedIds: s.selectedIds.includes(id)
+            ? s.selectedIds.filter((x) => x !== id)
+            : [...s.selectedIds, id],
+        };
       }
       return { selectedIds: [id] };
     });
@@ -117,7 +155,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setViewport: (viewport) => {
     const v = get().viewport;
-    if (v.scale === viewport.scale && v.offsetX === viewport.offsetX && v.offsetY === viewport.offsetY) {
+    if (
+      v.scale === viewport.scale &&
+      v.offsetX === viewport.offsetX &&
+      v.offsetY === viewport.offsetY
+    ) {
       return;
     }
     set({ viewport });
@@ -135,7 +177,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   updateObject: (id, patch) => {
     set((s) => {
-      const objects = s.project!.objects.map((o) => (o.id === id ? ({ ...o, ...patch, transform: patch.transform ? { ...o.transform, ...patch.transform } : o.transform } as DesignObject) : o));
+      const objects = s.project!.objects.map((o) =>
+        o.id === id
+          ? ({
+              ...o,
+              ...patch,
+              transform: patch.transform
+                ? { ...o.transform, ...patch.transform }
+                : o.transform,
+            } as DesignObject)
+          : o,
+      );
       return { project: { ...s.project!, objects } };
     });
   },
@@ -143,7 +195,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   removeObjects: (ids) => {
     get().snapshot();
     set((s) => ({
-      project: { ...s.project!, objects: s.project!.objects.filter((o) => !ids.includes(o.id)) },
+      project: {
+        ...s.project!,
+        objects: s.project!.objects.filter((o) => !ids.includes(o.id)),
+      },
       selectedIds: s.selectedIds.filter((x) => !ids.includes(x)),
     }));
   },
@@ -156,12 +211,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const maxZ = Math.max(...s0.project.objects.map((o) => o.zIndex), 0);
     const clones = s0.project.objects
       .filter((o) => ids.includes(o.id))
-      .map((o, i) => ({
-        ...clone([o])[0],
-        id: `${o.type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        transform: { ...o.transform, x: o.transform.x + 24, y: o.transform.y + 24 },
-        zIndex: maxZ + 10 + i * 10,
-      }) as DesignObject);
+      .map(
+        (o, i) =>
+          ({
+            ...clone([o])[0],
+            id: `${o.type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            transform: {
+              ...o.transform,
+              x: o.transform.x + 24,
+              y: o.transform.y + 24,
+            },
+            zIndex: maxZ + 10 + i * 10,
+          }) as DesignObject,
+      );
     s0.snapshot();
     set((s) => ({
       project: { ...s.project!, objects: [...s.project!.objects, ...clones] },
@@ -180,7 +242,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       project: {
         ...s.project!,
         objects: s.project!.objects.map((o) =>
-          ids.includes(o.id) ? ({ ...o, zIndex: maxZ + 10 } as DesignObject) : o,
+          ids.includes(o.id)
+            ? ({ ...o, zIndex: maxZ + 10 } as DesignObject)
+            : o,
         ),
       },
     }));
@@ -197,7 +261,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       project: {
         ...s.project!,
         objects: s.project!.objects.map((o) =>
-          ids.includes(o.id) ? ({ ...o, zIndex: minZ - 10 } as DesignObject) : o,
+          ids.includes(o.id)
+            ? ({ ...o, zIndex: minZ - 10 } as DesignObject)
+            : o,
         ),
       },
     }));
@@ -248,9 +314,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  setCanvas: (patch) => set((s) => ({ project: s.project ? { ...s.project, canvas: { ...s.project.canvas, ...patch } } : s.project })),
+  setCanvas: (patch) =>
+    set((s) => ({
+      project: s.project
+        ? { ...s.project, canvas: { ...s.project.canvas, ...patch } }
+        : s.project,
+    })),
 
-  setGrid: (gridEnabled) => set((s) => ({ project: s.project ? { ...s.project, gridEnabled } : s.project })),
+  setGrid: (gridEnabled) =>
+    set((s) => ({
+      project: s.project ? { ...s.project, gridEnabled } : s.project,
+    })),
 
-  setName: (name) => set((s) => ({ project: s.project ? { ...s.project, name } : s.project })),
+  setName: (name) =>
+    set((s) => ({ project: s.project ? { ...s.project, name } : s.project })),
 }));

@@ -4,7 +4,7 @@
  * future migrations can upgrade saved projects.
  */
 
-export const PROJECT_FILE_EXT = 'midad';
+export const PROJECT_FILE_EXT = "midad";
 export const PROJECT_FILE_VERSION = 1;
 
 /** Transform of an object on the canvas (design units). */
@@ -21,21 +21,28 @@ export interface CanvasConfig {
   width: number;
   height: number;
   background: {
-    type: 'paper' | 'transparent' | 'image';
+    type: "paper" | "transparent" | "image";
     color?: string;
     imageUri?: string;
   };
 }
 
-export type TextAlign = 'left' | 'center' | 'right';
+export type TextAlign = "left" | "center" | "right";
 
 export interface CalligraphyTextObject {
   id: string;
-  type: 'text';
+  type: "text";
   text: string;
   fontKey: string; // one of calligraphyFonts keys
   fontSize: number;
   lineHeight: number;
+  /**
+   * Fixed wrap width in the object's local design units (before transform
+   * scale). Set by dragging a horizontal resize handle so the glyphs re-flow.
+   * `null`/absent means auto: the text hugs its content and only wraps at the
+   * canvas edge.
+   */
+  wrapWidth?: number | null;
   align: TextAlign;
   color: string;
   opacity: number;
@@ -47,7 +54,7 @@ export interface CalligraphyTextObject {
 
 export interface GlyphObject {
   id: string;
-  type: 'glyph';
+  type: "glyph";
   glyphKey: string; // one of the decorative ornament keys
   color: string;
   opacity: number;
@@ -58,8 +65,8 @@ export interface GlyphObject {
 
 export interface ShapeObject {
   id: string;
-  type: 'shape';
-  shapeKey: 'circle' | 'square' | 'line' | 'star' | 'triangle' | 'ring';
+  type: "shape";
+  shapeKey: "circle" | "square" | "line" | "star" | "triangle" | "ring";
   color: string;
   fill: boolean;
   strokeWidth: number;

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 import {
   Skia,
@@ -6,9 +6,10 @@ import {
   type DataModule,
   type SkParagraph,
   type SkTypefaceFontProvider,
-} from '@shopify/react-native-skia';
+} from "@shopify/react-native-skia";
 
-import { fontAssets } from '@/theme';
+import type { MidadProject } from "@/storage/project-schema";
+import { fontAssets } from "@/theme";
 
 /**
  * Arabic text rendering via the Skia Paragraph API.
@@ -26,7 +27,7 @@ import { fontAssets } from '@/theme';
  * wrap it in a { uri } asset object (MetroAsset shape).
  */
 function toFontSource(asset: unknown): DataModule {
-  if (typeof asset === 'string') {
+  if (typeof asset === "string") {
     return { uri: asset, width: 0, height: 0 };
   }
   return asset as DataModule;
@@ -49,29 +50,48 @@ export interface TextLayoutSpec {
   fontKey: string; // family name as registered (e.g. 'Amiri')
   fontSize: number;
   lineHeight: number;
-  align: 'left' | 'center' | 'right';
+  align: "left" | "center" | "right";
   color: string;
   opacity: number;
+  /**
+   * Explicit wrap width (set by a horizontal resize). When null/absent the
+   * width is auto: the box stretches to fit the text, capped at `maxWidth`.
+   */
+  wrapWidth?: number | null;
+  /** Ceiling for auto width — normally the canvas width. Ignored when wrapping. */
   maxWidth: number;
   outline?: { color: string; width: number };
 }
 
 export interface RenderedParagraph {
   paragraph: SkParagraph;
+  /**
+   * The width the paragraph was shaped at, which is exactly the object's box
+   * width. Painting uses this so the glyphs can never disagree with the box.
+   */
   width: number;
   height: number;
 }
 
 /**
- * Build a shaped, laid-out paragraph for a text object.
- * Callers should `paragraph.dispose()` when the render frame is done.
+ * Probe width for auto sizing: wide enough that nothing soft-wraps, so the
+ * first pass can read the text's intrinsic width.
  */
-export function layoutArabicText(spec: TextLayoutSpec, fonts: SkTypefaceFontProvider): RenderedParagraph | null {
-  const family = spec.fontKey in fontAssets ? spec.fontKey : 'Amiri';
+const AUTO_TEXT_WIDTH = 100000;
+/** Floor for a resolved width, so an empty paragraph stays selectable. */
+const MIN_TEXT_WIDTH = 1;
+
+/** Shape a paragraph at an explicit width. */
+function buildParagraph(
+  spec: TextLayoutSpec,
+  fonts: SkTypefaceFontProvider,
+  width: number,
+): SkParagraph {
+  const family = spec.fontKey in fontAssets ? spec.fontKey : "Amiri";
   const isArabic = /[\u0600-\u06FF]/.test(spec.text);
 
   // TextAlign enum: Left=0, Right=1, Center=2, Justify=3, Start=4, End=5
-  const align = spec.align === 'center' ? 2 : spec.align === 'right' ? 1 : 0;
+  const align = spec.align === "center" ? 2 : spec.align === "right" ? 1 : 0;
   // TextDirection enum: RTL=0, LTR=1
   const direction = isArabic ? 0 : 1;
 
@@ -85,29 +105,147 @@ export function layoutArabicText(spec: TextLayoutSpec, fonts: SkTypefaceFontProv
     fonts,
   );
 
-  const style = {
+  builder.pushStyle({
     fontFamilies: [family],
     fontSize: spec.fontSize,
     heightMultiplier: spec.lineHeight > 0 ? spec.lineHeight / spec.fontSize : 1,
     color: Skia.Color(spec.color),
     fontStyle: { weight: 400 },
-  };
-
-  builder.pushStyle(style);
+  });
   builder.addText(spec.text);
 
   const paragraph = builder.build();
-  paragraph.layout(spec.maxWidth);
+  paragraph.layout(width);
+  return paragraph;
+}
 
+/**
+ * Width a text object should lay out at.
+ *
+ * A manual wrap width always wins. Otherwise the text is measured unwrapped so
+ * the box hugs the text exactly, then capped at the canvas so an over-long line
+ * wraps at the canvas edge instead of running off it.
+ *
+ * The result is rounded UP: Skia truncates the layout width to an integer, so
+ * shaping at a width taken straight from `getLongestLine()` (a float) collapses
+ * to `floor(width)` and wraps the very line it was measured from — which showed
+ * up as every auto-width text sitting on two lines inside a box that looked too
+ * narrow.
+ */
+function resolveTextWidth(
+  spec: TextLayoutSpec,
+  fonts: SkTypefaceFontProvider,
+): number {
+  if (spec.wrapWidth != null) {
+    return Math.max(MIN_TEXT_WIDTH, spec.wrapWidth);
+  }
+  const probe = buildParagraph(spec, fonts, AUTO_TEXT_WIDTH);
+  const intrinsic = probe.getLongestLine();
+  probe.dispose();
+  return Math.max(
+    MIN_TEXT_WIDTH,
+    Math.ceil(Math.min(intrinsic, spec.maxWidth)),
+  );
+}
+
+/**
+ * Build a shaped, laid-out paragraph for a text object.
+ *
+ * The width is resolved first and the paragraph is shaped at exactly that
+ * width, so `getLongestLine()` never has to stand in for the box: previously
+ * the box was measured at the canvas width while the glyphs were laid out at
+ * the box width, which let centred text sit off-centre and let the measured
+ * height drift from the painted one.
+ *
+ * Callers should `paragraph.dispose()` when the render frame is done.
+ */
+export function layoutArabicText(
+  spec: TextLayoutSpec,
+  fonts: SkTypefaceFontProvider,
+): RenderedParagraph | null {
+  const width = resolveTextWidth(spec, fonts);
+  const paragraph = buildParagraph(spec, fonts, width);
   return {
     paragraph,
-    width: paragraph.getLongestLine(),
+    width,
     height: paragraph.getHeight(),
   };
 }
 
+/**
+ * Split a laid-out paragraph into its visual lines, soft wraps included.
+ *
+ * Line offsets come back as UTF-16 code-unit indices. We verify that slicing
+ * the source string with them reproduces the text before trusting the result;
+ * when the check fails (offset units differ on some platform) we return null so
+ * callers can fall back to the object's explicit newlines.
+ */
+export function paragraphLines(
+  paragraph: SkParagraph,
+  text: string,
+): string[] | null {
+  try {
+    const metrics = paragraph.getLineMetrics();
+    if (!metrics || metrics.length === 0) {
+      return null;
+    }
+    const lines = metrics.map((m) =>
+      text.slice(m.startIndex, m.endExcludingWhitespaces ?? m.endIndex),
+    );
+    const strip = (s: string) => s.replace(/\s+/g, "");
+    if (strip(lines.join("")) !== strip(text)) {
+      return null;
+    }
+    return lines.map((line) => line.trim()).filter((line) => line.length > 0);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Visual line breaks for every text object in a project, keyed by object id.
+ * Used by the SVG export, which cannot re-flow text on its own.
+ */
+export function textLineBreaks(
+  project: MidadProject,
+  fonts: SkTypefaceFontProvider,
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const obj of project.objects) {
+    if (obj.type !== "text") {
+      continue;
+    }
+    const rendered = layoutArabicText(
+      {
+        text: obj.text,
+        fontKey: obj.fontKey,
+        fontSize: obj.fontSize,
+        lineHeight: obj.lineHeight,
+        align: obj.align,
+        color: obj.color,
+        opacity: obj.opacity,
+        wrapWidth: obj.wrapWidth,
+        maxWidth: project.canvas.width,
+        outline: obj.outline,
+      },
+      fonts,
+    );
+    if (!rendered) {
+      continue;
+    }
+    const lines = paragraphLines(rendered.paragraph, obj.text);
+    rendered.paragraph.dispose();
+    if (lines) {
+      out[obj.id] = lines;
+    }
+  }
+  return out;
+}
+
 /** Utility: extract font family list for debugging. */
-export function useRegisteredFonts(fonts: SkTypefaceFontProvider | null): string[] {
+export function useRegisteredFonts(
+  fonts: SkTypefaceFontProvider | null,
+): string[] {
   return useMemo(() => {
     if (!fonts) {
       return [];

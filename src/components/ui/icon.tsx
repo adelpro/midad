@@ -1,12 +1,13 @@
-import { type ComponentType, type ReactElement } from 'react';
+import { type ComponentType, type ReactElement } from "react";
 
 import {
   ArrowClockwise,
   ArrowCounterClockwise,
   ArrowDown,
-  ArrowUp,
   ArrowsClockwise,
   ArrowsCounterClockwise,
+  ArrowsInLineHorizontal,
+  ArrowUp,
   CaretLeft,
   CaretRight,
   Check,
@@ -36,11 +37,11 @@ import {
   Translate,
   Trash,
   X,
-  type IconProps as PhosphorIconProps,
   type IconWeight,
-} from 'phosphor-react-native';
+  type IconProps as PhosphorIconProps,
+} from "phosphor-react-native";
 
-import { useTheme } from '@/hooks/use-theme';
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Phosphor is the single icon source for the whole app — one identity across
@@ -48,41 +49,42 @@ import { useTheme } from '@/hooks/use-theme';
  */
 
 export type IconName =
-  | 'plus'
-  | 'minus'
-  | 'grid'
-  | 'chevronLeft'
-  | 'chevronRight'
-  | 'close'
-  | 'check'
-  | 'type'
-  | 'sparkle'
-  | 'square'
-  | 'palette'
-  | 'image'
-  | 'download'
-  | 'share'
-  | 'trash'
-  | 'duplicate'
-  | 'undo'
-  | 'redo'
-  | 'lock'
-  | 'unlock'
-  | 'settings'
-  | 'globe'
-  | 'flip'
-  | 'flipV'
-  | 'rotateCw'
-  | 'rotateCcw'
-  | 'layerUp'
-  | 'layerDown'
-  | 'layers'
-  | 'edit'
-  | 'more'
-  | 'export'
-  | 'pen'
-  | 'language'
-  | 'gallery';
+  | "plus"
+  | "minus"
+  | "grid"
+  | "chevronLeft"
+  | "chevronRight"
+  | "close"
+  | "check"
+  | "type"
+  | "sparkle"
+  | "square"
+  | "palette"
+  | "image"
+  | "download"
+  | "share"
+  | "trash"
+  | "duplicate"
+  | "undo"
+  | "redo"
+  | "lock"
+  | "unlock"
+  | "settings"
+  | "globe"
+  | "flip"
+  | "flipV"
+  | "rotateCw"
+  | "rotateCcw"
+  | "layerUp"
+  | "layerDown"
+  | "layers"
+  | "fitText"
+  | "edit"
+  | "more"
+  | "export"
+  | "pen"
+  | "language"
+  | "gallery";
 
 const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   plus: Plus,
@@ -114,6 +116,7 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   layerUp: ArrowUp,
   layerDown: ArrowDown,
   layers: StackSimple,
+  fitText: ArrowsInLineHorizontal,
   edit: PencilSimple,
   more: DotsThree,
   export: Export,
@@ -133,18 +136,40 @@ export interface IconProps {
  * Phosphor-backed icon. Defaults to the theme's ink color and a `regular`
  * weight; pass `weight="fill"` or `"bold"` for emphasis.
  */
-export function Icon({ name, size = 20, color, weight = 'regular' }: IconProps) {
+export function Icon({
+  name,
+  size = 20,
+  color,
+  weight = "regular",
+}: IconProps) {
   const { colors: c } = useTheme();
   const Cmp = ICONS[name];
   return <Cmp size={size} color={color ?? c.ink} weight={weight} />;
 }
 
 /** RTL-aware chevron (mirrors with reading direction: right in LTR, left in RTL). */
-export function DirectionIcon({ isRTL, color, size }: { isRTL: boolean; color?: string; size?: number }) {
-  return <Icon name={isRTL ? 'chevronLeft' : 'chevronRight'} color={color} size={size} />;
+export function DirectionIcon({
+  isRTL,
+  color,
+  size,
+}: {
+  isRTL: boolean;
+  color?: string;
+  size?: number;
+}) {
+  return (
+    <Icon
+      name={isRTL ? "chevronLeft" : "chevronRight"}
+      color={color}
+      size={size}
+    />
+  );
 }
 
 /** Convenience renderer for embedding an icon inline. */
-export function renderIcon(name: IconName, props?: Omit<IconProps, 'name'>): ReactElement {
+export function renderIcon(
+  name: IconName,
+  props?: Omit<IconProps, "name">,
+): ReactElement {
   return <Icon name={name} {...props} />;
 }
