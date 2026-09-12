@@ -1,4 +1,9 @@
-import { groupAabb, objectAabb, type Aabb, type SizedObject } from "@/editor/hit-test";
+import {
+  groupAabb,
+  objectAabb,
+  type Aabb,
+  type SizedObject,
+} from "@/editor/hit-test";
 
 /**
  * Alignment / centring operations for the current selection.
@@ -70,8 +75,10 @@ export function computeAlignUpdates(
   return selected.map((o) => {
     const box = objectAabb(o);
     // `?? target` yields a zero delta; the mode only ever affects one axis.
-    const dx = targetX === null ? 0 : targetX - (edgeTarget(mode, "x", box) ?? targetX);
-    const dy = targetY === null ? 0 : targetY - (edgeTarget(mode, "y", box) ?? targetY);
+    const dx =
+      targetX === null ? 0 : targetX - (edgeTarget(mode, "x", box) ?? targetX);
+    const dy =
+      targetY === null ? 0 : targetY - (edgeTarget(mode, "y", box) ?? targetY);
     return {
       id: o.id,
       transform: { x: o.transform.x + dx, y: o.transform.y + dy },
@@ -83,7 +90,11 @@ export function computeAlignUpdates(
  * Coordinate of the edge/centre `mode` refers to on one axis, or null when the
  * mode does not act on that axis (e.g. `top` on the x axis).
  */
-function edgeTarget(mode: AlignMode, axis: "x" | "y", box: Aabb): number | null {
+function edgeTarget(
+  mode: AlignMode,
+  axis: "x" | "y",
+  box: Aabb,
+): number | null {
   if (axis === "x") {
     switch (mode) {
       case "left":

@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 
 import { useEditorStore } from "@/editor/store";
-import { AUTO_SAVE_DEBOUNCE_MS, useSettings } from "@/storage/settings";
 import { saveProject } from "@/storage/projects";
+import { AUTO_SAVE_DEBOUNCE_MS, useSettings } from "@/storage/settings";
 
 /**
  * Persists the JSON project after a quiet edit period and periodically while
@@ -14,9 +14,8 @@ export function useAutoSave() {
   const enabled = useSettings((s) => s.autoSaveEnabled);
   const intervalMs = useSettings((s) => s.autoSaveIntervalMs);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latest = useRef<ReturnType<typeof useEditorStore.getState>["project"]>(
-    null,
-  );
+  const latest =
+    useRef<ReturnType<typeof useEditorStore.getState>["project"]>(null);
   const dirty = useRef(false);
   const saving = useRef(false);
   const pending = useRef(false);

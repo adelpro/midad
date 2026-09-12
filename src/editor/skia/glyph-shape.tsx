@@ -1,8 +1,8 @@
-import { Group, Path, Skia } from '@shopify/react-native-skia';
-import type { SkCanvas, SkPath } from '@shopify/react-native-skia';
+import type { SkCanvas, SkPath } from "@shopify/react-native-skia";
+import { Group, Path, Skia } from "@shopify/react-native-skia";
 
-import { getGlyphEntry, glyphPlacement } from '@/editor/glyphs';
-import type { GlyphObject } from '@/storage/project-schema';
+import { getGlyphEntry, glyphPlacement } from "@/editor/glyphs";
+import type { GlyphObject } from "@/storage/project-schema";
 
 /**
  * Parsed paths are cached: the catalog is static, SVG path parsing is not cheap,

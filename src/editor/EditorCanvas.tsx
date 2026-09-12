@@ -20,8 +20,8 @@ import {
   type Aabb,
   type SizedObject,
 } from "@/editor/hit-test";
-import { SHAPE_BASE_SIZE } from "@/editor/skia/shape-geometry";
 import { GlyphRenderer } from "@/editor/skia/glyph-shape";
+import { SHAPE_BASE_SIZE } from "@/editor/skia/shape-geometry";
 import { ShapeRenderer } from "@/editor/skia/shapes";
 import { textObjectSize, useTextLayouts } from "@/editor/skia/use-text-layouts";
 import { useEditorStore } from "@/editor/store";
@@ -219,7 +219,11 @@ export function EditorCanvas({
               ]}
               origin={vec(0, 0)}
             >
-              {opacity < 1 ? <Group opacity={opacity}>{content}</Group> : content}
+              {opacity < 1 ? (
+                <Group opacity={opacity}>{content}</Group>
+              ) : (
+                content
+              )}
               {selectedIds.length === 1 && selectedIds.includes(obj.id) && (
                 <SelectionOverlay
                   box={obj.box}
@@ -236,13 +240,7 @@ export function EditorCanvas({
   );
 }
 
-function GroupSelectionOverlay({
-  box,
-  scale,
-}: {
-  box: Aabb;
-  scale: number;
-}) {
+function GroupSelectionOverlay({ box, scale }: { box: Aabb; scale: number }) {
   const border = 1.5 / scale;
   return (
     <Rect

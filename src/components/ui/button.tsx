@@ -1,11 +1,18 @@
-import { forwardRef } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { forwardRef } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from "react-native";
 
-import { useTheme } from '@/hooks/use-theme';
-import { useT } from '@/i18n';
-import { fontRoles, radius, spacing, type MidadPalette } from '@/theme';
+import { useTheme } from "@/hooks/use-theme";
+import { useT } from "@/i18n";
+import { fontRoles, radius, spacing, type MidadPalette } from "@/theme";
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 export interface ButtonProps {
   onPress?: () => void;
@@ -14,7 +21,7 @@ export interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
-  size?: 'md' | 'lg';
+  size?: "md" | "lg";
   style?: ViewStyle;
   testID?: string;
   /** Overrides `label` as the accessibility name. */
@@ -25,17 +32,22 @@ export interface ButtonProps {
 
 function variantColors(variant: ButtonVariant, c: MidadPalette) {
   switch (variant) {
-    case 'primary':
+    case "primary":
       return { bg: c.ink, text: c.onInk, pressed: c.inkSoft };
-    case 'secondary':
-      return { bg: c.surfaceAlt, text: c.ink, border: c.border, pressed: c.surfacePressed };
-    case 'ghost':
-      return { bg: 'transparent', text: c.inkSoft, pressed: c.surfacePressed };
-    case 'danger':
+    case "secondary":
+      return {
+        bg: c.surfaceAlt,
+        text: c.ink,
+        border: c.border,
+        pressed: c.surfacePressed,
+      };
+    case "ghost":
+      return { bg: "transparent", text: c.inkSoft, pressed: c.surfacePressed };
+    case "danger":
       // No `pressed` fill: `dangerBg` is a pale tint, so using it would leave
       // the white label unreadable. Danger keeps its oxblood fill and signals
       // the press through the scale alone.
-      return { bg: c.danger, text: '#FFFFFF' };
+      return { bg: c.danger, text: "#FFFFFF" };
   }
 }
 
@@ -45,11 +57,11 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
   {
     onPress,
     label,
-    variant = 'primary',
+    variant = "primary",
     disabled,
     loading,
     fullWidth,
-    size = 'md',
+    size = "md",
     style,
     testID,
     accessibilityLabel,
@@ -78,18 +90,19 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
           styles.base,
           {
             height: heights[size],
-            backgroundColor: active ? vc.pressed ?? vc.bg : vc.bg,
+            backgroundColor: active ? (vc.pressed ?? vc.bg) : vc.bg,
             // Only `secondary` draws a hairline. Filled and ghost variants must
             // not inherit a platform-default border colour — it shows as a dark
             // ring around the light `ink` fill in dark mode.
-            borderColor: vc.border ?? 'transparent',
+            borderColor: vc.border ?? "transparent",
             opacity: dimmed ? 0.5 : 1,
             transform: [{ scale: active ? 0.98 : 1 }],
           },
           fullWidth && styles.fullWidth,
           style,
         ];
-      }}>
+      }}
+    >
       {loading ? (
         <ActivityIndicator color={vc.text} />
       ) : (
@@ -100,9 +113,10 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
               color: vc.text,
               fontFamily: fonts.uiBold,
               // Tracking breaks Arabic cursive joining — Latin-only.
-              letterSpacing: language === 'ar' ? 0 : 0.01,
+              letterSpacing: language === "ar" ? 0 : 0.01,
             },
-          ]}>
+          ]}
+        >
           {label}
         </Text>
       )}
@@ -112,16 +126,16 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
 
 const styles = StyleSheet.create({
   base: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: spacing.xl,
     // DESIGN.md §4 — buttons are radius 8 (`radius.lg`), cards are 12.
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderStyle: 'solid',
+    borderStyle: "solid",
   },
   fullWidth: {
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
   },
   label: {
     fontSize: 15,

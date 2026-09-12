@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -7,8 +7,8 @@ import {
   Text,
   View,
   useWindowDimensions,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   LanguagePicker,
@@ -17,24 +17,28 @@ import {
   StepPager,
   type OnboardingArtSize,
   type OnboardingArtVariant,
-} from '@/components/onboarding';
-import { Button } from '@/components/ui';
-import { useTheme } from '@/hooks/use-theme';
-import { useT } from '@/i18n';
-import { fontRoles, layout, spacing, typeScale } from '@/theme';
+} from "@/components/onboarding";
+import { Button } from "@/components/ui";
+import { useTheme } from "@/hooks/use-theme";
+import { useT } from "@/i18n";
+import { fontRoles, layout, spacing, typeScale } from "@/theme";
 
-const STEPS: { art: OnboardingArtVariant; titleKey: 'slide1Title' | 'slide2Title' | 'slide3Title'; bodyKey: 'slide1Body' | 'slide2Body' | 'slide3Body' }[] = [
-  { art: 'craft', titleKey: 'slide1Title', bodyKey: 'slide1Body' },
-  { art: 'fonts', titleKey: 'slide2Title', bodyKey: 'slide2Body' },
-  { art: 'share', titleKey: 'slide3Title', bodyKey: 'slide3Body' },
+const STEPS: {
+  art: OnboardingArtVariant;
+  titleKey: "slide1Title" | "slide2Title" | "slide3Title";
+  bodyKey: "slide1Body" | "slide2Body" | "slide3Body";
+}[] = [
+  { art: "craft", titleKey: "slide1Title", bodyKey: "slide1Body" },
+  { art: "fonts", titleKey: "slide2Title", bodyKey: "slide2Body" },
+  { art: "share", titleKey: "slide3Title", bodyKey: "slide3Body" },
 ];
 
 /** Compact art on short viewports (landscape phones, short desktop windows). */
 function artSizeFor(height: number): OnboardingArtSize {
   if (height < 640) {
-    return 'sm';
+    return "sm";
   }
-  return height > 900 ? 'lg' : 'md';
+  return height > 900 ? "lg" : "md";
 }
 
 /**
@@ -58,7 +62,10 @@ export default function OnboardingScreen() {
 
   const [index, setIndex] = useState(0);
 
-  const goToGallery = useCallback(() => router.replace('/(tabs)/gallery'), [router]);
+  const goToGallery = useCallback(
+    () => router.replace("/(tabs)/gallery"),
+    [router],
+  );
 
   const renderStep = useCallback(
     (stepIndex: number) => {
@@ -66,10 +73,17 @@ export default function OnboardingScreen() {
       return (
         <View style={styles.step} accessibilityLiveRegion="polite">
           <OnboardingArt variant={step.art} size={artSize} />
-          <Text style={[styles.stepTitle, { fontFamily: fonts.display, color: c.ink }]}>
+          <Text
+            style={[
+              styles.stepTitle,
+              { fontFamily: fonts.display, color: c.ink },
+            ]}
+          >
             {t.onboarding[step.titleKey]}
           </Text>
-          <Text style={[styles.stepBody, { fontFamily: fonts.ui, color: c.muted }]}>
+          <Text
+            style={[styles.stepBody, { fontFamily: fonts.ui, color: c.muted }]}
+          >
             {t.onboarding[step.bodyKey]}
           </Text>
         </View>
@@ -93,19 +107,36 @@ export default function OnboardingScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        bounces={false}>
+        bounces={false}
+      >
         {/* Everything lives in one phone-proportioned column, centred on large
             displays — the paper background still bleeds to the window edges. */}
         <View style={styles.column}>
           {/* top bar: wordmark + skip */}
           <View style={styles.topBar}>
-            <Text style={[styles.wordmark, { fontFamily: fonts.display, color: c.ink }]}>مداد</Text>
+            <Text
+              style={[
+                styles.wordmark,
+                { fontFamily: fonts.display, color: c.ink },
+              ]}
+            >
+              مداد
+            </Text>
             <Pressable
               onPress={goToGallery}
               accessibilityRole="button"
               hitSlop={12}
-              style={({ pressed }) => [styles.skip, { opacity: pressed ? 0.6 : 1 }]}>
-              <Text style={[styles.skipLabel, { fontFamily: fonts.ui, color: c.muted }]}>
+              style={({ pressed }) => [
+                styles.skip,
+                { opacity: pressed ? 0.6 : 1 },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.skipLabel,
+                  { fontFamily: fonts.ui, color: c.muted },
+                ]}
+              >
                 {t.onboarding.skip}
               </Text>
             </Pressable>
@@ -116,7 +147,7 @@ export default function OnboardingScreen() {
             index={index}
             onIndexChange={setIndex}
             renderStep={renderStep}
-            isRTL={language === 'ar'}
+            isRTL={language === "ar"}
             minHeight={STEP_MIN_HEIGHT[artSize]}
           />
 
@@ -125,7 +156,12 @@ export default function OnboardingScreen() {
             <StepDots count={STEPS.length} index={index} />
 
             <View style={styles.langBox}>
-              <Text style={[styles.langLabel, { fontFamily: fonts.ui, color: c.muted }]}>
+              <Text
+                style={[
+                  styles.langLabel,
+                  { fontFamily: fonts.ui, color: c.muted },
+                ]}
+              >
                 {t.onboarding.chooseLanguage}
               </Text>
               <LanguagePicker />
@@ -134,7 +170,9 @@ export default function OnboardingScreen() {
             {/* The content column is the measure, so a full-width CTA reads as a
                 generous phone-width button rather than a window-wide bar. */}
             <Button
-              label={isLast ? t.onboarding.startLabel : t.onboarding.continueLabel}
+              label={
+                isLast ? t.onboarding.startLabel : t.onboarding.continueLabel
+              }
               onPress={next}
               size="lg"
               fullWidth
@@ -158,15 +196,15 @@ const styles = StyleSheet.create({
   },
   column: {
     flexGrow: 1,
-    width: '100%',
+    width: "100%",
     maxWidth: layout.maxContent,
-    alignSelf: 'center',
+    alignSelf: "center",
     paddingHorizontal: spacing.xl,
   },
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingTop: spacing.lg,
   },
   wordmark: {
@@ -177,27 +215,27 @@ const styles = StyleSheet.create({
   skip: {
     minHeight: 44,
     minWidth: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   skipLabel: {
     fontSize: typeScale.small.size,
   },
   step: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.lg,
   },
   stepTitle: {
     fontSize: typeScale.title.size,
     lineHeight: typeScale.title.lineHeight,
-    textAlign: 'center',
+    textAlign: "center",
   },
   stepBody: {
     fontSize: typeScale.body.size,
     lineHeight: typeScale.body.lineHeight,
-    textAlign: 'center',
+    textAlign: "center",
     maxWidth: 340,
   },
   footer: {
@@ -210,6 +248,6 @@ const styles = StyleSheet.create({
   },
   langLabel: {
     fontSize: typeScale.caption.size,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

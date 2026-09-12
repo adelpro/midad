@@ -1,22 +1,19 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
   useWindowDimensions,
   type LayoutChangeEvent,
-} from 'react-native';
-import {
-  Gesture,
-  GestureDetector,
-} from 'react-native-gesture-handler';
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import { motion } from '@/theme';
+import { motion } from "@/theme";
 
 export interface StepPagerProps {
   count: number;
@@ -60,7 +57,10 @@ function StepPagerBase({
 
   // Page `i` sits in slot `i` in LTR. In RTL the first step is right-most, so
   // slots reverse and advancing moves the strip toward the leading (left) edge.
-  const slotFor = useCallback((i: number) => (isRTL ? count - 1 - i : i), [count, isRTL]);
+  const slotFor = useCallback(
+    (i: number) => (isRTL ? count - 1 - i : i),
+    [count, isRTL],
+  );
 
   const x = useSharedValue(0);
   const gestureStartX = useSharedValue(0);
@@ -86,15 +86,17 @@ function StepPagerBase({
   // the window metrics change so it always recovers.
   useEffect(() => {
     const node = viewportRef.current as unknown as {
-      measure?: (cb: (x: number, y: number, w: number, h: number) => void) => void;
+      measure?: (
+        cb: (x: number, y: number, w: number, h: number) => void,
+      ) => void;
       getBoundingClientRect?: () => { width: number };
     } | null;
     if (!node) {
       return;
     }
-    if (typeof node.getBoundingClientRect === 'function') {
+    if (typeof node.getBoundingClientRect === "function") {
       applyWidth(node.getBoundingClientRect().width);
-    } else if (typeof node.measure === 'function') {
+    } else if (typeof node.measure === "function") {
       node.measure((_x, _y, w) => applyWidth(w));
     }
   }, [applyWidth, windowWidth]);
@@ -137,7 +139,8 @@ function StepPagerBase({
     })
     .onUpdate((e) => {
       // eslint-disable-next-line react-hooks/immutability
-      x.value = gestureStartX.value + (e.translationX - gestureStartTranslation.value);
+      x.value =
+        gestureStartX.value + (e.translationX - gestureStartTranslation.value);
     })
     .onEnd((e) => {
       const dir = isRTL ? -1 : 1;
@@ -170,17 +173,24 @@ function StepPagerBase({
     <View
       ref={viewportRef}
       style={[styles.viewport, minHeight ? { minHeight } : null]}
-      onLayout={onLayout}>
+      onLayout={onLayout}
+    >
       <GestureDetector gesture={pan}>
         <View style={styles.gestureArea}>
           {/* Nothing renders until the container is measured: laying the pages
               out at a guessed width would flash a mis-aligned slide. */}
           {pageWidth > 0 && (
-            <Animated.View style={[styles.strip, { width: pageWidth * count }, stripStyle]}>
+            <Animated.View
+              style={[styles.strip, { width: pageWidth * count }, stripStyle]}
+            >
               {Array.from({ length: count }, (_, i) => (
                 <View
                   key={i}
-                  style={[styles.page, { width: pageWidth, left: slotFor(i) * pageWidth }]}>
+                  style={[
+                    styles.page,
+                    { width: pageWidth, left: slotFor(i) * pageWidth },
+                  ]}
+                >
                   {renderStep(i)}
                 </View>
               ))}
@@ -197,7 +207,7 @@ export const StepPager = memo(StepPagerBase);
 const styles = StyleSheet.create({
   viewport: {
     flex: 1,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   // The gesture target is a separate node from the measured box, so the ref and
   // `onLayout` on the parent are unaffected by how the gesture library wraps or
@@ -208,13 +218,13 @@ const styles = StyleSheet.create({
   // The strip and its pages both use absolute positioning with a physical `left`
   // so page order never depends on the ambient writing direction.
   strip: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
     left: 0,
   },
   page: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
   },

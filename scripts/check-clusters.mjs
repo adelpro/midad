@@ -94,7 +94,8 @@ let failures = 0;
 
 for (const { name, text, expect } of cases) {
   const got = segmentClusters(text).map((c) => c.text);
-  const ok = got.length === expect.length && got.every((v, i) => v === expect[i]);
+  const ok =
+    got.length === expect.length && got.every((v, i) => v === expect[i]);
   if (ok) {
     console.log(`  PASS  ${name}`);
     continue;
@@ -115,7 +116,9 @@ for (const text of roundTrip) {
     .join("");
   if (rebuilt !== text) {
     failures += 1;
-    console.log(`  FAIL  rejoin ${JSON.stringify(text)} → ${JSON.stringify(rebuilt)}`);
+    console.log(
+      `  FAIL  rejoin ${JSON.stringify(text)} → ${JSON.stringify(rebuilt)}`,
+    );
   } else {
     console.log(`  PASS  rejoin ${JSON.stringify(text)}`);
   }
@@ -136,7 +139,9 @@ for (const [text, expected] of splitGuard) {
       `  FAIL  canSplitIntoClusters(${JSON.stringify(text)}) = ${got}, expected ${expected}`,
     );
   } else {
-    console.log(`  PASS  canSplitIntoClusters(${JSON.stringify(text)}) = ${got}`);
+    console.log(
+      `  PASS  canSplitIntoClusters(${JSON.stringify(text)}) = ${got}`,
+    );
   }
 }
 

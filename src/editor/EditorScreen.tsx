@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   TextInput as RNTextInput,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -15,7 +15,13 @@ import {
 } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Button, DirectionIcon, Icon, IconButton, Sheet } from "@/components/ui";
+import {
+  Button,
+  DirectionIcon,
+  Icon,
+  IconButton,
+  Sheet,
+} from "@/components/ui";
 import { EditorCanvasHost } from "@/editor/EditorCanvasHost";
 import {
   collectSvgFontFaces,
@@ -31,8 +37,8 @@ import {
   splitTextObject,
   type SplitFailure,
 } from "@/editor/text/split";
-import { useObjectGestures } from "@/editor/use-object-gestures";
 import { useAutoSave } from "@/editor/use-auto-save";
+import { useObjectGestures } from "@/editor/use-object-gestures";
 import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
 import { formatPartLabel, formatSelectedCount } from "@/i18n/strings";
@@ -55,7 +61,11 @@ import {
   spacing,
   typeScale,
 } from "@/theme";
-import { DEFAULT_INK, inkSwatches, paperSwatches } from "@/theme/content-palette";
+import {
+  DEFAULT_INK,
+  inkSwatches,
+  paperSwatches,
+} from "@/theme/content-palette";
 import {
   DEFAULT_LEADING_RATIO,
   presentationByKey,
@@ -322,25 +332,28 @@ export function EditorScreen() {
   );
 
   /** Cycles the presentation presets, wrapping in both directions. */
-  const cyclePresentation = useCallback((direction: 1 | -1) => {
-    const obj = liveText();
-    if (!obj) {
-      return;
-    }
-    const current = presentations.findIndex(
-      (p) => p.key === obj.presentation?.key,
-    );
-    const next =
-      current < 0
-        ? direction === 1
-          ? 0
-          : presentations.length - 1
-        : (current + direction + presentations.length) % presentations.length;
-    const preset = presentations[next];
-    const store = useEditorStore.getState();
-    store.snapshot();
-    store.updateObject(obj.id, presetPatch(preset, obj) as never);
-  }, [liveText]);
+  const cyclePresentation = useCallback(
+    (direction: 1 | -1) => {
+      const obj = liveText();
+      if (!obj) {
+        return;
+      }
+      const current = presentations.findIndex(
+        (p) => p.key === obj.presentation?.key,
+      );
+      const next =
+        current < 0
+          ? direction === 1
+            ? 0
+            : presentations.length - 1
+          : (current + direction + presentations.length) % presentations.length;
+      const preset = presentations[next];
+      const store = useEditorStore.getState();
+      store.snapshot();
+      store.updateObject(obj.id, presetPatch(preset, obj) as never);
+    },
+    [liveText],
+  );
 
   const applyPresentation = useCallback(
     (key: string) => {
@@ -357,15 +370,18 @@ export function EditorScreen() {
   );
 
   /** Snapshot + patch for one discrete style change on the selected text. */
-  const patchStyle = useCallback((patch: Partial<CalligraphyTextObject>) => {
-    const obj = liveText();
-    if (!obj) {
-      return;
-    }
-    const store = useEditorStore.getState();
-    store.snapshot();
-    store.updateObject(obj.id, patch as never);
-  }, [liveText]);
+  const patchStyle = useCallback(
+    (patch: Partial<CalligraphyTextObject>) => {
+      const obj = liveText();
+      if (!obj) {
+        return;
+      }
+      const store = useEditorStore.getState();
+      store.snapshot();
+      store.updateObject(obj.id, patch as never);
+    },
+    [liveText],
+  );
 
   const stepFontSize = useCallback(
     (delta: number) => {
@@ -383,7 +399,9 @@ export function EditorScreen() {
       }
       // Scale the leading with the size so the text does not reflow as it grows.
       const ratio =
-        obj.fontSize > 0 ? obj.lineHeight / obj.fontSize : DEFAULT_LEADING_RATIO;
+        obj.fontSize > 0
+          ? obj.lineHeight / obj.fontSize
+          : DEFAULT_LEADING_RATIO;
       patchStyle({ fontSize, lineHeight: Math.round(fontSize * ratio) });
     },
     [liveText, patchStyle],
@@ -629,7 +647,11 @@ export function EditorScreen() {
         {/* Top bar */}
         <View style={[styles.topBar, { borderColor: c.border }]}>
           <View style={styles.barInner}>
-            <IconButton onPress={() => router.back()} accessibilityLabel={t.editor.hints.back} hint={t.editor.hints.back}>
+            <IconButton
+              onPress={() => router.back()}
+              accessibilityLabel={t.editor.hints.back}
+              hint={t.editor.hints.back}
+            >
               <Icon
                 name={language === "ar" ? "chevronRight" : "chevronLeft"}
                 size={20}
@@ -642,10 +664,20 @@ export function EditorScreen() {
               {project.name || t.editor.newProject}
             </Text>
             <View style={styles.topActions}>
-              <IconButton onPress={undo} disabled={!canUndo} accessibilityLabel={t.editor.hints.undo} hint={t.editor.hints.undo}>
+              <IconButton
+                onPress={undo}
+                disabled={!canUndo}
+                accessibilityLabel={t.editor.hints.undo}
+                hint={t.editor.hints.undo}
+              >
                 <Icon name="undo" size={18} color={canUndo ? c.ink : c.faint} />
               </IconButton>
-              <IconButton onPress={redo} disabled={!canRedo} accessibilityLabel={t.editor.hints.redo} hint={t.editor.hints.redo}>
+              <IconButton
+                onPress={redo}
+                disabled={!canRedo}
+                accessibilityLabel={t.editor.hints.redo}
+                hint={t.editor.hints.redo}
+              >
                 <Icon name="redo" size={18} color={canRedo ? c.ink : c.faint} />
               </IconButton>
               <IconButton
@@ -660,7 +692,12 @@ export function EditorScreen() {
                   color={gridEnabled ? c.onInk : c.ink}
                 />
               </IconButton>
-              <IconButton onPress={save} accessibilityLabel={t.editor.hints.save} accessibilityHint={t.editor.hints.save} hint={t.editor.hints.save}>
+              <IconButton
+                onPress={save}
+                accessibilityLabel={t.editor.hints.save}
+                accessibilityHint={t.editor.hints.save}
+                hint={t.editor.hints.save}
+              >
                 <Icon name="download" size={18} />
               </IconButton>
               <IconButton
@@ -765,7 +802,11 @@ export function EditorScreen() {
               <Icon name="flip" size={16} />
             </IconButton>
             {selectedObject?.type === "text" && (
-              <IconButton onPress={fitTextToContent} accessibilityLabel={t.editor.hints.fitText} hint={t.editor.hints.fitText}>
+              <IconButton
+                onPress={fitTextToContent}
+                accessibilityLabel={t.editor.hints.fitText}
+                hint={t.editor.hints.fitText}
+              >
                 <Icon name="fitText" size={16} />
               </IconButton>
             )}
@@ -787,7 +828,11 @@ export function EditorScreen() {
                 <Icon name="rejoin" size={16} />
               </IconButton>
             )}
-            <IconButton onPress={duplicateSelected} accessibilityLabel={t.editor.hints.duplicate} hint={t.editor.hints.duplicate}>
+            <IconButton
+              onPress={duplicateSelected}
+              accessibilityLabel={t.editor.hints.duplicate}
+              hint={t.editor.hints.duplicate}
+            >
               <Icon name="duplicate" size={16} />
             </IconButton>
             <IconButton
@@ -808,35 +853,71 @@ export function EditorScreen() {
             >
               <Icon name="layerDown" size={16} />
             </IconButton>
-            <IconButton onPress={deleteSelected} accessibilityLabel={t.editor.hints.delete} hint={t.editor.hints.delete}>
+            <IconButton
+              onPress={deleteSelected}
+              accessibilityLabel={t.editor.hints.delete}
+              hint={t.editor.hints.delete}
+            >
               <Icon name="trash" size={16} color={c.danger} />
             </IconButton>
             {selectedIds.length > 1 && (
               <>
-                <IconButton onPress={() => alignSelected("left")} accessibilityLabel={t.editor.hints.alignLeft} hint={t.editor.hints.alignLeft}>
+                <IconButton
+                  onPress={() => alignSelected("left")}
+                  accessibilityLabel={t.editor.hints.alignLeft}
+                  hint={t.editor.hints.alignLeft}
+                >
                   <Icon name="alignLeft" size={16} />
                 </IconButton>
-                <IconButton onPress={() => alignSelected("centerH")} accessibilityLabel={t.editor.hints.alignCenterH} hint={t.editor.hints.alignCenterH}>
+                <IconButton
+                  onPress={() => alignSelected("centerH")}
+                  accessibilityLabel={t.editor.hints.alignCenterH}
+                  hint={t.editor.hints.alignCenterH}
+                >
                   <Icon name="alignCenterH" size={16} />
                 </IconButton>
-                <IconButton onPress={() => alignSelected("right")} accessibilityLabel={t.editor.hints.alignRight} hint={t.editor.hints.alignRight}>
+                <IconButton
+                  onPress={() => alignSelected("right")}
+                  accessibilityLabel={t.editor.hints.alignRight}
+                  hint={t.editor.hints.alignRight}
+                >
                   <Icon name="alignRight" size={16} />
                 </IconButton>
-                <IconButton onPress={() => alignSelected("top")} accessibilityLabel={t.editor.hints.alignTop} hint={t.editor.hints.alignTop}>
+                <IconButton
+                  onPress={() => alignSelected("top")}
+                  accessibilityLabel={t.editor.hints.alignTop}
+                  hint={t.editor.hints.alignTop}
+                >
                   <Icon name="alignTop" size={16} />
                 </IconButton>
-                <IconButton onPress={() => alignSelected("middleV")} accessibilityLabel={t.editor.hints.alignMiddleV} hint={t.editor.hints.alignMiddleV}>
+                <IconButton
+                  onPress={() => alignSelected("middleV")}
+                  accessibilityLabel={t.editor.hints.alignMiddleV}
+                  hint={t.editor.hints.alignMiddleV}
+                >
                   <Icon name="alignMiddleV" size={16} />
                 </IconButton>
-                <IconButton onPress={() => alignSelected("bottom")} accessibilityLabel={t.editor.hints.alignBottom} hint={t.editor.hints.alignBottom}>
+                <IconButton
+                  onPress={() => alignSelected("bottom")}
+                  accessibilityLabel={t.editor.hints.alignBottom}
+                  hint={t.editor.hints.alignBottom}
+                >
                   <Icon name="alignBottom" size={16} />
                 </IconButton>
               </>
             )}
-            <IconButton onPress={() => alignSelected("canvasCenterH")} accessibilityLabel={t.editor.hints.centerH} hint={t.editor.hints.centerH}>
+            <IconButton
+              onPress={() => alignSelected("canvasCenterH")}
+              accessibilityLabel={t.editor.hints.centerH}
+              hint={t.editor.hints.centerH}
+            >
               <Icon name="centerH" size={16} />
             </IconButton>
-            <IconButton onPress={() => alignSelected("canvasCenterV")} accessibilityLabel={t.editor.hints.centerV} hint={t.editor.hints.centerV}>
+            <IconButton
+              onPress={() => alignSelected("canvasCenterV")}
+              accessibilityLabel={t.editor.hints.centerV}
+              hint={t.editor.hints.centerV}
+            >
               <Icon name="centerV" size={16} />
             </IconButton>
           </View>
@@ -939,7 +1020,10 @@ export function EditorScreen() {
                 style={styles.styleNameWrap}
               >
                 <Text
-                  style={[styles.styleName, { color: c.muted, fontFamily: fonts.ui }]}
+                  style={[
+                    styles.styleName,
+                    { color: c.muted, fontFamily: fonts.ui },
+                  ]}
                 >
                   {t.editor.style}
                 </Text>
@@ -1136,7 +1220,9 @@ export function EditorScreen() {
                           selectedText.align === value ? "primary" : "secondary"
                         }
                         selected={selectedText.align === value}
-                        onPress={() => patchStyle({ align: value as TextAlign })}
+                        onPress={() =>
+                          patchStyle({ align: value as TextAlign })
+                        }
                         style={styles.alignBtn}
                       />
                     ))}
@@ -1277,7 +1363,9 @@ function NumberRow({
   const font = fontRoles[language].ui;
   return (
     <View style={styles.numberRow}>
-      <Text style={[styles.numberLabel, { color: c.inkSoft, fontFamily: font }]}>
+      <Text
+        style={[styles.numberLabel, { color: c.inkSoft, fontFamily: font }]}
+      >
         {label}
       </Text>
       <View style={styles.numberControls}>
@@ -1417,7 +1505,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: spacing.xs,
   },
-  styleNameWrap: { flex: 1, alignItems: "center", paddingVertical: spacing.xxs },
+  styleNameWrap: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: spacing.xxs,
+  },
   styleName: {
     fontSize: typeScale.caption.size,
     lineHeight: typeScale.caption.lineHeight,

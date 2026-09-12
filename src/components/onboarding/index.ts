@@ -1,5 +1,5 @@
-export { OnboardingArt } from './onboarding-art';
-export type { OnboardingArtVariant, OnboardingArtSize } from './onboarding-art';
-export { StepPager } from './step-pager';
-export { StepDots } from './step-dots';
-export { LanguagePicker } from './language-picker';
+export { LanguagePicker } from "./language-picker";
+export { OnboardingArt } from "./onboarding-art";
+export type { OnboardingArtSize, OnboardingArtVariant } from "./onboarding-art";
+export { StepDots } from "./step-dots";
+export { StepPager } from "./step-pager";

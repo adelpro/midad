@@ -86,8 +86,11 @@ export function splitTextObject(
     return { ok: false, reason: "layout-failed" };
   }
 
-  const { paragraph: sourceParagraph, width: sourceW, height: sourceH } =
-    sourceLayout;
+  const {
+    paragraph: sourceParagraph,
+    width: sourceW,
+    height: sourceH,
+  } = sourceLayout;
   const t = source.transform;
   const rad = (t.rotation * Math.PI) / 180;
   const cos = Math.cos(rad);
@@ -139,10 +142,8 @@ export function splitTextObject(
         const inkX = sourceRect.x + sourceRect.width / 2 - sourceW / 2;
         const inkY = sourceRect.y + sourceRect.height / 2 - sourceH / 2;
         // Where the part's own ink sits inside the part's local frame.
-        const selfX =
-          partRect.x + partRect.width / 2 - partLayout.width / 2;
-        const selfY =
-          partRect.y + partRect.height / 2 - partLayout.height / 2;
+        const selfX = partRect.x + partRect.width / 2 - partLayout.width / 2;
+        const selfY = partRect.y + partRect.height / 2 - partLayout.height / 2;
 
         const localX = inkX - selfX;
         const localY = inkY - selfY;
@@ -203,9 +204,7 @@ export function splitTextObject(
  * Returns null when the group is incomplete, so a partial selection is never
  * silently merged.
  */
-export function mergePartTexts(
-  parts: CalligraphyTextObject[],
-): string | null {
+export function mergePartTexts(parts: CalligraphyTextObject[]): string | null {
   if (parts.length === 0) {
     return null;
   }

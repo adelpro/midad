@@ -17,13 +17,13 @@
  * Usage: node scripts/extract-glyphs.mjs [--check]
  *   --check  verify the generated file is up to date without writing it
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const FONT_PATH = join(ROOT, 'assets', 'fonts', 'amiri-arabic-400.ttf');
-const OUT_PATH = join(ROOT, 'src', 'editor', 'glyphs', 'catalog.ts');
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const FONT_PATH = join(ROOT, "assets", "fonts", "amiri-arabic-400.ttf");
+const OUT_PATH = join(ROOT, "src", "editor", "glyphs", "catalog.ts");
 
 /** Padding around the ink bounds, as a fraction of the ink size on each side. */
 const PAD = 0.15;
@@ -46,27 +46,27 @@ const PAD = 0.15;
  * `assertNoDuplicateOutlines` below enforces this.
  */
 const MARKS = [
-  ['fatha', 0x064e, 'فتحة', 'Fatha'],
-  ['damma', 0x064f, 'ضمة', 'Damma'],
-  ['fathatan', 0x064b, 'فتحتان', 'Fathatan'],
-  ['dammatan', 0x064c, 'ضمتان', 'Dammatan'],
-  ['shadda', 0x0651, 'شدّة', 'Shadda'],
-  ['sukun', 0x0652, 'سكون', 'Sukun'],
-  ['maddah', 0x0653, 'مدّة', 'Maddah'],
-  ['hamza-above', 0x0654, 'همزة فوق', 'Hamza above'],
-  ['noon-ghunna', 0x0658, 'غنّة', 'Ghunna'],
-  ['superscript-alef', 0x0670, 'ألف خنجرية', 'Superscript alef'],
-  ['sad-lam-ligature', 0x06d6, 'وصلة صاد ولام', 'Sad-lam ligature'],
-  ['rectangular-zero', 0x06e0, 'صفر مستطيل', 'Rectangular zero'],
-  ['head-of-khah', 0x06e1, 'رأس خاء', 'Head of khah'],
-  ['small-meem', 0x06e2, 'ميم صغيرة', 'Small meem'],
-  ['low-seen', 0x06e3, 'سين سفلى', 'Low seen'],
-  ['small-maddah', 0x06e4, 'مدّة صغيرة', 'Small maddah'],
-  ['small-waw', 0x06e5, 'واو صغيرة', 'Small waw'],
-  ['small-yeh', 0x06e6, 'ياء صغيرة', 'Small yeh'],
-  ['small-noon', 0x06e8, 'نون صغيرة', 'Small noon'],
-  ['low-stop', 0x06ea, 'وقفة سفلى', 'Low stop'],
-  ['rounded-stop', 0x06ec, 'وقفة مستديرة', 'Rounded stop'],
+  ["fatha", 0x064e, "فتحة", "Fatha"],
+  ["damma", 0x064f, "ضمة", "Damma"],
+  ["fathatan", 0x064b, "فتحتان", "Fathatan"],
+  ["dammatan", 0x064c, "ضمتان", "Dammatan"],
+  ["shadda", 0x0651, "شدّة", "Shadda"],
+  ["sukun", 0x0652, "سكون", "Sukun"],
+  ["maddah", 0x0653, "مدّة", "Maddah"],
+  ["hamza-above", 0x0654, "همزة فوق", "Hamza above"],
+  ["noon-ghunna", 0x0658, "غنّة", "Ghunna"],
+  ["superscript-alef", 0x0670, "ألف خنجرية", "Superscript alef"],
+  ["sad-lam-ligature", 0x06d6, "وصلة صاد ولام", "Sad-lam ligature"],
+  ["rectangular-zero", 0x06e0, "صفر مستطيل", "Rectangular zero"],
+  ["head-of-khah", 0x06e1, "رأس خاء", "Head of khah"],
+  ["small-meem", 0x06e2, "ميم صغيرة", "Small meem"],
+  ["low-seen", 0x06e3, "سين سفلى", "Low seen"],
+  ["small-maddah", 0x06e4, "مدّة صغيرة", "Small maddah"],
+  ["small-waw", 0x06e5, "واو صغيرة", "Small waw"],
+  ["small-yeh", 0x06e6, "ياء صغيرة", "Small yeh"],
+  ["small-noon", 0x06e8, "نون صغيرة", "Small noon"],
+  ["low-stop", 0x06ea, "وقفة سفلى", "Low stop"],
+  ["rounded-stop", 0x06ec, "وقفة مستديرة", "Rounded stop"],
 ];
 
 /**
@@ -79,37 +79,37 @@ const MARKS = [
  * cannot provide.
  */
 const LETTERS = [
-  ['alef-iso', 0x0627, 'ألف', 'Alef'],
-  ['alef-final', 0xfe8e, 'ألف متصل', 'Alef final'],
-  ['lam-initial', 0xfedf, 'لام ابتدائي', 'Lam initial'],
-  ['meem-iso', 0x0645, 'ميم', 'Meem'],
-  ['beh-initial', 0xfe91, 'باء ابتدائي', 'Beh initial'],
-  ['beh-medial', 0xfe92, 'باء وسطي', 'Beh medial'],
-  ['teh-medial', 0xfe98, 'تاء وسطية', 'Teh medial'],
-  ['noon-initial', 0xfee7, 'نون ابتدائي', 'Noon initial'],
-  ['noon-medial', 0xfee8, 'نون وسطية', 'Noon medial'],
-  ['seen-initial', 0xfeb3, 'سين ابتدائي', 'Seen initial'],
-  ['seen-medial', 0xfeb4, 'سين وسطية', 'Seen medial'],
-  ['meem-medial', 0xfee4, 'ميم وسطية', 'Meem medial'],
-  ['sad-initial', 0xfebb, 'صاد ابتدائي', 'Sad initial'],
-  ['sad-medial', 0xfebc, 'صاد وسطية', 'Sad medial'],
-  ['reh-iso', 0x0631, 'راء', 'Reh'],
-  ['waw-iso', 0x0648, 'واو', 'Waw'],
-  ['dal-iso', 0x062f, 'دال', 'Dal'],
-  ['heh-iso', 0x0647, 'هاء', 'Heh'],
-  ['ain-initial', 0xfecb, 'عين ابتدائي', 'Ain initial'],
-  ['ain-medial', 0xfecc, 'عين وسطية', 'Ain medial'],
-  ['jeem-initial', 0xfe9f, 'جيم ابتدائي', 'Jeem initial'],
-  ['heh-medial', 0xfeec, 'هاء وسطية', 'Heh medial'],
-  ['kaf-medial', 0xfedc, 'كاف وسطية', 'Kaf medial'],
-  ['yeh-medial', 0xfef4, 'ياء وسطية', 'Yeh medial'],
-  ['ain-iso', 0x0639, 'عين', 'Ain'],
-  ['ghain-iso', 0x063a, 'غين', 'Ghain'],
-  ['jeem-medial', 0xfea0, 'جيم وسطية', 'Jeem medial'],
-  ['khah-initial', 0xfea3, 'خاء ابتدائي', 'Khah initial'],
-  ['seen-final', 0xfeb2, 'سين نهائية', 'Seen final'],
-  ['sad-final', 0xfeba, 'صاد نهائية', 'Sad final'],
-  ['yeh-final', 0xfef2, 'ياء نهائية', 'Yeh final'],
+  ["alef-iso", 0x0627, "ألف", "Alef"],
+  ["alef-final", 0xfe8e, "ألف متصل", "Alef final"],
+  ["lam-initial", 0xfedf, "لام ابتدائي", "Lam initial"],
+  ["meem-iso", 0x0645, "ميم", "Meem"],
+  ["beh-initial", 0xfe91, "باء ابتدائي", "Beh initial"],
+  ["beh-medial", 0xfe92, "باء وسطي", "Beh medial"],
+  ["teh-medial", 0xfe98, "تاء وسطية", "Teh medial"],
+  ["noon-initial", 0xfee7, "نون ابتدائي", "Noon initial"],
+  ["noon-medial", 0xfee8, "نون وسطية", "Noon medial"],
+  ["seen-initial", 0xfeb3, "سين ابتدائي", "Seen initial"],
+  ["seen-medial", 0xfeb4, "سين وسطية", "Seen medial"],
+  ["meem-medial", 0xfee4, "ميم وسطية", "Meem medial"],
+  ["sad-initial", 0xfebb, "صاد ابتدائي", "Sad initial"],
+  ["sad-medial", 0xfebc, "صاد وسطية", "Sad medial"],
+  ["reh-iso", 0x0631, "راء", "Reh"],
+  ["waw-iso", 0x0648, "واو", "Waw"],
+  ["dal-iso", 0x062f, "دال", "Dal"],
+  ["heh-iso", 0x0647, "هاء", "Heh"],
+  ["ain-initial", 0xfecb, "عين ابتدائي", "Ain initial"],
+  ["ain-medial", 0xfecc, "عين وسطية", "Ain medial"],
+  ["jeem-initial", 0xfe9f, "جيم ابتدائي", "Jeem initial"],
+  ["heh-medial", 0xfeec, "هاء وسطية", "Heh medial"],
+  ["kaf-medial", 0xfedc, "كاف وسطية", "Kaf medial"],
+  ["yeh-medial", 0xfef4, "ياء وسطية", "Yeh medial"],
+  ["ain-iso", 0x0639, "عين", "Ain"],
+  ["ghain-iso", 0x063a, "غين", "Ghain"],
+  ["jeem-medial", 0xfea0, "جيم وسطية", "Jeem medial"],
+  ["khah-initial", 0xfea3, "خاء ابتدائي", "Khah initial"],
+  ["seen-final", 0xfeb2, "سين نهائية", "Seen final"],
+  ["sad-final", 0xfeba, "صاد نهائية", "Sad final"],
+  ["yeh-final", 0xfef2, "ياء نهائية", "Yeh final"],
 ];
 
 // ---------------------------------------------------------------------------
@@ -135,7 +135,7 @@ function readTables(buf) {
   const tables = {};
   for (let i = 0; i < numTables; i++) {
     const o = 12 + i * 16;
-    tables[buf.toString('ascii', o, o + 4)] = {
+    tables[buf.toString("ascii", o, o + 4)] = {
       offset: buf.readUInt32BE(o + 8),
       length: buf.readUInt32BE(o + 12),
     };
@@ -159,7 +159,7 @@ function parseCmap4(buf, cmapOffset) {
     sub = offset;
     if (isWindowsBmp) break;
   }
-  if (sub === null) throw new Error('cmap format 4 subtable not found');
+  if (sub === null) throw new Error("cmap format 4 subtable not found");
 
   const segCountX2 = buf.readUInt16BE(sub + 6);
   const segCount = segCountX2 / 2;
@@ -202,7 +202,8 @@ function createGlyfReader(buf, tables) {
 
   /** @returns {Array<Array<{x:number,y:number,on:boolean}>>} */
   function readGlyph(gid, depth = 0) {
-    if (depth > 8) throw new Error(`composite recursion too deep at gid ${gid}`);
+    if (depth > 8)
+      throw new Error(`composite recursion too deep at gid ${gid}`);
     const start = loca(gid);
     const end = loca(gid + 1);
     if (start >= end) return [];
@@ -299,7 +300,10 @@ function createGlyfReader(buf, tables) {
         }
       }
 
-      let a = 1, b = 0, c = 0, d = 1;
+      let a = 1,
+        b = 0,
+        c = 0,
+        d = 1;
       if (flags & HAVE_SCALE) {
         a = d = buf.readInt16BE(p) / 16384;
         p += 2;
@@ -344,7 +348,9 @@ const round2 = (n) => {
 
 /** Drop a duplicated closing point and require at least two distinct points. */
 function normalizeContour(contour) {
-  const pts = contour.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+  const pts = contour.filter(
+    (p) => Number.isFinite(p.x) && Number.isFinite(p.y),
+  );
   while (
     pts.length > 1 &&
     pts[0].x === pts[pts.length - 1].x &&
@@ -362,12 +368,16 @@ function normalizeContour(contour) {
  */
 function contourToPath(rawContour) {
   let pts = normalizeContour(rawContour);
-  if (!pts) return '';
+  if (!pts) return "";
 
   let startIndex = pts.findIndex((p) => p.on);
   if (startIndex === -1) {
     // All off-curve: synthesize an on-curve start at the first implied midpoint.
-    const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2, on: true };
+    const mid = {
+      x: (pts[0].x + pts[1].x) / 2,
+      y: (pts[0].y + pts[1].y) / 2,
+      on: true,
+    };
     pts = [mid, ...pts];
     startIndex = 0;
   }
@@ -400,7 +410,7 @@ function contourToPath(rawContour) {
 }
 
 function contoursToPath(contours) {
-  return contours.map(contourToPath).filter(Boolean).join('');
+  return contours.map(contourToPath).filter(Boolean).join("");
 }
 
 /** Tight ink bounds in SVG space, padded by PAD of the ink size on each side. */
@@ -445,10 +455,10 @@ function verifyRoundTrip(contours, d) {
   let i = 0;
   while (i < tokens.length) {
     const t = tokens[i];
-    if (t === 'M' || t === 'L') {
+    if (t === "M" || t === "L") {
       coords.push([Number(tokens[i + 1]), Number(tokens[i + 2])]);
       i += 3;
-    } else if (t === 'Q') {
+    } else if (t === "Q") {
       coords.push([Number(tokens[i + 1]), Number(tokens[i + 2])]);
       coords.push([Number(tokens[i + 3]), Number(tokens[i + 4])]);
       i += 5;
@@ -493,10 +503,10 @@ function outlineSignature(entry, { mirror = false, flip = false } = {}) {
   const tokens = entry.d.match(/[MLQ]|-?\d*\.?\d+/g) ?? [];
   const pts = [];
   for (let i = 0; i < tokens.length; ) {
-    if (tokens[i] === 'M' || tokens[i] === 'L') {
+    if (tokens[i] === "M" || tokens[i] === "L") {
       pts.push([Number(tokens[i + 1]), Number(tokens[i + 2])]);
       i += 3;
-    } else if (tokens[i] === 'Q') {
+    } else if (tokens[i] === "Q") {
       pts.push([Number(tokens[i + 1]), Number(tokens[i + 2])]);
       pts.push([Number(tokens[i + 3]), Number(tokens[i + 4])]);
       i += 5;
@@ -512,7 +522,7 @@ function outlineSignature(entry, { mirror = false, flip = false } = {}) {
       if (flip) ny = entry.box.h - ny;
       return `${round2(nx)},${round2(ny)}`;
     })
-    .join('|');
+    .join("|");
 }
 
 /**
@@ -532,15 +542,18 @@ function assertNoDuplicateOutlines(entries) {
       const a = sigs[i];
       const b = sigs[j];
       let rel = null;
-      if (a.id === b.id) rel = 'identical';
-      else if (a.mirror === b.id || a.id === b.mirror) rel = 'mirrored';
-      else if (a.flip === b.id || a.id === b.flip) rel = 'flipped';
-      else if (a.flipMirror === b.id || a.id === b.flipMirror) rel = 'rotated 180';
+      if (a.id === b.id) rel = "identical";
+      else if (a.mirror === b.id || a.id === b.mirror) rel = "mirrored";
+      else if (a.flip === b.id || a.id === b.flip) rel = "flipped";
+      else if (a.flipMirror === b.id || a.id === b.flipMirror)
+        rel = "rotated 180";
       if (rel) clashes.push(`${entries[i].key} ~ ${entries[j].key} (${rel})`);
     }
   }
   if (clashes.length) {
-    console.error('Duplicate-looking outlines found — the library grid would show repeats:');
+    console.error(
+      "Duplicate-looking outlines found — the library grid would show repeats:",
+    );
     for (const c of clashes) console.error(`  - ${c}`);
     process.exit(1);
   }
@@ -561,19 +574,25 @@ function build() {
   const add = (group, [name, cp, labelAr, labelEn]) => {
     const gid = cmap.get(cp);
     if (gid == null) {
-      problems.push(`U+${cp.toString(16).toUpperCase().padStart(4, '0')} (${name}) is not in cmap`);
+      problems.push(
+        `U+${cp.toString(16).toUpperCase().padStart(4, "0")} (${name}) is not in cmap`,
+      );
       return;
     }
     const contours = readGlyph(gid);
     if (!contours.length) {
-      problems.push(`U+${cp.toString(16).toUpperCase().padStart(4, '0')} (${name}) has no outline`);
+      problems.push(
+        `U+${cp.toString(16).toUpperCase().padStart(4, "0")} (${name}) has no outline`,
+      );
       return;
     }
     const d = contoursToPath(contours);
     const box = contoursToBox(contours);
     const { missing } = verifyRoundTrip(contours, d);
     if (missing.length) {
-      problems.push(`${name}: ${missing.length} point(s) lost in path round-trip`);
+      problems.push(
+        `${name}: ${missing.length} point(s) lost in path round-trip`,
+      );
     }
     entries.push({
       key: `${group}-${name}`,
@@ -587,11 +606,11 @@ function build() {
     });
   };
 
-  for (const m of MARKS) add('mark', m);
-  for (const l of LETTERS) add('letter', l);
+  for (const m of MARKS) add("mark", m);
+  for (const l of LETTERS) add("letter", l);
 
   if (problems.length) {
-    console.error('Glyph extraction failed:');
+    console.error("Glyph extraction failed:");
     for (const p of problems) console.error(`  - ${p}`);
     process.exit(1);
   }
@@ -600,66 +619,86 @@ function build() {
 
   const field = (v) => JSON.stringify(v);
   const lines = [];
-  lines.push('/**');
-  lines.push(' * GENERATED FILE — do not edit by hand.');
-  lines.push(' *');
-  lines.push(' * Ornament glyph outlines mined from the Amiri font the app already ships,');
-  lines.push(' * so the ornaments match the calligraphy text they sit beside.');
-  lines.push(' *');
-  lines.push(` *   source    : assets/fonts/amiri-arabic-400.ttf (Amiri v${readVersion(buf, tables)})`);
+  lines.push("/**");
+  lines.push(" * GENERATED FILE — do not edit by hand.");
+  lines.push(" *");
+  lines.push(
+    " * Ornament glyph outlines mined from the Amiri font the app already ships,",
+  );
+  lines.push(" * so the ornaments match the calligraphy text they sit beside.");
+  lines.push(" *");
+  lines.push(
+    ` *   source    : assets/fonts/amiri-arabic-400.ttf (Amiri v${readVersion(buf, tables)})`,
+  );
   lines.push(` *   unitsPerEm: ${unitsPerEm}   glyphs: ${glyphCount}`);
-  lines.push(` *   entries   : ${entries.length} (${MARKS.length} marks, ${LETTERS.length} letter forms)`);
-  lines.push(' *');
-  lines.push(' * Regenerate with: node scripts/extract-glyphs.mjs');
-  lines.push(' */');
-  lines.push('');
-  lines.push('/** Which family a glyph belongs to; drives the library tabs. */');
+  lines.push(
+    ` *   entries   : ${entries.length} (${MARKS.length} marks, ${LETTERS.length} letter forms)`,
+  );
+  lines.push(" *");
+  lines.push(" * Regenerate with: node scripts/extract-glyphs.mjs");
+  lines.push(" */");
+  lines.push("");
+  lines.push(
+    "/** Which family a glyph belongs to; drives the library tabs. */",
+  );
   lines.push("export type GlyphGroup = 'mark' | 'letter';");
-  lines.push('');
-  lines.push('/** Padded ink bounds in SVG space: `x y w h`. */');
-  lines.push('export interface GlyphBox {');
-  lines.push('  x: number;');
-  lines.push('  y: number;');
-  lines.push('  w: number;');
-  lines.push('  h: number;');
-  lines.push('}');
-  lines.push('');
-  lines.push('export interface GlyphCatalogEntry {');
-  lines.push('  /** Stable id persisted as `GlyphObject.glyphKey`. */');
-  lines.push('  key: string;');
-  lines.push('  /** Source Unicode codepoint, for traceability back to the font. */');
-  lines.push('  codepoint: number;');
-  lines.push('  group: GlyphGroup;');
-  lines.push('  labelAr: string;');
-  lines.push('  labelEn: string;');
-  lines.push('  /** SVG path data, font units with Y already negated for SVG space. */');
-  lines.push('  d: string;');
-  lines.push('  /** Tight ink bounds plus 15% padding, ready to use as a viewBox. */');
-  lines.push('  box: GlyphBox;');
-  lines.push('  /** Number of contours (2+ means the glyph contains counters). */');
-  lines.push('  contours: number;');
-  lines.push('}');
-  lines.push('');
-  lines.push('/** Padding applied around each glyph ink box, as a fraction of the ink size. */');
+  lines.push("");
+  lines.push("/** Padded ink bounds in SVG space: `x y w h`. */");
+  lines.push("export interface GlyphBox {");
+  lines.push("  x: number;");
+  lines.push("  y: number;");
+  lines.push("  w: number;");
+  lines.push("  h: number;");
+  lines.push("}");
+  lines.push("");
+  lines.push("export interface GlyphCatalogEntry {");
+  lines.push("  /** Stable id persisted as `GlyphObject.glyphKey`. */");
+  lines.push("  key: string;");
+  lines.push(
+    "  /** Source Unicode codepoint, for traceability back to the font. */",
+  );
+  lines.push("  codepoint: number;");
+  lines.push("  group: GlyphGroup;");
+  lines.push("  labelAr: string;");
+  lines.push("  labelEn: string;");
+  lines.push(
+    "  /** SVG path data, font units with Y already negated for SVG space. */",
+  );
+  lines.push("  d: string;");
+  lines.push(
+    "  /** Tight ink bounds plus 15% padding, ready to use as a viewBox. */",
+  );
+  lines.push("  box: GlyphBox;");
+  lines.push(
+    "  /** Number of contours (2+ means the glyph contains counters). */",
+  );
+  lines.push("  contours: number;");
+  lines.push("}");
+  lines.push("");
+  lines.push(
+    "/** Padding applied around each glyph ink box, as a fraction of the ink size. */",
+  );
   lines.push(`export const GLYPH_BOX_PAD = ${PAD};`);
-  lines.push('');
-  lines.push('export const GLYPH_CATALOG: readonly GlyphCatalogEntry[] = [');
+  lines.push("");
+  lines.push("export const GLYPH_CATALOG: readonly GlyphCatalogEntry[] = [");
   for (const e of entries) {
-    lines.push('  {');
+    lines.push("  {");
     lines.push(`    key: ${field(e.key)},`);
     lines.push(`    codepoint: 0x${e.codepoint.toString(16)},`);
     lines.push(`    group: ${field(e.group)},`);
     lines.push(`    labelAr: ${field(e.labelAr)},`);
     lines.push(`    labelEn: ${field(e.labelEn)},`);
     lines.push(`    contours: ${e.contours},`);
-    lines.push(`    box: { x: ${e.box.x}, y: ${e.box.y}, w: ${e.box.w}, h: ${e.box.h} },`);
+    lines.push(
+      `    box: { x: ${e.box.x}, y: ${e.box.y}, w: ${e.box.w}, h: ${e.box.h} },`,
+    );
     lines.push(`    d: ${field(e.d)},`);
-    lines.push('  },');
+    lines.push("  },");
   }
-  lines.push('];');
-  lines.push('');
+  lines.push("];");
+  lines.push("");
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 /** Read the font's version string (name id 5) for the generated header. */
@@ -673,32 +712,37 @@ function readVersion(buf, tables) {
     if (buf.readUInt16BE(r + 6) !== 5) continue;
     const len = buf.readUInt16BE(r + 8);
     const o = buf.readUInt16BE(r + 10);
-    let s = '';
-    for (let k = 0; k < len; k += 2) s += String.fromCharCode(buf.readUInt16BE(strOff + o + k));
-    return s.replace(/^Version\s*/i, '');
+    let s = "";
+    for (let k = 0; k < len; k += 2)
+      s += String.fromCharCode(buf.readUInt16BE(strOff + o + k));
+    return s.replace(/^Version\s*/i, "");
   }
-  return 'unknown';
+  return "unknown";
 }
 
-const check = process.argv.includes('--check');
+const check = process.argv.includes("--check");
 const output = build();
 
 if (check) {
-  let current = '';
+  let current = "";
   try {
-    current = readFileSync(OUT_PATH, 'utf8');
+    current = readFileSync(OUT_PATH, "utf8");
   } catch {
-    console.error('catalog.ts is missing — run: node scripts/extract-glyphs.mjs');
+    console.error(
+      "catalog.ts is missing — run: node scripts/extract-glyphs.mjs",
+    );
     process.exit(1);
   }
   if (current !== output) {
-    console.error('catalog.ts is out of date — run: node scripts/extract-glyphs.mjs');
+    console.error(
+      "catalog.ts is out of date — run: node scripts/extract-glyphs.mjs",
+    );
     process.exit(1);
   }
-  console.log('catalog.ts is up to date.');
+  console.log("catalog.ts is up to date.");
 } else {
   mkdirSync(dirname(OUT_PATH), { recursive: true });
-  writeFileSync(OUT_PATH, output, 'utf8');
-  const kb = (Buffer.byteLength(output, 'utf8') / 1024).toFixed(1);
+  writeFileSync(OUT_PATH, output, "utf8");
+  const kb = (Buffer.byteLength(output, "utf8") / 1024).toFixed(1);
   console.log(`Wrote ${OUT_PATH} (${kb} KB)`);
 }

@@ -1,8 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { useTheme } from '@/hooks/use-theme';
-import { useT } from '@/i18n';
-import { fontRoles, layout, radius, spacing } from '@/theme';
+import { useTheme } from "@/hooks/use-theme";
+import { useT } from "@/i18n";
+import { fontRoles, layout, radius, spacing } from "@/theme";
 
 export function LanguagePicker() {
   const { colors: c } = useTheme();
@@ -10,8 +10,13 @@ export function LanguagePicker() {
   const fonts = fontRoles[language];
 
   return (
-    <View style={[styles.segment, { backgroundColor: c.surfaceAlt, borderColor: c.border }]}>
-      {(['ar', 'en'] as const).map((lang) => {
+    <View
+      style={[
+        styles.segment,
+        { backgroundColor: c.surfaceAlt, borderColor: c.border },
+      ]}
+    >
+      {(["ar", "en"] as const).map((lang) => {
         const active = language === lang;
         return (
           <Pressable
@@ -21,8 +26,12 @@ export function LanguagePicker() {
             accessibilityState={{ selected: active }}
             style={({ pressed }) => [
               styles.segmentItem,
-              { backgroundColor: active ? c.ink : 'transparent', opacity: pressed ? 0.8 : 1 },
-            ]}>
+              {
+                backgroundColor: active ? c.ink : "transparent",
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
             <Text
               style={[
                 styles.segmentLabel,
@@ -30,8 +39,9 @@ export function LanguagePicker() {
                   fontFamily: active ? fonts.uiBold : fonts.ui,
                   color: active ? c.onInk : c.muted,
                 },
-              ]}>
-              {lang === 'ar' ? t.onboarding.arabic : t.onboarding.english}
+              ]}
+            >
+              {lang === "ar" ? t.onboarding.arabic : t.onboarding.english}
             </Text>
           </Pressable>
         );
@@ -42,21 +52,21 @@ export function LanguagePicker() {
 
 const styles = StyleSheet.create({
   segment: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderWidth: 1,
     borderRadius: radius.md,
     padding: 3,
     gap: 3,
     // Cap the track so the two segments keep a phone-proportioned width on
     // large displays instead of stretching into a full-window pill.
-    width: '100%',
+    width: "100%",
     maxWidth: layout.maxControl,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   segmentItem: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: spacing.sm + 2,
     borderRadius: radius.sm,
   },

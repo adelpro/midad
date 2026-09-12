@@ -4,11 +4,11 @@ import type {
 } from "@shopify/react-native-skia";
 import { PaintStyle, Skia } from "@shopify/react-native-skia";
 
+import { drawGlyphOnCanvas } from "@/editor/skia/glyph-shape";
 import {
   SHAPE_BASE_SIZE,
   drawShapeOnCanvas,
 } from "@/editor/skia/shape-geometry";
-import { drawGlyphOnCanvas } from "@/editor/skia/glyph-shape";
 import { layoutArabicText } from "@/editor/skia/text";
 import type { MidadProject } from "@/storage/project-schema";
 

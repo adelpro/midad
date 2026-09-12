@@ -1,7 +1,7 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from "react-native";
 
-import { useTheme } from '@/hooks/use-theme';
-import { radius, spacing } from '@/theme';
+import { useTheme } from "@/hooks/use-theme";
+import { radius, spacing } from "@/theme";
 
 export function StepDots({ count, index }: { count: number; index: number }) {
   const { colors: c } = useTheme();
@@ -10,7 +10,8 @@ export function StepDots({ count, index }: { count: number; index: number }) {
       style={styles.wrap}
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 1, max: count, now: index + 1 }}
-      accessibilityLabel={`${index + 1} / ${count}`}>
+      accessibilityLabel={`${index + 1} / ${count}`}
+    >
       <View style={styles.row}>
         {Array.from({ length: count }, (_, i) => (
           <View
@@ -31,11 +32,11 @@ export function StepDots({ count, index }: { count: number; index: number }) {
 
 const styles = StyleSheet.create({
   wrap: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
   },
   dot: {

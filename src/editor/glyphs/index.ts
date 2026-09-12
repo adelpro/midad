@@ -5,10 +5,18 @@
  * `react-native-svg`, so this module must stay importable from plain UI code.
  * The Skia-side renderer lives in `@/editor/skia/glyph-shape`.
  */
-import { GLYPH_CATALOG, type GlyphCatalogEntry, type GlyphGroup } from '@/editor/glyphs/catalog';
+import {
+  GLYPH_CATALOG,
+  type GlyphCatalogEntry,
+  type GlyphGroup,
+} from "@/editor/glyphs/catalog";
 
-export { GLYPH_CATALOG } from '@/editor/glyphs/catalog';
-export type { GlyphBox, GlyphCatalogEntry, GlyphGroup } from '@/editor/glyphs/catalog';
+export { GLYPH_CATALOG } from "@/editor/glyphs/catalog";
+export type {
+  GlyphBox,
+  GlyphCatalogEntry,
+  GlyphGroup,
+} from "@/editor/glyphs/catalog";
 
 /** Lookup index, built once — the generated catalog is a static array. */
 const BY_KEY: ReadonlyMap<string, GlyphCatalogEntry> = new Map(

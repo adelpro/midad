@@ -295,11 +295,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // The parts take over the source's slot in the array. They all keep its
     // z-index, so array order (which a stable sort preserves) is their paint
     // order — the word still reads left-to-right in the same place.
-    const next = [
-      ...objects.slice(0, at),
-      ...parts,
-      ...objects.slice(at + 1),
-    ];
+    const next = [...objects.slice(0, at), ...parts, ...objects.slice(at + 1)];
     s0.snapshot();
     set((s) => ({
       project: s.project ? { ...s.project, objects: next } : s.project,
@@ -390,7 +386,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         return false;
       }
       return (
-        Math.abs(o.transform.x - t.x) > 0.001 || Math.abs(o.transform.y - t.y) > 0.001
+        Math.abs(o.transform.x - t.x) > 0.001 ||
+        Math.abs(o.transform.y - t.y) > 0.001
       );
     });
     if (!changed) {
