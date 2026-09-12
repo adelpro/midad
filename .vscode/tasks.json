@@ -1,0 +1,30 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Check cluster segmentation",
+			"type": "shell",
+			"command": "node scripts/check-clusters.mjs",
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "Typecheck",
+			"type": "shell",
+			"command": "npx tsc --noEmit",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Lint",
+			"type": "shell",
+			"command": "npx eslint src scripts",
+			"problemMatcher": [
+				"$eslint - stylish"
+			],
+			"group": "build"
+		}
+	]
+}

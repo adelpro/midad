@@ -149,6 +149,20 @@ export const breakpoint = {
   wide: 600,
 } as const;
 
+/**
+ * Layout caps (dp). On large displays the app keeps working to a
+ * phone-proportioned measure and centres it, rather than stretching to the
+ * window — see DESIGN.md §5 ("web adapts, never leads").
+ */
+export const layout = {
+  /** Widest a single content column may grow (onboarding, forms, empty states). */
+  maxContent: 480,
+  /** Widest a standalone control (segmented track, single button group) may grow. */
+  maxControl: 320,
+  /** Widest a horizontal chrome bar's content may grow before it centres. */
+  maxToolbar: 560,
+} as const;
+
 export const motion = {
   fast: 150,
   base: 250,

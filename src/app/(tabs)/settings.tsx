@@ -3,10 +3,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button } from '@/components/ui';
+import { Button, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
-import { useSettings, type ThemePreference } from '@/storage/settings';
+import {
+  AUTO_SAVE_INTERVALS_MS,
+  useSettings,
+  type ThemePreference,
+} from '@/storage/settings';
 import { fontRoles, spacing, typeScale } from '@/theme';
 
 function SectionLabel({ children }: { children: string }) {
@@ -46,7 +50,16 @@ export default function SettingsScreen() {
   const { t, language } = useT();
   const { colors: c } = useTheme();
   const fonts = fontRoles[language];
-  const { theme, setTheme, language: lang, setLanguage } = useSettings();
+  const {
+    theme,
+    setTheme,
+    language: lang,
+    setLanguage,
+    autoSaveEnabled,
+    autoSaveIntervalMs,
+    setAutoSaveEnabled,
+    setAutoSaveInterval,
+  } = useSettings();
   const [languageJustChanged, setLanguageJustChanged] = useState(false);
 
   const changeLanguage = (next: 'ar' | 'en') => {
@@ -110,6 +123,53 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        <SectionLabel>{t.settings.autoSaveSection}</SectionLabel>
+        <View style={[styles.row, { backgroundColor: c.surface, borderColor: c.border }]}> 
+          <View style={styles.settingLabelWrap}>
+            <Text style={[styles.rowLabel, { fontFamily: fonts.ui, color: c.ink }]}> 
+              {t.settings.autoSaveHint}
+            </Text>
+            <Text style={[styles.settingHint, { fontFamily: fonts.ui, color: c.muted }]}> 
+              {autoSaveEnabled ? t.settings.autoSaveOn : t.settings.autoSaveOff}
+            </Text>
+          </View>
+          <Toggle
+            value={autoSaveEnabled}
+            onValueChange={setAutoSaveEnabled}
+            accessibilityLabel={t.settings.autoSaveHint}
+          />
+        </View>
+        <View style={[styles.row, { backgroundColor: c.surface, borderColor: c.border, opacity: autoSaveEnabled ? 1 : 0.5 }]}> 
+          <View style={styles.settingLabelWrap}>
+            <Text style={[styles.rowLabel, { fontFamily: fonts.ui, color: c.ink }]}> 
+              {t.settings.autoSaveInterval}
+            </Text>
+            <Text style={[styles.settingHint, { fontFamily: fonts.ui, color: c.muted }]}> 
+              {t.settings.autoSaveIntervalHint}
+            </Text>
+          </View>
+          <View style={styles.choiceRow}>
+            {AUTO_SAVE_INTERVALS_MS.map((value, index) => {
+              const labels = [
+                t.settings.autoSaveEvery10s,
+                t.settings.autoSaveEvery30s,
+                t.settings.autoSaveEvery1m,
+                t.settings.autoSaveEvery5m,
+              ] as const;
+              return (
+                <ChoiceButton
+                  key={value}
+                  label={labels[index] ?? labels[0]}
+                  active={autoSaveIntervalMs === value}
+                  onPress={() => {
+                    if (autoSaveEnabled) setAutoSaveInterval(value);
+                  }}
+                />
+              );
+            })}
+          </View>
+        </View>
+
         <SectionLabel>{t.settings.aboutSection}</SectionLabel>
         <View style={styles.group}>
           <View style={[styles.row, { backgroundColor: c.surface, borderColor: c.border }]}>
@@ -166,6 +226,11 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: typeScale.small.size,
     lineHeight: typeScale.small.lineHeight,
+  },
+  settingLabelWrap: { flex: 1, gap: spacing.xs },
+  settingHint: {
+    fontSize: typeScale.caption.size,
+    lineHeight: typeScale.caption.lineHeight,
   },
   choiceRow: {
     flexDirection: 'row',

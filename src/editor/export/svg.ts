@@ -1,11 +1,17 @@
 import { Asset } from "expo-asset";
 
+import { getGlyphEntry, glyphPlacement } from "@/editor/glyphs";
 import {
   buildStarPath,
   buildTrianglePath,
   SHAPE_BASE_SIZE,
 } from "@/editor/skia/shape-geometry";
-import type { MidadProject, ShapeObject } from "@/storage/project-schema";
+import type {
+  CalligraphyTextObject,
+  GlyphObject,
+  MidadProject,
+  ShapeObject,
+} from "@/storage/project-schema";
 import { calligraphyFonts, fontAssets } from "@/theme";
 
 export interface SvgFontFace {
@@ -25,6 +31,59 @@ function escapeXml(s: string): string {
 function familyForKey(fontKey: string): string {
   const entry = calligraphyFonts.find((f) => f.key === fontKey);
   return entry ? entry.family : "Amiri";
+}
+
+/** XML id for an object's drop-shadow filter. */
+function shadowFilterId(objectId: string): string {
+  // Object ids are not guaranteed to be id-safe, so anything unusual is folded.
+  return `shadow-${objectId.replace(/[^A-Za-z0-9_-]/g, "-")}`;
+}
+
+/**
+ * Split a colour into an SVG `flood-color` plus an optional `flood-opacity`.
+ * `feDropShadow` takes the two separately, and the shadow presets express their
+ * colours as `rgba(...)`, which not every renderer honours in `flood-color`.
+ */
+function splitShadowColor(color: string): {
+  color: string;
+  opacity?: number;
+} {
+  const match = /^rgba\(\s*([^)]+)\)$/i.exec(color.trim());
+  if (!match) {
+    return { color };
+  }
+  const parts = match[1].split(",").map((p) => p.trim());
+  if (parts.length !== 4) {
+    return { color };
+  }
+  const [r, g, b, a] = parts;
+  const alpha = Number(a);
+  return {
+    color: `rgb(${r}, ${g}, ${b})`,
+    ...(Number.isFinite(alpha) ? { opacity: alpha } : {}),
+  };
+}
+
+/**
+ * A drop-shadow filter for one text object. Shadows are chained as successive
+ * `feDropShadow` primitives, so a multi-shadow preset (engraved) survives.
+ */
+function textFilterFor(obj: CalligraphyTextObject, id: string): string {
+  const primitives = (obj.shadows ?? [])
+    .map((s) => {
+      const { color, opacity } = splitShadowColor(s.color);
+      const alpha = opacity === undefined ? "" : ` flood-opacity="${opacity}"`;
+      return (
+        `<feDropShadow dx="${s.offsetX}" dy="${s.offsetY}"` +
+        ` stdDeviation="${s.blur}" flood-color="${escapeXml(color)}"${alpha} />`
+      );
+    })
+    .join("");
+  // A generous region keeps large blurs from being clipped at the text box.
+  return (
+    `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%">` +
+    `${primitives}</filter>`
+  );
 }
 
 /** Unique font families needed to render this project's text objects. */
@@ -119,9 +178,18 @@ function shapePaintAttrs(
 }
 
 function shapeToSvg(shape: ShapeObject): string | null {
-  // Mirrors EditorCanvas: box already includes scale, and the wrapping <g>
-  // applies the transform scale again — identical to the Skia path.
-  const size = SHAPE_BASE_SIZE * (shape.transform.scale || 1);
+  const size = SHAPE_BASE_SIZE;
+  const geometry = shapeGeometryToSvg(shape, size);
+  if (!geometry) {
+    return null;
+  }
+  // Geometry is authored in a `0..size` box in local units; the enclosing <g>
+  // supplies the object's scale, and this shift centres the box on the origin.
+  return `<g transform="translate(${-size / 2} ${-size / 2})">${geometry}</g>`;
+}
+
+/** Shape geometry inside a `0..size` box, mirrored by the Skia renderer. */
+function shapeGeometryToSvg(shape: ShapeObject, size: number): string | null {
   switch (shape.shapeKey) {
     case "circle": {
       const attrs = shapePaintAttrs(shape);
@@ -160,6 +228,29 @@ function shapeToSvg(shape: ShapeObject): string | null {
 }
 
 /**
+ * Glyph geometry centred on the object origin.
+ *
+ * Catalog paths are authored in their own font-unit ink box, so they need both
+ * an aspect-preserving fit into the square base box and a shift that centres the
+ * result. `glyphPlacement` folds those into one translate + scale pair, matching
+ * the Skia renderer exactly.
+ */
+function glyphToSvg(glyph: GlyphObject): string | null {
+  const entry = getGlyphEntry(glyph.glyphKey);
+  if (!entry) {
+    return null;
+  }
+  const size = SHAPE_BASE_SIZE;
+  const p = glyphPlacement(entry, size);
+  return (
+    `<g transform="translate(${-size / 2} ${-size / 2})">` +
+    `<path d="${entry.d}" fill="${escapeXml(glyph.color)}" ` +
+    `transform="translate(${p.offsetX} ${p.offsetY}) scale(${p.scale})" />` +
+    `</g>`
+  );
+}
+
+/**
  * Render a text object as a centred stack of `<tspan>` lines. `lines` are the
  * visual lines (soft wraps already resolved by the caller), so a narrowed text
  * box exports the same line breaks the canvas shows.
@@ -170,6 +261,7 @@ function textToSvg(
   lineHeight: number,
   color: string,
   outline?: { color: string; width: number },
+  filterId?: string,
 ): string {
   const sample = lines.join(" ");
   const isArabic = /[\u0600-\u06FF]/.test(sample);
@@ -177,6 +269,7 @@ function textToSvg(
   const outlineAttrs = outline
     ? ` stroke="${escapeXml(outline.color)}" stroke-width="${outline.width}" paint-order="stroke"`
     : "";
+  const filterAttr = filterId ? ` filter="url(#${filterId})"` : "";
   const dy0 = -((lines.length - 1) * lineHeight) / 2;
   const spans = lines
     .map(
@@ -186,7 +279,7 @@ function textToSvg(
     .join("");
   return (
     `<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"` +
-    ` font-size="${fontSize}" fill="${escapeXml(color)}"${outlineAttrs}${rtl}>${spans}</text>`
+    ` font-size="${fontSize}" fill="${escapeXml(color)}"${outlineAttrs}${filterAttr}${rtl}>${spans}</text>`
   );
 }
 
@@ -208,14 +301,16 @@ export function projectToSvg(
   const W = project.canvas.width;
   const H = project.canvas.height;
 
-  const defs =
+  // Filters are discovered while walking the objects, so <defs> is assembled
+  // after the body loop below.
+  const styleSheet =
     fontFaces.length > 0
-      ? `<defs><style>${fontFaces
+      ? `<style>${fontFaces
           .map(
             (f) =>
               `@font-face{font-family:'${f.family}';src:url("${f.dataUri}") format("truetype");}`,
           )
-          .join("")}</style></defs>`
+          .join("")}</style>`
       : "";
 
   const bg = project.canvas.background;
@@ -226,25 +321,41 @@ export function projectToSvg(
 
   const sorted = [...project.objects].sort((a, b) => a.zIndex - b.zIndex);
   const body: string[] = [];
+  const filters: string[] = [];
   for (const obj of sorted) {
-    if (obj.type === "glyph") continue;
-    const inner =
-      obj.type === "text"
-        ? textToSvg(
-            lineBreaks[obj.id] ?? obj.text.split("\n"),
-            obj.fontSize,
-            obj.lineHeight,
-            obj.color,
-            obj.outline,
-          )
-        : shapeToSvg(obj);
+    let inner: string | null;
+    if (obj.type === "text") {
+      let filterId: string | undefined;
+      if (obj.shadows?.length) {
+        filterId = shadowFilterId(obj.id);
+        filters.push(textFilterFor(obj, filterId));
+      }
+      inner = textToSvg(
+        lineBreaks[obj.id] ?? obj.text.split("\n"),
+        obj.fontSize,
+        obj.lineHeight,
+        obj.color,
+        obj.outline,
+        filterId,
+      );
+    } else if (obj.type === "shape") {
+      inner = shapeToSvg(obj);
+    } else {
+      inner = glyphToSvg(obj);
+    }
     if (!inner) continue;
-    body.push(`<g transform="${transformAttr(obj.transform)}">${inner}</g>`);
+    const opacity = obj.opacity ?? 1;
+    const opacityAttr = opacity < 1 ? ` opacity="${opacity}"` : "";
+    body.push(
+      `<g transform="${transformAttr(obj.transform)}"${opacityAttr}>${inner}</g>`,
+    );
   }
+
+  const defsBody = `${styleSheet}${filters.join("")}`;
 
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
-    `${defs}${bgRect}${body.join("")}</svg>\n`
+    `${defsBody ? `<defs>${defsBody}</defs>` : ""}${bgRect}${body.join("")}</svg>\n`
   );
 }

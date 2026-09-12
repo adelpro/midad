@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
-import { fontRoles, radius, spacing } from '@/theme';
+import { fontRoles, layout, radius, spacing } from '@/theme';
 
 export function LanguagePicker() {
   const { colors: c } = useTheme();
@@ -47,6 +47,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: 3,
     gap: 3,
+    // Cap the track so the two segments keep a phone-proportioned width on
+    // large displays instead of stretching into a full-window pill.
+    width: '100%',
+    maxWidth: layout.maxControl,
+    alignSelf: 'center',
   },
   segmentItem: {
     flex: 1,

@@ -8,10 +8,11 @@ import {
   isRotateHandle,
   resizeHandles,
   rotateHandle,
+  toLocalPoint,
   type ResizeHandle,
   type SizedObject,
 } from "@/editor/hit-test";
-import { useEditorStore } from "@/editor/store";
+import { useEditorStore, type DragOrigin } from "@/editor/store";
 import type { ObjectTransform } from "@/storage/project-schema";
 
 /** Hit radius around a resize handle, in the object's local frame (design units). */
@@ -55,21 +56,16 @@ type Frame = Pick<
   "x" | "y" | "scale" | "rotation" | "flipH" | "flipV"
 >;
 
-/** Convert a design-space point into a frame's local (unrotated, unscaled) units. */
+/**
+ * Convert a design-space point into a frame's local (unrotated, unscaled) units.
+ * Delegates to the shared mapping so the gesture layer, the canvas overlay and
+ * the selection hit-test can never disagree about where a box is.
+ */
 function toLocal(
   t: Frame,
   p: { x: number; y: number },
 ): { x: number; y: number } {
-  const rot = (t.rotation * Math.PI) / 180;
-  const cos = Math.cos(-rot);
-  const sin = Math.sin(-rot);
-  const dx = p.x - t.x;
-  const dy = p.y - t.y;
-  const ux = dx * cos - dy * sin;
-  const uy = dx * sin + dy * cos;
-  const scaleX = t.flipH ? -t.scale : t.scale;
-  const scaleY = t.flipV ? -t.scale : t.scale;
-  return { x: ux / (scaleX || 1), y: uy / (scaleY || 1) };
+  return toLocalPoint(t, p.x, p.y);
 }
 
 /** Local offset (relative to the object center) → rotated/scaled design offset. */
@@ -206,23 +202,39 @@ function angleStep(from: number, to: number): number {
   return ((((to - from) % 360) + 540) % 360) - 180;
 }
 
-/** Pan start: resize via a handle, else select-and-grab the topmost object. */
+/**
+ * Pan start.
+ *
+ * Handles exist only around a single object (a multi-selection is outlined as
+ * one plain group box), so a handle drag is never ambiguous. Otherwise the
+ * pointer-down decides the selection and, when it lands on something selected,
+ * starts a drag of the whole selection:
+ *
+ * - multi-select on, pointer on an unselected object → add it, do not drag it
+ *   (an imprecise tap must not nudge the object);
+ * - pointer on an already-selected object → drag every selected object;
+ * - multi-select off → replace the selection and drag it.
+ *
+ * `selectionHandledOnDown` records that the selection already changed here, so
+ * the trailing tap does not toggle it a second time.
+ */
 function beginDrag(viewX: number, viewY: number, enabled: boolean) {
   const store = useEditorStore.getState();
   if (!enabled) {
-    store.setGs({ resizeTargetId: null, resizeHandle: null });
+    store.setGs({ resizeTargetId: null, resizeHandle: null, dragOrigins: [] });
     return;
   }
   const p = toDesign(viewX, viewY);
-  const selected = store.sizedObjects.find(
-    (o) => o.id === store.selectedIds[0],
-  );
-  const handle = selected ? hitHandle(selected, p) : null;
-  if (selected && handle) {
-    const t = selected.transform;
+  const single =
+    store.selectedIds.length === 1
+      ? store.sizedObjects.find((o) => o.id === store.selectedIds[0])
+      : undefined;
+  const handle = single ? hitHandle(single, p) : null;
+  if (single && handle) {
+    const t = single.transform;
     const local = toLocal(t, p);
     store.setGs({
-      resizeTargetId: selected.id,
+      resizeTargetId: single.id,
       resizeHandle: handle,
       resizeOriginX: t.x,
       resizeOriginY: t.y,
@@ -230,40 +242,75 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
       resizeOriginRotation: t.rotation,
       resizeOriginFlipH: t.flipH,
       resizeOriginFlipV: t.flipV,
-      resizeOriginBoxW: selected.box.width,
-      resizeOriginBoxH: selected.box.height,
+      resizeOriginBoxW: single.box.width,
+      resizeOriginBoxH: single.box.height,
       resizeStartX: p.x,
       resizeStartY: p.y,
       resizeStartLocalX: local.x,
       resizeStartLocalY: local.y,
       resizeLastAngle: pointerAngle(p, t.x, t.y),
-      dragId: null,
+      dragOrigins: [],
+      selectionHandledOnDown: false,
     });
     store.snapshot();
     return;
   }
+
   const sorted = [...store.sizedObjects].sort((a, b) => b.zIndex - a.zIndex);
-  const hit = sorted.find(
-    (o) =>
-      Math.abs(p.x - o.transform.x) <= o.box.width / 2 + 8 &&
-      Math.abs(p.y - o.transform.y) <= o.box.height / 2 + 8,
-  );
+  // The pad is applied in the object's local units, so the grab tolerance
+  // matches the box the user can actually see.
+  const hit = sorted.find((o) => {
+    const local = toLocal(o.transform, p);
+    return (
+      Math.abs(local.x) <= o.box.width / 2 + 8 &&
+      Math.abs(local.y) <= o.box.height / 2 + 8
+    );
+  });
   if (!hit) {
-    store.setGs({ dragId: null, resizeTargetId: null, resizeHandle: null });
+    store.setGs({
+      dragOrigins: [],
+      resizeTargetId: null,
+      resizeHandle: null,
+      selectionHandledOnDown: false,
+    });
     if (store.selectedIds.length > 0) {
       store.select(null);
+      store.setGs({ selectionHandledOnDown: true });
     }
     return;
   }
-  if (!store.selectedIds.includes(hit.id)) {
+
+  const alreadySelected = store.selectedIds.includes(hit.id);
+
+  if (store.multiSelectMode && !alreadySelected) {
+    store.select(hit.id, true);
+    store.setGs({
+      dragOrigins: [],
+      resizeTargetId: null,
+      resizeHandle: null,
+      selectionHandledOnDown: true,
+    });
+    return;
+  }
+
+  if (!alreadySelected) {
     store.select(hit.id);
   }
+
+  // Capture origins for the whole (possibly just-updated) selection.
+  const origins: DragOrigin[] = [];
+  for (const id of store.selectedIds) {
+    const o = store.sizedObjects.find((x) => x.id === id);
+    if (o) {
+      origins.push({ id, x: o.transform.x, y: o.transform.y });
+    }
+  }
+
   store.setGs({
-    dragId: hit.id,
-    dragOriginX: hit.transform.x,
-    dragOriginY: hit.transform.y,
+    dragOrigins: origins,
     resizeTargetId: null,
     resizeHandle: null,
+    selectionHandledOnDown: !alreadySelected,
   });
   store.snapshot();
 }
@@ -282,22 +329,28 @@ function updateDrag(
     updateResize(store, resizeId, translationX, translationY);
     return;
   }
-  const id = store.gs.dragId;
-  if (!id) {
-    return;
-  }
-  const obj = store.project?.objects.find((o) => o.id === id);
-  if (!obj) {
+  const origins = store.gs.dragOrigins;
+  if (origins.length === 0) {
     return;
   }
   const { viewport } = store;
-  store.updateObject(id, {
-    transform: {
-      ...obj.transform,
-      x: store.gs.dragOriginX + translationX / viewport.scale,
-      y: store.gs.dragOriginY + translationY / viewport.scale,
-    },
-  });
+  const dx = translationX / viewport.scale;
+  const dy = translationY / viewport.scale;
+  // Every object in the selection moves by the same delta from its own origin,
+  // so a group drag preserves the relative layout.
+  for (const origin of origins) {
+    const obj = store.project?.objects.find((o) => o.id === origin.id);
+    if (!obj) {
+      continue;
+    }
+    store.updateObject(origin.id, {
+      transform: {
+        ...obj.transform,
+        x: origin.x + dx,
+        y: origin.y + dy,
+      },
+    });
+  }
 }
 
 /**
@@ -400,13 +453,19 @@ function clearResize() {
   useEditorStore.getState().setGs({
     resizeTargetId: null,
     resizeHandle: null,
-    dragId: null,
+    dragOrigins: [],
   });
 }
 
 /** Pinch/rotate start: capture the selection's current scale & rotation. */
 function beginTransform() {
   const store = useEditorStore.getState();
+  // Pinch and rotate have a single pivot about one object's centre; with a
+  // group selected there is no unambiguous pivot, so they stay inert.
+  if (store.selectedIds.length !== 1) {
+    store.setGs({ transformTargetId: null });
+    return;
+  }
   const id = store.selectedIds[0];
   const obj = store.project?.objects.find((o) => o.id === id);
   if (!obj) {
@@ -449,10 +508,13 @@ function applyRotation(radians: number) {
 /**
  * Editor canvas gestures.
  *
- * - Tap: hit-test topmost object → select (or clear selection on empty area).
- * - Pan: select-and-drag the topmost object under the finger (works even if
- *   it was not previously selected); history snapshotted at drag start.
- * - Pinch / Rotate: scale & rotate the current selection; snapshotted once
+ * - Tap: hit-test the topmost object and select it (or clear on empty area).
+ *   Skipped when pointer-down already resolved the selection — see
+ *   `GestureScratch.selectionHandledOnDown`.
+ * - Pan: decide the selection, then drag it. A single object resizes through
+ *   its handles; a multi-selection is dragged as a group. History is
+ *   snapshotted once at drag start.
+ * - Pinch / Rotate: scale & rotate a single selected object; snapshotted once
  *   per transform interaction.
  *
  * All handlers hop to the JS thread immediately (`runOnJS`) so every mutation

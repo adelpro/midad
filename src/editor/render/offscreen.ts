@@ -8,6 +8,7 @@ import {
   SHAPE_BASE_SIZE,
   drawShapeOnCanvas,
 } from "@/editor/skia/shape-geometry";
+import { drawGlyphOnCanvas } from "@/editor/skia/glyph-shape";
 import { layoutArabicText } from "@/editor/skia/text";
 import type { MidadProject } from "@/storage/project-schema";
 
@@ -72,12 +73,21 @@ export function renderProjectToPng(
 
   const sorted = [...project.objects].sort((a, b) => a.zIndex - b.zIndex);
   for (const obj of sorted) {
-    if (obj.type === "glyph") continue; // parity with EditorCanvas: glyphs not rendered yet
     const t = obj.transform;
     c.save();
     c.translate(t.x, t.y);
     c.rotate(t.rotation, 0, 0);
     c.scale(t.flipH ? -t.scale : t.scale, t.flipV ? -t.scale : t.scale);
+
+    // Composite the object through an alpha layer rather than baking opacity
+    // into its colours, so opacity never has to re-shape a paragraph.
+    const opacity = obj.opacity ?? 1;
+    const faded = opacity < 1;
+    if (faded) {
+      const layerPaint = Skia.Paint();
+      layerPaint.setAlphaf(opacity);
+      c.saveLayer(layerPaint);
+    }
 
     if (obj.type === "text") {
       const rendered = layoutArabicText(
@@ -92,6 +102,7 @@ export function renderProjectToPng(
           wrapWidth: obj.wrapWidth,
           maxWidth: W,
           outline: obj.outline,
+          shadows: obj.shadows,
         },
         fonts as NonNullable<SkTypefaceFontProvider>,
       );
@@ -99,10 +110,16 @@ export function renderProjectToPng(
         rendered.paragraph.paint(c, -rendered.width / 2, -rendered.height / 2);
         rendered.paragraph.dispose();
       }
+    } else if (obj.type === "shape") {
+      // Local units: the canvas has already been scaled by the object transform.
+      c.translate(-SHAPE_BASE_SIZE / 2, -SHAPE_BASE_SIZE / 2);
+      drawShapeOnCanvas(c, obj, SHAPE_BASE_SIZE);
     } else {
-      const box = SHAPE_BASE_SIZE * (t.scale || 1);
-      c.translate(-box / 2, -box / 2);
-      drawShapeOnCanvas(c, obj, box);
+      c.translate(-SHAPE_BASE_SIZE / 2, -SHAPE_BASE_SIZE / 2);
+      drawGlyphOnCanvas(c, obj, SHAPE_BASE_SIZE);
+    }
+    if (faded) {
+      c.restore();
     }
     c.restore();
   }

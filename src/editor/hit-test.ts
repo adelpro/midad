@@ -113,10 +113,45 @@ export function rotateHandle(
   };
 }
 
+/** The transform fields needed to map between design space and an object's frame. */
+export type TransformFrame = Pick<
+  DesignObject["transform"],
+  "x" | "y" | "scale" | "rotation" | "flipH" | "flipV"
+>;
+
+/**
+ * Map a design-space point into an object's local (unrotated, unscaled) frame.
+ * This is the exact inverse of the canvas transform `translate · rotate · scale`,
+ * so a box expressed in local units can be tested against it directly.
+ *
+ * Shared by the selection hit-test and the gesture layer so the two can never
+ * disagree about where an object's box is — including when that object is
+ * scaled, flipped or rotated.
+ */
+export function toLocalPoint(
+  transform: TransformFrame,
+  x: number,
+  y: number,
+): { x: number; y: number } {
+  const rot = (transform.rotation * Math.PI) / 180;
+  const cos = Math.cos(-rot);
+  const sin = Math.sin(-rot);
+  const dx = x - transform.x;
+  const dy = y - transform.y;
+  const ux = dx * cos - dy * sin;
+  const uy = dx * sin + dy * cos;
+  const scaleX = transform.flipH ? -transform.scale : transform.scale;
+  const scaleY = transform.flipV ? -transform.scale : transform.scale;
+  return { x: ux / (scaleX || 1), y: uy / (scaleY || 1) };
+}
+
 /**
  * Returns the top-most object (highest zIndex) under a point, or null.
- * Objects are given in z-order; we iterate from the back and return the first
- * (deepest-last drawn = top-most visual) hit.
+ *
+ * `SizedObject.box` is measured in the object's local units, so the point is
+ * mapped into each object's frame before testing. Comparing the box against the
+ * raw design-space point would ignore the object's scale and rotation, making
+ * scaled or rotated objects selectable only near their centre.
  */
 export function hitTest(
   objects: SizedObject[],
@@ -126,15 +161,76 @@ export function hitTest(
   // Iterate front-to-back (highest z first).
   const sorted = [...objects].sort((a, b) => b.zIndex - a.zIndex);
   for (const o of sorted) {
-    const t = o.transform;
-    // Center of the object box.
-    const cx = t.x;
-    const cy = t.y;
-    const hw = o.box.width / 2;
-    const hh = o.box.height / 2;
-    if (Math.abs(x - cx) <= hw && Math.abs(y - cy) <= hh) {
+    const local = toLocalPoint(o.transform, x, y);
+    if (
+      Math.abs(local.x) <= o.box.width / 2 &&
+      Math.abs(local.y) <= o.box.height / 2
+    ) {
       return o.id;
     }
   }
   return null;
+}
+
+/** Axis-aligned bounding box in design units (origin top-left, y grows down). */
+export interface Aabb {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * Half-extents of an object's *visual* box in design units.
+ *
+ * Both the renderer and the selection overlay draw the object box inside the
+ * object's own transform group, so the drawn extent is the stored box scaled by
+ * `transform.scale` — true for every object type. Alignment and centring must
+ * use this rather than the raw box, otherwise they would disagree with what the
+ * user actually sees on a scaled object.
+ */
+export function visualHalfExtents(o: SizedObject): {
+  hw: number;
+  hh: number;
+} {
+  const s = Math.abs(o.transform.scale) || 1;
+  return { hw: (o.box.width / 2) * s, hh: (o.box.height / 2) * s };
+}
+
+/**
+ * Axis-aligned bounding box of one object, widened to contain the object's
+ * rotated visual box (the standard rotated-rectangle extent).
+ */
+export function objectAabb(o: SizedObject): Aabb {
+  const { hw, hh } = visualHalfExtents(o);
+  const rad = (o.transform.rotation * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  const ex = hw * cos + hh * sin;
+  const ey = hw * sin + hh * cos;
+  return {
+    left: o.transform.x - ex,
+    top: o.transform.y - ey,
+    right: o.transform.x + ex,
+    bottom: o.transform.y + ey,
+  };
+}
+
+/** Union AABB of several objects, or null when the list is empty. */
+export function groupAabb(objects: SizedObject[]): Aabb | null {
+  if (objects.length === 0) {
+    return null;
+  }
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  for (const o of objects) {
+    const b = objectAabb(o);
+    if (b.left < left) left = b.left;
+    if (b.top < top) top = b.top;
+    if (b.right > right) right = b.right;
+    if (b.bottom > bottom) bottom = b.bottom;
+  }
+  return { left, top, right, bottom };
 }

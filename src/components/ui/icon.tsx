@@ -1,12 +1,21 @@
 import { type ComponentType, type ReactElement } from "react";
 
 import {
+  AlignBottom,
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignLeft,
+  AlignRight,
+  AlignTop,
   ArrowClockwise,
   ArrowCounterClockwise,
   ArrowDown,
   ArrowsClockwise,
   ArrowsCounterClockwise,
   ArrowsInLineHorizontal,
+  ArrowsInLineVertical,
+  ArrowsOutLineHorizontal,
+  ArrowsOutLineVertical,
   ArrowUp,
   CaretLeft,
   CaretRight,
@@ -28,6 +37,8 @@ import {
   PencilSimple,
   PenNib,
   Plus,
+  Scissors,
+  SelectionPlus,
   ShareNetwork,
   Sparkle,
   Square,
@@ -79,12 +90,23 @@ export type IconName =
   | "layerDown"
   | "layers"
   | "fitText"
+  | "split"
+  | "rejoin"
   | "edit"
   | "more"
   | "export"
   | "pen"
   | "language"
-  | "gallery";
+  | "gallery"
+  | "multiSelect"
+  | "alignLeft"
+  | "alignCenterH"
+  | "alignRight"
+  | "alignTop"
+  | "alignMiddleV"
+  | "alignBottom"
+  | "centerH"
+  | "centerV";
 
 const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   plus: Plus,
@@ -117,12 +139,23 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   layerDown: ArrowDown,
   layers: StackSimple,
   fitText: ArrowsInLineHorizontal,
+  split: Scissors,
+  rejoin: ArrowsInLineVertical,
   edit: PencilSimple,
   more: DotsThree,
   export: Export,
   pen: PenNib,
   language: Translate,
   gallery: SquaresFour,
+  multiSelect: SelectionPlus,
+  alignLeft: AlignLeft,
+  alignCenterH: AlignCenterHorizontal,
+  alignRight: AlignRight,
+  alignTop: AlignTop,
+  alignMiddleV: AlignCenterVertical,
+  alignBottom: AlignBottom,
+  centerH: ArrowsOutLineHorizontal,
+  centerV: ArrowsOutLineVertical,
 };
 
 export interface IconProps {

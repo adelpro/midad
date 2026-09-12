@@ -29,6 +29,48 @@ export interface CanvasConfig {
 
 export type TextAlign = "left" | "center" | "right";
 
+/**
+ * Identifies a text object as one part of a word that was split into
+ * independently editable pieces.
+ *
+ * Parts are ordinary text objects — the document model stays flat, with no
+ * nesting — so hit-testing, gestures, rendering and export all keep working
+ * untouched. This ref only records provenance: it is what lets the editor group
+ * the parts for navigation and re-compose them into one object again.
+ */
+export interface TextPartRef {
+  /** Id of the text object the parts were split from. */
+  rootId: string;
+  /** 0-based position in reading order. */
+  index: number;
+  /** Total number of parts in the group. */
+  count: number;
+  /**
+   * Whitespace and zero-width characters that preceded this part in the source
+   * string. Kept so re-joining can rebuild the original text exactly.
+   */
+  gapBefore?: string;
+}
+
+/** A soft drop shadow painted behind a text object's glyphs. */
+export interface TextShadow {
+  color: string;
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+}
+
+/**
+ * A named look applied to a text object by the Style navigator.
+ *
+ * The resolved styling always lives in the object's own properties (`fontKey`,
+ * `color`, `opacity`, `lineHeight`, `shadows`); `key` is only a hint so the UI
+ * can highlight which preset is active.
+ */
+export interface TextPresentation {
+  key: string;
+}
+
 export interface CalligraphyTextObject {
   id: string;
   type: "text";
@@ -47,6 +89,16 @@ export interface CalligraphyTextObject {
   color: string;
   opacity: number;
   outline?: { color: string; width: number };
+  /**
+   * Drop shadows behind the glyphs, painted in order. Rendered on the canvas and
+   * in the PNG export through Skia's text shadows; the SVG export emits an
+   * equivalent drop-shadow filter. Two entries give an engraved look.
+   */
+  shadows?: TextShadow[];
+  /** Set when this object is one part of a split word. See `TextPartRef`. */
+  part?: TextPartRef;
+  /** The look last applied by the Style navigator. See `TextPresentation`. */
+  presentation?: TextPresentation;
   transform: ObjectTransform;
   zIndex: number;
   locked?: boolean;

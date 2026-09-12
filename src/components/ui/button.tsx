@@ -2,7 +2,8 @@ import { forwardRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
-import { radius, spacing, type MidadPalette } from '@/theme';
+import { useT } from '@/i18n';
+import { fontRoles, radius, spacing, type MidadPalette } from '@/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -16,6 +17,10 @@ export interface ButtonProps {
   size?: 'md' | 'lg';
   style?: ViewStyle;
   testID?: string;
+  /** Overrides `label` as the accessibility name. */
+  accessibilityLabel?: string;
+  /** Marks the button as a chosen option in the accessibility tree. */
+  selected?: boolean;
 }
 
 function variantColors(variant: ButtonVariant, c: MidadPalette) {
@@ -27,17 +32,34 @@ function variantColors(variant: ButtonVariant, c: MidadPalette) {
     case 'ghost':
       return { bg: 'transparent', text: c.inkSoft, pressed: c.surfacePressed };
     case 'danger':
-      return { bg: c.danger, text: '#FFFFFF', pressed: c.dangerBg };
+      // No `pressed` fill: `dangerBg` is a pale tint, so using it would leave
+      // the white label unreadable. Danger keeps its oxblood fill and signals
+      // the press through the scale alone.
+      return { bg: c.danger, text: '#FFFFFF' };
   }
 }
 
 const heights = { md: 44, lg: 52 };
 
 export const Button = forwardRef<View, ButtonProps>(function Button(
-  { onPress, label, variant = 'primary', disabled, loading, fullWidth, size = 'md', style, testID },
+  {
+    onPress,
+    label,
+    variant = 'primary',
+    disabled,
+    loading,
+    fullWidth,
+    size = 'md',
+    style,
+    testID,
+    accessibilityLabel,
+    selected,
+  },
   ref,
 ) {
   const { colors: c } = useTheme();
+  const { language } = useT();
+  const fonts = fontRoles[language];
   const vc = variantColors(variant, c);
   const dimmed = disabled || loading;
   return (
@@ -45,25 +67,44 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
       ref={ref}
       testID={testID}
       accessibilityRole="button"
-      accessibilityState={{ disabled: dimmed }}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: dimmed, selected }}
       disabled={dimmed}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.base,
-        {
-          height: heights[size],
-          backgroundColor: vc.bg,
-          borderColor: vc.border,
-          opacity: dimmed ? 0.5 : 1,
-          transform: [{ scale: pressed && !dimmed ? 0.98 : 1 }],
-        },
-        fullWidth && styles.fullWidth,
-        style,
-      ]}>
+      style={({ pressed }) => {
+        // Press feedback is continuous from touch-DOWN to release (DESIGN.md §6).
+        const active = pressed && !dimmed;
+        return [
+          styles.base,
+          {
+            height: heights[size],
+            backgroundColor: active ? vc.pressed ?? vc.bg : vc.bg,
+            // Only `secondary` draws a hairline. Filled and ghost variants must
+            // not inherit a platform-default border colour — it shows as a dark
+            // ring around the light `ink` fill in dark mode.
+            borderColor: vc.border ?? 'transparent',
+            opacity: dimmed ? 0.5 : 1,
+            transform: [{ scale: active ? 0.98 : 1 }],
+          },
+          fullWidth && styles.fullWidth,
+          style,
+        ];
+      }}>
       {loading ? (
         <ActivityIndicator color={vc.text} />
       ) : (
-        <Text style={[styles.label, { color: vc.text }]}>{label}</Text>
+        <Text
+          style={[
+            styles.label,
+            {
+              color: vc.text,
+              fontFamily: fonts.uiBold,
+              // Tracking breaks Arabic cursive joining — Latin-only.
+              letterSpacing: language === 'ar' ? 0 : 0.01,
+            },
+          ]}>
+          {label}
+        </Text>
       )}
     </Pressable>
   );
@@ -74,7 +115,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
-    borderRadius: radius.md,
+    // DESIGN.md §4 — buttons are radius 8 (`radius.lg`), cards are 12.
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderStyle: 'solid',
   },
@@ -83,7 +125,5 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: 0.01,
   },
 });

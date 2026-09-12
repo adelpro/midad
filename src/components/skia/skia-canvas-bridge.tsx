@@ -16,6 +16,12 @@ export interface SkiaCanvasBridgeProps {
 }
 
 /**
+ * True inside Expo's static render, which runs in Node. `Platform.OS` is still
+ * `"web"` there, so a DOM check is the only reliable way to detect the server.
+ */
+const isServerRender = typeof window === 'undefined';
+
+/**
  * Web-only entry point for Skia content.
  *
  * On web, `WithSkiaWeb` loads CanvasKit (the wasm in `public/canvaskit.wasm`)
@@ -27,6 +33,15 @@ export interface SkiaCanvasBridgeProps {
 export function SkiaCanvasBridge({ getComponent, fallback, componentProps }: SkiaCanvasBridgeProps) {
   if (Platform.OS !== 'web') {
     return null;
+  }
+  // `WithSkiaWeb` renders a `lazy()` whose factory awaits CanvasKit's loader.
+  // Under Node that loader resolves the .wasm against the process cwd and calls
+  // `abort()` when it is missing — which takes the whole static-render server
+  // down (it is not a catchable throw). Never let the gate run outside a
+  // browser; emitting the same fallback also keeps SSR HTML matching the
+  // client's first paint, so hydration stays clean.
+  if (isServerRender) {
+    return <>{fallback ?? null}</>;
   }
   return (
     <WithSkiaWeb

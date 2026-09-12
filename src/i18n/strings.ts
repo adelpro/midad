@@ -77,6 +77,16 @@ export interface Translation {
     version: string;
     credits: string;
     restartNotice: string;
+    autoSaveSection: string;
+    autoSaveHint: string;
+    autoSaveOn: string;
+    autoSaveOff: string;
+    autoSaveInterval: string;
+    autoSaveIntervalHint: string;
+    autoSaveEvery10s: string;
+    autoSaveEvery30s: string;
+    autoSaveEvery1m: string;
+    autoSaveEvery5m: string;
   };
 editor: {
       newProject: string;
@@ -103,6 +113,60 @@ editor: {
       exportProjectFile: string;
       exporting: string;
       exportFailed: string;
+      saving: string;
+      saved: string;
+      saveFailed: string;
+      selectedCount: string;
+      // Splitting a word into independently editable parts.
+      split: string;
+      rejoin: string;
+      parts: string;
+      splitNeedsTwoParts: string;
+      splitWrapped: string;
+      splitFailed: string;
+      // Style navigator and per-object style sheet.
+      style: string;
+      fontSize: string;
+      lineHeight: string;
+      opacity: string;
+      align: string;
+      alignLeft: string;
+      alignCenter: string;
+      alignRight: string;
+      hints: {
+        back: string;
+        undo: string;
+        redo: string;
+        grid: string;
+        save: string;
+        export: string;
+        scaleUp: string;
+        scaleDown: string;
+        rotateCcw: string;
+        rotateCw: string;
+        flipH: string;
+        fitText: string;
+        duplicate: string;
+        bringToFront: string;
+        sendToBack: string;
+        delete: string;
+        multiSelect: string;
+        alignLeft: string;
+        alignCenterH: string;
+        alignRight: string;
+        alignTop: string;
+        alignMiddleV: string;
+        alignBottom: string;
+        centerH: string;
+        centerV: string;
+        split: string;
+        rejoin: string;
+        stylePrev: string;
+        styleNext: string;
+        partPrev: string;
+        partNext: string;
+        partLabel: string;
+      };
     };
 }
 
@@ -179,6 +243,16 @@ export const strings: Record<Language, Translation> = {
       version: 'الإصدار',
       credits: 'الخطوط مرخّصة بموجب رخصة SIL Open Font License',
       restartNotice: 'أعد تشغيل التطبيق ليُطبَّق اتجاه الواجهة الجديد بالكامل.',
+      autoSaveSection: 'الحفظ التلقائي',
+      autoSaveHint: 'حفظ التعديلات تلقائيًا أثناء العمل',
+      autoSaveOn: 'مفعّل',
+      autoSaveOff: 'معطّل',
+      autoSaveInterval: 'الفاصل الزمني للحفظ',
+      autoSaveIntervalHint: 'يحفظ أيضًا دوريًا أثناء التعديل المستمر',
+      autoSaveEvery10s: '10 ثوانٍ',
+      autoSaveEvery30s: '30 ثانية',
+      autoSaveEvery1m: 'دقيقة',
+      autoSaveEvery5m: '5 دقائق',
     },
     editor: {
       newProject: 'لوحة جديدة',
@@ -205,6 +279,58 @@ export const strings: Record<Language, Translation> = {
       exportProjectFile: 'تصدير ملف المشروع',
       exporting: 'جارٍ التصدير…',
       exportFailed: 'فشل التصدير',
+      saving: 'جارٍ الحفظ…',
+      saved: 'تم الحفظ',
+      saveFailed: 'تعذّر الحفظ',
+      selectedCount: 'المحدد: {n}',
+      split: 'تقسيم',
+      rejoin: 'دمج',
+      parts: 'الأجزاء',
+      splitNeedsTwoParts: 'لا يمكن التقسيم: الحروف كلها متصلة.',
+      splitWrapped: 'لا يمكن تقسيم نصّ يتجاوز سطرًا واحدًا.',
+      splitFailed: 'تعذّر تقسيم النص.',
+      style: 'النمط',
+      fontSize: 'حجم الخط',
+      lineHeight: 'تباعد الأسطر',
+      opacity: 'العتامة',
+      align: 'المحاذاة',
+      alignLeft: 'يسار',
+      alignCenter: 'وسط',
+      alignRight: 'يمين',
+      hints: {
+        back: 'رجوع',
+        undo: 'تراجع',
+        redo: 'إعادة',
+        grid: 'إظهار الشبكة أو إخفاؤها',
+        save: 'حفظ التصميم',
+        export: 'تصدير التصميم',
+        scaleUp: 'تكبير العنصر',
+        scaleDown: 'تصغير العنصر',
+        rotateCcw: 'تدوير إلى اليسار',
+        rotateCw: 'تدوير إلى اليمين',
+        flipH: 'قلب أفقي',
+        fitText: 'ملاءمة النص لمحتواه',
+        duplicate: 'تكرار العنصر',
+        bringToFront: 'إحضار إلى الأمام',
+        sendToBack: 'إرسال إلى الخلف',
+        delete: 'حذف العنصر',
+        multiSelect: 'تحديد عدة عناصر',
+        alignLeft: 'محاذاة إلى اليسار',
+        alignCenterH: 'محاذاة المراكز عموديًا',
+        alignRight: 'محاذاة إلى اليمين',
+        alignTop: 'محاذاة إلى الأعلى',
+        alignMiddleV: 'محاذاة المراكز أفقيًا',
+        alignBottom: 'محاذاة إلى الأسفل',
+        centerH: 'توسيط أفقيًا في اللوحة',
+        centerV: 'توسيط عموديًا في اللوحة',
+        split: 'تقسيم النص إلى أجزاء',
+        rejoin: 'دمج الأجزاء في نص واحد',
+        stylePrev: 'النمط السابق',
+        styleNext: 'النمط التالي',
+        partPrev: 'الجزء السابق',
+        partNext: 'الجزء التالي',
+        partLabel: 'الجزء {n} من {total}',
+      },
     },
   },
   en: {
@@ -279,6 +405,16 @@ export const strings: Record<Language, Translation> = {
       version: 'Version',
       credits: 'Fonts under the SIL Open Font License',
       restartNotice: 'Restart the app to fully apply the new interface direction.',
+      autoSaveSection: 'Auto-save',
+      autoSaveHint: 'Save your edits automatically while you work',
+      autoSaveOn: 'On',
+      autoSaveOff: 'Off',
+      autoSaveInterval: 'Auto-save interval',
+      autoSaveIntervalHint: 'Also flushes periodically during continuous editing',
+      autoSaveEvery10s: '10s',
+      autoSaveEvery30s: '30s',
+      autoSaveEvery1m: '1 min',
+      autoSaveEvery5m: '5 min',
     },
     editor: {
       newProject: 'New artwork',
@@ -305,6 +441,58 @@ export const strings: Record<Language, Translation> = {
       exportProjectFile: 'Export project file',
       exporting: 'Exporting…',
       exportFailed: 'Export failed',
+      saving: 'Saving…',
+      saved: 'Saved',
+      saveFailed: 'Save failed',
+      selectedCount: 'Selected: {n}',
+      split: 'Split',
+      rejoin: 'Rejoin',
+      parts: 'Parts',
+      splitNeedsTwoParts: 'Can’t split: these letters are all connected.',
+      splitWrapped: 'Can’t split text that spans more than one line.',
+      splitFailed: 'Couldn’t split the text.',
+      style: 'Style',
+      fontSize: 'Font size',
+      lineHeight: 'Line height',
+      opacity: 'Opacity',
+      align: 'Alignment',
+      alignLeft: 'Left',
+      alignCenter: 'Center',
+      alignRight: 'Right',
+      hints: {
+        back: 'Back',
+        undo: 'Undo',
+        redo: 'Redo',
+        grid: 'Show or hide the grid',
+        save: 'Save the design',
+        export: 'Export the design',
+        scaleUp: 'Scale up',
+        scaleDown: 'Scale down',
+        rotateCcw: 'Rotate left',
+        rotateCw: 'Rotate right',
+        flipH: 'Flip horizontally',
+        fitText: 'Fit text to its content',
+        duplicate: 'Duplicate',
+        bringToFront: 'Bring to front',
+        sendToBack: 'Send to back',
+        delete: 'Delete',
+        multiSelect: 'Select multiple objects',
+        alignLeft: 'Align left edges',
+        alignCenterH: 'Align centers vertically',
+        alignRight: 'Align right edges',
+        alignTop: 'Align top edges',
+        alignMiddleV: 'Align centers horizontally',
+        alignBottom: 'Align bottom edges',
+        centerH: 'Center horizontally on canvas',
+        centerV: 'Center vertically on canvas',
+        split: 'Split the text into parts',
+        rejoin: 'Rejoin the parts into one text',
+        stylePrev: 'Previous style',
+        styleNext: 'Next style',
+        partPrev: 'Previous part',
+        partNext: 'Next part',
+        partLabel: 'Part {n} of {total}',
+      },
     },
   },
 };
@@ -338,4 +526,23 @@ export function formatGalleryCount(n: number, language: Language): string {
   const template = COUNT_TEMPLATES[language][category];
   const digits = n.toLocaleString('en-US');
   return template.replace('{n}', digits);
+}
+
+/** Selected-objects badge copy, e.g. "Selected: 3" / "المحدد: 3". */
+export function formatSelectedCount(n: number, language: Language): string {
+  return strings[language].editor.selectedCount.replace(
+    '{n}',
+    n.toLocaleString('en-US'),
+  );
+}
+
+/** Part badge copy in the parts strip, e.g. "Part 2 of 3" / "الجزء 2 من 3". */
+export function formatPartLabel(
+  index: number,
+  total: number,
+  language: Language,
+): string {
+  return strings[language].editor.hints.partLabel
+    .replace('{n}', (index + 1).toLocaleString('en-US'))
+    .replace('{total}', total.toLocaleString('en-US'));
 }

@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import {
   Skia,
   useFonts,
+  vec,
   type DataModule,
   type SkParagraph,
   type SkTypefaceFontProvider,
@@ -61,6 +62,8 @@ export interface TextLayoutSpec {
   /** Ceiling for auto width — normally the canvas width. Ignored when wrapping. */
   maxWidth: number;
   outline?: { color: string; width: number };
+  /** Drop shadows behind the glyphs, painted in order (outermost first). */
+  shadows?: { color: string; offsetX: number; offsetY: number; blur: number }[];
 }
 
 export interface RenderedParagraph {
@@ -111,6 +114,11 @@ function buildParagraph(
     heightMultiplier: spec.lineHeight > 0 ? spec.lineHeight / spec.fontSize : 1,
     color: Skia.Color(spec.color),
     fontStyle: { weight: 400 },
+    shadows: spec.shadows?.map((s) => ({
+      color: Skia.Color(s.color),
+      offset: vec(s.offsetX, s.offsetY),
+      blurRadius: s.blur,
+    })),
   });
   builder.addText(spec.text);
 

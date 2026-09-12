@@ -6,7 +6,11 @@ import { radius, spacing } from '@/theme';
 export function StepDots({ count, index }: { count: number; index: number }) {
   const { colors: c } = useTheme();
   return (
-    <View style={styles.wrap}>
+    <View
+      style={styles.wrap}
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 1, max: count, now: index + 1 }}
+      accessibilityLabel={`${index + 1} / ${count}`}>
       <View style={styles.row}>
         {Array.from({ length: count }, (_, i) => (
           <View

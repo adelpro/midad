@@ -12,13 +12,16 @@ import { useEffect, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 
 import {
+  groupAabb,
   hitTest,
   resizeHandles,
   rotateHandle,
   selectionPad,
+  type Aabb,
   type SizedObject,
 } from "@/editor/hit-test";
 import { SHAPE_BASE_SIZE } from "@/editor/skia/shape-geometry";
+import { GlyphRenderer } from "@/editor/skia/glyph-shape";
 import { ShapeRenderer } from "@/editor/skia/shapes";
 import { textObjectSize, useTextLayouts } from "@/editor/skia/use-text-layouts";
 import { useEditorStore } from "@/editor/store";
@@ -42,10 +45,10 @@ function objectBox(
       return textObjectSize(layout, obj.fontSize, obj.wrapWidth);
     }
     case "shape":
-    case "glyph": {
-      const base = SHAPE_BASE_SIZE * (obj.transform.scale || 1);
-      return { width: base, height: base };
-    }
+    case "glyph":
+      // Local (unscaled) box. The object's transform group supplies the scale,
+      // so including it here would apply it twice.
+      return { width: SHAPE_BASE_SIZE, height: SHAPE_BASE_SIZE };
   }
 }
 
@@ -109,6 +112,14 @@ export function EditorCanvas({
     }
   }, [tapPoint, sized, onTapResult]);
 
+  const groupBox = useMemo(
+    () =>
+      selectedIds.length > 1
+        ? groupAabb(sized.filter((o) => selectedIds.includes(o.id)))
+        : null,
+    [selectedIds, sized],
+  );
+
   const objects = useMemo(
     () =>
       project.objects
@@ -163,6 +174,39 @@ export function EditorCanvas({
           const rot = (t.rotation * Math.PI) / 180;
           const scaleX = t.flipH ? -t.scale : t.scale;
           const scaleY = t.flipV ? -t.scale : t.scale;
+          const content =
+            obj.type === "text" && obj.paragraph ? (
+              <Paragraph
+                paragraph={obj.paragraph}
+                x={-obj.box.width / 2}
+                y={-obj.box.height / 2}
+                width={obj.box.width}
+              />
+            ) : obj.type === "shape" ? (
+              // Renderers draw into a 0..size box, so shift it to sit centred on
+              // the object origin — which is what the overlay and hit-test assume.
+              <Group
+                transform={[
+                  { translateX: -obj.box.width / 2 },
+                  { translateY: -obj.box.height / 2 },
+                ]}
+              >
+                <ShapeRenderer shape={obj} size={obj.box.width} />
+              </Group>
+            ) : obj.type === "glyph" ? (
+              <Group
+                transform={[
+                  { translateX: -obj.box.width / 2 },
+                  { translateY: -obj.box.height / 2 },
+                ]}
+              >
+                <GlyphRenderer glyph={obj} size={obj.box.width} />
+              </Group>
+            ) : null;
+          // Fading happens on a nested group so the object's selection chrome
+          // stays fully opaque. Skipped at full opacity to avoid paying for an
+          // offscreen layer on every object.
+          const opacity = obj.opacity ?? 1;
           return (
             <Group
               key={obj.id}
@@ -175,19 +219,8 @@ export function EditorCanvas({
               ]}
               origin={vec(0, 0)}
             >
-              {obj.type === "text" && obj.paragraph ? (
-                <Paragraph
-                  paragraph={obj.paragraph}
-                  x={-obj.box.width / 2}
-                  y={-obj.box.height / 2}
-                  width={obj.box.width}
-                />
-              ) : obj.type === "shape" ? (
-                <Group origin={vec(-obj.box.width / 2, -obj.box.height / 2)}>
-                  <ShapeRenderer shape={obj} size={obj.box.width} />
-                </Group>
-              ) : null}
-              {selectedIds.includes(obj.id) && (
+              {opacity < 1 ? <Group opacity={opacity}>{content}</Group> : content}
+              {selectedIds.length === 1 && selectedIds.includes(obj.id) && (
                 <SelectionOverlay
                   box={obj.box}
                   scale={scale}
@@ -197,8 +230,32 @@ export function EditorCanvas({
             </Group>
           );
         })}
+        {groupBox && <GroupSelectionOverlay box={groupBox} scale={scale} />}
       </Group>
     </Canvas>
+  );
+}
+
+function GroupSelectionOverlay({
+  box,
+  scale,
+}: {
+  box: Aabb;
+  scale: number;
+}) {
+  const border = 1.5 / scale;
+  return (
+    <Rect
+      x={box.left}
+      y={box.top}
+      width={box.right - box.left}
+      height={box.bottom - box.top}
+      color="transparent"
+      style="stroke"
+      strokeWidth={border}
+    >
+      <DashPathEffect intervals={[6 / scale, 5 / scale]} />
+    </Rect>
   );
 }
 
