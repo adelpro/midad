@@ -31,7 +31,16 @@ export const ROTATE_HANDLE_GAP = 26;
 /** Smallest object scale used when converting design units into local units. */
 const MIN_OBJECT_SCALE = 0.05;
 
-function safeObjectScale(objectScale: number): number {
+/**
+ * The object's scale, guarded against zero and near-zero so callers can divide
+ * by it.
+ *
+ * Exported because the canvas overlay must apply the same conversion as the
+ * geometry helpers below. The overlay renders *inside* the object's transform
+ * group, so a length authored in design units only stays a constant size on
+ * screen if it is divided by this as well as by the view scale.
+ */
+export function safeObjectScale(objectScale: number): number {
   return Math.max(MIN_OBJECT_SCALE, Math.abs(objectScale) || 1);
 }
 

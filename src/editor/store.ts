@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import { computeAlignUpdates, type AlignMode } from "@/editor/align";
 import type { ResizeHandle, SizedObject } from "@/editor/hit-test";
+import { NUDGE_COALESCE_MS } from "@/editor/shortcuts";
 import type {
   CalligraphyTextObject,
   DesignObject,
@@ -68,6 +69,15 @@ interface GestureScratch {
   resizeStartLocalY: number;
   /** Last pointer angle (degrees) seen during a rotation drag. */
   resizeLastAngle: number;
+  /**
+   * Arrow-key nudge burst bookkeeping. The timestamp stops a held key from
+   * recording the ~30 history entries per second it auto-repeats at. The anchor
+   * is the newest history entry as of the previous press, compared by identity:
+   * `snapshot` stores the array it pushed, so a different reference means
+   * something else was recorded in between and the burst must not swallow it.
+   */
+  nudgeBurstAt: number;
+  nudgeBurstAnchor: DesignObject[] | null;
 }
 
 const EMPTY_SCRATCH: GestureScratch = {
@@ -91,6 +101,8 @@ const EMPTY_SCRATCH: GestureScratch = {
   resizeStartLocalX: 0,
   resizeStartLocalY: 0,
   resizeLastAngle: 0,
+  nudgeBurstAt: 0,
+  nudgeBurstAnchor: null,
 };
 
 interface EditorState {
@@ -134,6 +146,14 @@ interface EditorState {
   sendToBack: (ids: string[]) => void;
   /** Aligns or centres the current selection (see `AlignMode`). */
   alignSelected: (mode: AlignMode) => void;
+  /**
+   * Moves every selected object by a delta, as one undoable step. Reverts a
+   * no-op, and folds the auto-repeat of a held arrow key into a single history
+   * entry (see `NUDGE_COALESCE_MS`).
+   */
+  nudgeSelected: (dx: number, dy: number) => void;
+  /** Selects every object in the document. */
+  selectAll: () => void;
   /** Push the current objects onto history before a mutation. */
   snapshot: () => void;
   undo: () => void;
@@ -412,6 +432,56 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           }
         : s.project,
     }));
+  },
+
+  nudgeSelected: (dx, dy) => {
+    const s0 = get();
+    if (!s0.project || s0.selectedIds.length === 0 || (dx === 0 && dy === 0)) {
+      return;
+    }
+    // A held arrow key auto-repeats at roughly 30 presses per second, so a
+    // burst of nudges shares one snapshot rather than flushing the 50-entry
+    // history. The burst also closes the moment anything else is recorded.
+    const now = Date.now();
+    const continuesBurst =
+      now - s0.gs.nudgeBurstAt <= NUDGE_COALESCE_MS &&
+      s0.gs.nudgeBurstAnchor === (s0.past[s0.past.length - 1] ?? null);
+    if (!continuesBurst) {
+      s0.snapshot();
+    }
+    set((s) => ({
+      gs: {
+        ...s.gs,
+        nudgeBurstAt: now,
+        nudgeBurstAnchor: s.past[s.past.length - 1] ?? null,
+      },
+      // One set() for the whole move, so a single undo reverts all of it.
+      project: s.project
+        ? {
+            ...s.project,
+            objects: s.project.objects.map((o) =>
+              s.selectedIds.includes(o.id)
+                ? ({
+                    ...o,
+                    transform: {
+                      ...o.transform,
+                      x: o.transform.x + dx,
+                      y: o.transform.y + dy,
+                    },
+                  } as DesignObject)
+                : o,
+            ),
+          }
+        : s.project,
+    }));
+  },
+
+  selectAll: () => {
+    const s0 = get();
+    if (!s0.project || s0.project.objects.length === 0) {
+      return;
+    }
+    set({ selectedIds: s0.project.objects.map((o) => o.id) });
   },
 
   snapshot: () => {

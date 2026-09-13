@@ -16,6 +16,7 @@ import {
   hitTest,
   resizeHandles,
   rotateHandle,
+  safeObjectScale,
   selectionPad,
   type Aabb,
   type SizedObject,
@@ -325,9 +326,15 @@ function SelectionOverlay({
   const pad = chromePad * 2;
   const hw = box.width / 2 + chromePad;
   const hh = box.height / 2 + chromePad;
-  const border = 1.5 / scale;
-  const handleR = 4 / scale;
-  const gripR = 5 / scale;
+  // Drawn *inside* the object's transform group, so every length below is
+  // multiplied by the object's own scale on the way to the screen. `chromePad`
+  // already divides that out; the strokes and radii have to do the same or the
+  // handles and the rotate grip grow along with the object — and shrink away on
+  // a scaled-down one. Dividing by `scale` alone only covers the view zoom.
+  const unit = scale * safeObjectScale(objectScale);
+  const border = 1.5 / unit;
+  const handleR = 4 / unit;
+  const gripR = 5 / unit;
   const positions = resizeHandles(box, objectScale);
   const grip = rotateHandle(box, objectScale);
   return (
@@ -341,7 +348,7 @@ function SelectionOverlay({
         style="stroke"
         strokeWidth={border}
       >
-        <DashPathEffect intervals={[6 / scale, 5 / scale]} />
+        <DashPathEffect intervals={[6 / unit, 5 / unit]} />
       </Rect>
       {positions.map((p) => (
         <Circle
@@ -350,7 +357,7 @@ function SelectionOverlay({
           r={handleR}
           color="#111111"
           style="stroke"
-          strokeWidth={2 / scale}
+          strokeWidth={2 / unit}
         />
       ))}
       {positions.map((p) => (
@@ -373,7 +380,7 @@ function SelectionOverlay({
         r={gripR}
         color="#111111"
         style="stroke"
-        strokeWidth={2 / scale}
+        strokeWidth={2 / unit}
       />
       <Circle c={vec(grip.x, grip.y)} r={gripR} color="#FFFFFF" />
     </Group>

@@ -117,6 +117,10 @@ export interface Translation {
     transparent: string;
     paper: string;
     enterText: string;
+    /** Label over the live preview of the drafted text in the chosen face. */
+    preview: string;
+    /** Shown in the preview before any text has been typed. */
+    previewSample: string;
     exportShareImage: string;
     exportSvgAction: string;
     exportProjectFile: string;
@@ -175,6 +179,8 @@ export interface Translation {
       partPrev: string;
       partNext: string;
       partLabel: string;
+      fontSizeIncrease: string;
+      fontSizeDecrease: string;
     };
   };
 }
@@ -289,6 +295,8 @@ export const strings: Record<Language, Translation> = {
       transparent: "شفاف",
       paper: "ورق",
       enterText: "اكتب نصك هنا…",
+      preview: "معاينة",
+      previewSample: "نموذج الخطّ",
       exportShareImage: "مشاركة الصورة",
       exportSvgAction: "تصدير SVG",
       exportProjectFile: "تصدير ملف المشروع",
@@ -345,6 +353,8 @@ export const strings: Record<Language, Translation> = {
         partPrev: "الجزء السابق",
         partNext: "الجزء التالي",
         partLabel: "الجزء {n} من {total}",
+        fontSizeIncrease: "تكبير حجم الخط",
+        fontSizeDecrease: "تصغير حجم الخط",
       },
     },
   },
@@ -461,6 +471,8 @@ export const strings: Record<Language, Translation> = {
       transparent: "Transparent",
       paper: "Paper",
       enterText: "Type your text…",
+      preview: "Preview",
+      previewSample: "Preview text",
       exportShareImage: "Share image",
       exportSvgAction: "Export SVG",
       exportProjectFile: "Export project file",
@@ -517,6 +529,8 @@ export const strings: Record<Language, Translation> = {
         partPrev: "Previous part",
         partNext: "Next part",
         partLabel: "Part {n} of {total}",
+        fontSizeIncrease: "Increase font size",
+        fontSizeDecrease: "Decrease font size",
       },
     },
   },

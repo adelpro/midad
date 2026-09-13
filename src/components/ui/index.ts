@@ -17,6 +17,8 @@ export { Reveal } from "./reveal";
 export { Sheet } from "./sheet";
 export type { SheetProps } from "./sheet";
 export { ProjectCardSkeleton, SkeletonBlock } from "./skeleton";
+export { Slider } from "./slider";
+export type { SliderProps, SliderScale } from "./slider";
 export { Snackbar } from "./snackbar";
 export type { SnackbarProps } from "./snackbar";
 export { Tag } from "./tag";

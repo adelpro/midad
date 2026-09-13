@@ -103,6 +103,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Selecting an object no longer resized the editor canvas.** The contextual
+  bars (selection actions, parts strip, style navigator, split notice, colour
+  swatches) were in-flow siblings under a `flex: 1` canvas, so every bar that
+  mounted on a selection change took its height out of the canvas — and because
+  `EditorCanvas` derives its fit-to-view from the measured wrapper, the whole
+  design re-zoomed with it. They now float over the canvas stage as translucent
+  cards, leaving the canvas box constant; the colour strips moved in with them,
+  so switching tools no longer resizes it either.
+- **The selection bar no longer clips its trailing controls.** It holds up to
+  twenty buttons, and the old `maxHeight: 104` plus `overflow: hidden` silently
+  hid the last few (delete, and the canvas-centring actions) on a phone. It is
+  now a single row that scrolls horizontally, matching the parts strip.
 - **Text boxes were always one unit too narrow, so every auto-width text wrapped
   onto a second line** inside a container that looked too small. Skia truncates
   a paragraph's layout width to an integer, and the width was taken straight

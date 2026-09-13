@@ -9,6 +9,13 @@
 			"group": "test"
 		},
 		{
+			"label": "Check shortcut bindings",
+			"type": "shell",
+			"command": "node scripts/check-shortcuts.mjs",
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
 			"label": "Typecheck",
 			"type": "shell",
 			"command": "npx tsc --noEmit",

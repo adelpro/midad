@@ -84,6 +84,7 @@ is FORBIDDEN for these (see §7).
 - **Mobile-first**: designed at ~390pt width; web adapts, never leads.
 - Screen padding `spacing.xl` (24); section gaps `lg–xl`; list gaps `md`.
 - Floating translucent docks/bars (semi-transparent surface + hairline) float OVER content; content scrolls beneath.
+  - **Editor exception.** The editor does NOT float its chrome. Its contextual bar is a reserved, fixed-height rail sitting in the column flow above the tool rail (`contextRail` in `editor/EditorScreen.tsx`), and it scrolls horizontally instead of wrapping. Two structural reasons: chrome floating over the canvas would sit between the finger and the selection border + handles the canvas itself draws, and a bar that mounted and unmounted in the flow would resize the canvas and re-run fit-to-view, visibly zooming the design mid-edit. Reserving the slot solves both.
 - Touch targets ≥ 44×44 everywhere — non-negotiable.
 - One primary action per screen. Header holds title + count; creation gets a FAB (56pt circle, ink fill), never a header button crowd.
 - Safe areas respected on all edges; lists pad bottom beyond tab bar.

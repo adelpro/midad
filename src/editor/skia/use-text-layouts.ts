@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import {
   layoutArabicText,
@@ -112,24 +112,63 @@ export function useTextLayouts(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature, fonts, canvasWidth]);
 
-  // Dispose the paragraphs of the previous layout set once the new one is on
-  // screen. Safe because a re-layout rebuilds every paragraph, so nothing in the
-  // old set is referenced by the new one.
+  /**
+   * Replaced generations awaiting disposal. Paragraphs are native handles, so
+   * they must be freed — but *when* they are freed matters, see below.
+   */
   const previousRef = useRef<TextLayouts | null>(null);
+  const pendingRef = useRef<TextLayouts[]>([]);
+
+  /** Frees every queued generation. Safe to call with an empty queue. */
+  const flushPending = useCallback(() => {
+    for (const generation of pendingRef.current.splice(0)) {
+      for (const id in generation) {
+        generation[id]?.paragraph.dispose();
+      }
+    }
+  }, []);
+
+  // Dispose the paragraphs of the previous layout set once the new one is on
+  // screen. Nothing in the old set is shared with the new one, so the only
+  // question is *when* — and disposing synchronously in this effect is too
+  // early.
+  //
+  // Skia's renderer draws on its own frame loop, so a paragraph freed in this
+  // commit's effect can still be handed to CanvasKit by a frame that is already
+  // in flight:
+  //   "Cannot pass deleted object as a pointer of type Paragraph*"
+  // That is not a one-off either: an exception thrown mid-draw leaves the failed
+  // command in Skia's retained queue, so the same stale paragraph is retried on
+  // every subsequent frame and the log floods.
+  //
+  // A single stepper tap rarely wins that race. A drag re-lays out on every
+  // frame — exactly what the font-size gauge does — and hits it reliably, so the
+  // wait has to clear a *whole* frame: the first animation frame lets Skia draw
+  // the generations that replaced these, the second frees them once that draw
+  // has certainly happened. Retention stays bounded at ~two frames' worth.
   useEffect(() => {
     const previous = previousRef.current;
     previousRef.current = layouts;
-    if (!previous || previous === layouts) {
-      return;
+    if (previous && previous !== layouts) {
+      pendingRef.current.push(previous);
     }
-    for (const id in previous) {
-      previous[id]?.paragraph.dispose();
-    }
-  }, [layouts]);
-
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(flushPending);
+    });
+    // Cancelling is harmless: it drops the queued callbacks, not the generations
+    // themselves, so the next flush still frees everything.
+    return () => {
+      cancelAnimationFrame(outer);
+      if (inner) {
+        cancelAnimationFrame(inner);
+      }
+    };
+  }, [layouts, flushPending]);
   // Dispose whatever is still live when the editor unmounts.
   useEffect(
     () => () => {
+      flushPending();
       const current = previousRef.current;
       if (!current) {
         return;
@@ -139,7 +178,7 @@ export function useTextLayouts(
       }
       previousRef.current = null;
     },
-    [],
+    [flushPending],
   );
 
   return layouts;
