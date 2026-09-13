@@ -173,6 +173,63 @@ export const motion = {
   staggerStep: 80,
 } as const;
 
+/**
+ * Spring damping ratios (ζ) — the number you actually tune.
+ *
+ * `1` is critically damped: the fastest approach that never overshoots. Below
+ * `1` overshoots (used to keep momentum), above `1` is sluggish.
+ */
+const springRatio = {
+  ui: 1.0,
+  momentum: 0.8,
+  sheet: 0.85,
+  exit: 1.0,
+} as const;
+
+/**
+ * Reanimated's `withSpring` takes an **absolute damping coefficient**, not a
+ * ratio — it derives the ratio itself as `damping / (2 * sqrt(stiffness * mass))`.
+ * Handing it a ratio (0–1) as `damping` therefore produces a spring that is
+ * roughly thirty times underdamped, which rings visibly back and forth for
+ * seconds instead of settling. Always build the coefficient from a ratio here.
+ */
+function dampingFor(ratio: number, stiffness: number, mass = 1): number {
+  return 2 * ratio * Math.sqrt(stiffness * mass);
+}
+
+/**
+ * Spring presets (DESIGN.md §6). Interactive elements settle by spring, never
+ * by duration — a tween cannot absorb an interruption mid-flight, a spring can.
+ * Feed these straight to Reanimated's `withSpring`.
+ */
+export const springs = {
+  /** Presses, toggles, thumbs — ζ 1.0, so there is no visible bounce. */
+  ui: { damping: dampingFor(springRatio.ui, 260), stiffness: 260, mass: 1 },
+  /** Flicks and throws — ζ 0.8, so a released gesture keeps some momentum. */
+  momentum: {
+    damping: dampingFor(springRatio.momentum, 320),
+    stiffness: 320,
+    mass: 1,
+  },
+  /** Sheets and other large surface entry/exit — ζ 0.85. */
+  sheet: {
+    damping: dampingFor(springRatio.sheet, 300),
+    stiffness: 300,
+    mass: 1,
+  },
+  /**
+   * Dismissals — the other half of an asymmetric pair. ζ 1.0 and stiffer, so a
+   * bar or panel leaving snaps out instead of settling.
+   */
+  exit: { damping: dampingFor(springRatio.exit, 380), stiffness: 380, mass: 1 },
+} as const;
+
+/**
+ * The presets as plain damping ratios, for APIs that take a ratio rather than a
+ * coefficient — notably React Native's `LayoutAnimation.springDamping`.
+ */
+export const springDampingRatios = springRatio;
+
 export const typeScale = {
   // Negative letter-spacing visually breaks Arabic cursive joins, and the app
   // is Arabic-first — keep tracking at 0 for display/title/heading sizes.

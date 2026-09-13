@@ -8,8 +8,8 @@ import {
   Rect,
   vec,
 } from "@shopify/react-native-skia";
-import { useEffect, useMemo, useState } from "react";
-import { StyleSheet } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 
 import {
   groupAabb,
@@ -59,6 +59,23 @@ export function EditorCanvas({
   onTapResult,
 }: EditorCanvasProps) {
   const [view, setView] = useState<{ w: number; h: number } | null>(null);
+
+  /**
+   * The canvas is sized by the plain `View` wrapper below, never by `<Canvas>`
+   * itself: Skia dropped `onLayout` on the new architecture (Fabric), where the
+   * prop is ignored and only logs an error. Measuring the wrapper is equivalent
+   * — the Canvas fills it — and without a size the fit-to-view math below would
+   * stay at `scale: 1` and paint the design 1:1 from the top-left corner.
+   */
+  const onLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    const h = e.nativeEvent.layout.height;
+    // `onLayout` re-fires with the same box on unrelated layout passes;
+    // returning the previous object keeps the fit memo and the viewport effect
+    // from re-running (and re-rendering every object) for no reason.
+    setView((prev) => (prev && prev.w === w && prev.h === h ? prev : { w, h }));
+  }, []);
+
   const textObjects = useMemo(
     () =>
       project.objects.filter(
@@ -138,105 +155,99 @@ export function EditorCanvas({
   const paperColor = bg.type === "paper" ? (bg.color ?? "#F7F6F3") : "#FFFFFF";
 
   return (
-    <Canvas
-      style={styles.canvas}
-      onLayout={(e) =>
-        setView({
-          w: e.nativeEvent.layout.width,
-          h: e.nativeEvent.layout.height,
-        })
-      }
-    >
-      <Group
-        transform={[
-          { translateX: offsetX },
-          { translateY: offsetY },
-          { scale },
-        ]}
-      >
-        {/* Background */}
-        <Rect
-          x={0}
-          y={0}
-          width={width}
-          height={height}
-          color={bg.type === "transparent" ? "transparent" : paperColor}
-        />
+    <View style={styles.canvas} onLayout={onLayout}>
+      <Canvas style={styles.canvas}>
+        <Group
+          transform={[
+            { translateX: offsetX },
+            { translateY: offsetY },
+            { scale },
+          ]}
+        >
+          {/* Background */}
+          <Rect
+            x={0}
+            y={0}
+            width={width}
+            height={height}
+            color={bg.type === "transparent" ? "transparent" : paperColor}
+          />
 
-        {/* Grid */}
-        {project.gridEnabled && (
-          <GridOverlay width={width} height={height} scale={scale} />
-        )}
+          {/* Grid */}
+          {project.gridEnabled && (
+            <GridOverlay width={width} height={height} scale={scale} />
+          )}
 
-        {/* Objects */}
-        {objects.map((obj) => {
-          const t = obj.transform;
-          const rot = (t.rotation * Math.PI) / 180;
-          const scaleX = t.flipH ? -t.scale : t.scale;
-          const scaleY = t.flipV ? -t.scale : t.scale;
-          const content =
-            obj.type === "text" && obj.paragraph ? (
-              <Paragraph
-                paragraph={obj.paragraph}
-                x={-obj.box.width / 2}
-                y={-obj.box.height / 2}
-                width={obj.box.width}
-              />
-            ) : obj.type === "shape" ? (
-              // Renderers draw into a 0..size box, so shift it to sit centred on
-              // the object origin — which is what the overlay and hit-test assume.
-              <Group
-                transform={[
-                  { translateX: -obj.box.width / 2 },
-                  { translateY: -obj.box.height / 2 },
-                ]}
-              >
-                <ShapeRenderer shape={obj} size={obj.box.width} />
-              </Group>
-            ) : obj.type === "glyph" ? (
-              <Group
-                transform={[
-                  { translateX: -obj.box.width / 2 },
-                  { translateY: -obj.box.height / 2 },
-                ]}
-              >
-                <GlyphRenderer glyph={obj} size={obj.box.width} />
-              </Group>
-            ) : null;
-          // Fading happens on a nested group so the object's selection chrome
-          // stays fully opaque. Skipped at full opacity to avoid paying for an
-          // offscreen layer on every object.
-          const opacity = obj.opacity ?? 1;
-          return (
-            <Group
-              key={obj.id}
-              transform={[
-                { translateX: t.x },
-                { translateY: t.y },
-                { rotate: rot },
-                { scaleX },
-                { scaleY },
-              ]}
-              origin={vec(0, 0)}
-            >
-              {opacity < 1 ? (
-                <Group opacity={opacity}>{content}</Group>
-              ) : (
-                content
-              )}
-              {selectedIds.length === 1 && selectedIds.includes(obj.id) && (
-                <SelectionOverlay
-                  box={obj.box}
-                  scale={scale}
-                  objectScale={Math.abs(t.scale) || 1}
+          {/* Objects */}
+          {objects.map((obj) => {
+            const t = obj.transform;
+            const rot = (t.rotation * Math.PI) / 180;
+            const scaleX = t.flipH ? -t.scale : t.scale;
+            const scaleY = t.flipV ? -t.scale : t.scale;
+            const content =
+              obj.type === "text" && obj.paragraph ? (
+                <Paragraph
+                  paragraph={obj.paragraph}
+                  x={-obj.box.width / 2}
+                  y={-obj.box.height / 2}
+                  width={obj.box.width}
                 />
-              )}
-            </Group>
-          );
-        })}
-        {groupBox && <GroupSelectionOverlay box={groupBox} scale={scale} />}
-      </Group>
-    </Canvas>
+              ) : obj.type === "shape" ? (
+                // Renderers draw into a 0..size box, so shift it to sit centred on
+                // the object origin — which is what the overlay and hit-test assume.
+                <Group
+                  transform={[
+                    { translateX: -obj.box.width / 2 },
+                    { translateY: -obj.box.height / 2 },
+                  ]}
+                >
+                  <ShapeRenderer shape={obj} size={obj.box.width} />
+                </Group>
+              ) : obj.type === "glyph" ? (
+                <Group
+                  transform={[
+                    { translateX: -obj.box.width / 2 },
+                    { translateY: -obj.box.height / 2 },
+                  ]}
+                >
+                  <GlyphRenderer glyph={obj} size={obj.box.width} />
+                </Group>
+              ) : null;
+            // Fading happens on a nested group so the object's selection chrome
+            // stays fully opaque. Skipped at full opacity to avoid paying for an
+            // offscreen layer on every object.
+            const opacity = obj.opacity ?? 1;
+            return (
+              <Group
+                key={obj.id}
+                transform={[
+                  { translateX: t.x },
+                  { translateY: t.y },
+                  { rotate: rot },
+                  { scaleX },
+                  { scaleY },
+                ]}
+                origin={vec(0, 0)}
+              >
+                {opacity < 1 ? (
+                  <Group opacity={opacity}>{content}</Group>
+                ) : (
+                  content
+                )}
+                {selectedIds.length === 1 && selectedIds.includes(obj.id) && (
+                  <SelectionOverlay
+                    box={obj.box}
+                    scale={scale}
+                    objectScale={Math.abs(t.scale) || 1}
+                  />
+                )}
+              </Group>
+            );
+          })}
+          {groupBox && <GroupSelectionOverlay box={groupBox} scale={scale} />}
+        </Group>
+      </Canvas>
+    </View>
   );
 }
 

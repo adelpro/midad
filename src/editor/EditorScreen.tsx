@@ -13,13 +13,16 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
+import { useAnimatedStyle } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
+  AnimatedPressable,
   Button,
   DirectionIcon,
   Icon,
   IconButton,
+  Reveal,
   Sheet,
 } from "@/components/ui";
 import { EditorCanvasHost } from "@/editor/EditorCanvasHost";
@@ -39,6 +42,8 @@ import {
 } from "@/editor/text/split";
 import { useAutoSave } from "@/editor/use-auto-save";
 import { useObjectGestures } from "@/editor/use-object-gestures";
+import { hapticDelete, hapticSuccess, hapticTick } from "@/haptics";
+import { usePressFeedback } from "@/hooks/use-press-feedback";
 import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
 import { formatPartLabel, formatSelectedCount } from "@/i18n/strings";
@@ -118,6 +123,14 @@ export function EditorScreen() {
   const setMultiSelectMode = useEditorStore((s) => s.setMultiSelectMode);
 
   const [tool, setTool] = useState<ActiveTool>("select");
+  /**
+   * Choosing a tool is a detent — tick, then switch. Programmatic resets (e.g.
+   * after committing text) call `setTool` directly so they stay silent.
+   */
+  const selectTool = useCallback((next: ActiveTool) => {
+    hapticTick();
+    setTool(next);
+  }, []);
   const [textSheetOpen, setTextSheetOpen] = useState(false);
   const [draftText, setDraftText] = useState("");
   const [draftFont, setDraftFont] = useState<string>(calligraphyFonts[0].key);
@@ -535,6 +548,7 @@ export function EditorScreen() {
     if (!selectedIds.length) {
       return;
     }
+    hapticDelete();
     useEditorStore.getState().removeObjects(selectedIds);
   }, [selectedIds]);
 
@@ -557,6 +571,9 @@ export function EditorScreen() {
       await saveThumb(project.id, png.base64DataUri);
     } catch {
       // Thumbnail is best-effort; the project itself is saved.
+      // Fires for the explicit save button and for the save that precedes every
+      // export — both are "the work is safely on disk" moments.
+      hapticSuccess();
     }
   }, [project, skiaFonts]);
 
@@ -925,7 +942,7 @@ export function EditorScreen() {
 
         {/* Parts strip — the pieces of a split word, in reading order */}
         {partSiblings.length > 1 && (
-          <View
+          <Reveal
             style={[
               styles.partsStrip,
               { borderColor: c.border, backgroundColor: c.surface },
@@ -943,49 +960,17 @@ export function EditorScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.partsTrack}
             >
-              {partSiblings.map((part, index) => {
-                const active = index === activePartIndex;
-                return (
-                  <Pressable
-                    key={part.id}
-                    onPress={() => select(part.id)}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={formatPartLabel(
-                      index,
-                      partSiblings.length,
-                      language,
-                    )}
-                    style={[
-                      styles.partTile,
-                      {
-                        borderColor: active ? c.accent : c.border,
-                        backgroundColor: active ? c.accentSoft : c.surfaceAlt,
-                      },
-                    ]}
-                  >
-                    {/* Rendered with the part's own font, so the tile shows the
-                        glyph exactly as the canvas does. */}
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.partGlyph,
-                        { color: c.ink, fontFamily: part.fontKey },
-                      ]}
-                    >
-                      {part.text}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.partIndex,
-                        { color: c.muted, fontFamily: fonts.ui },
-                      ]}
-                    >
-                      {index + 1}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+              {partSiblings.map((part, index) => (
+                <PartTile
+                  key={part.id}
+                  label={formatPartLabel(index, partSiblings.length, language)}
+                  text={part.text}
+                  fontKey={part.fontKey}
+                  index={index}
+                  active={index === activePartIndex}
+                  onPress={() => select(part.id)}
+                />
+              ))}
             </ScrollView>
             <IconButton
               onPress={() => stepPart(1)}
@@ -994,12 +979,12 @@ export function EditorScreen() {
             >
               <DirectionIcon isRTL={isRTL} size={16} />
             </IconButton>
-          </View>
+          </Reveal>
         )}
 
         {/* Style navigator — cycles the presentation presets on the selection */}
         {selectedText && (
-          <View
+          <Reveal
             style={[
               styles.styleNav,
               { borderColor: c.border, backgroundColor: c.surface },
@@ -1046,12 +1031,12 @@ export function EditorScreen() {
                 <DirectionIcon isRTL={isRTL} size={16} />
               </IconButton>
             </View>
-          </View>
+          </Reveal>
         )}
 
         {/* Why a split was refused */}
         {!!splitNotice && (
-          <View
+          <Reveal
             style={[
               styles.notice,
               { backgroundColor: c.dangerBg, borderColor: c.border },
@@ -1065,7 +1050,7 @@ export function EditorScreen() {
             >
               {splitNotice}
             </Text>
-          </View>
+          </Reveal>
         )}
 
         {/* Tool rail */}
@@ -1079,14 +1064,14 @@ export function EditorScreen() {
             <ToolBtn
               label={t.editor.select}
               active={tool === "select" && !multiSelectMode}
-              onPress={() => setTool("select")}
+              onPress={() => selectTool("select")}
               icon="pen"
             />
             <ToolBtn
               label={t.editor.hints.multiSelect}
               active={tool === "select" && multiSelectMode}
               onPress={() => {
-                setTool("select");
+                selectTool("select");
                 setMultiSelectMode(!multiSelectMode);
               }}
               icon="multiSelect"
@@ -1096,7 +1081,7 @@ export function EditorScreen() {
               active={tool === "text"}
               onPress={() => {
                 setMultiSelectMode(false);
-                setTool("text");
+                selectTool("text");
                 openTextSheet();
               }}
               icon="type"
@@ -1106,7 +1091,7 @@ export function EditorScreen() {
               active={tool === "color"}
               onPress={() => {
                 setMultiSelectMode(false);
-                setTool("color");
+                selectTool("color");
               }}
               icon="palette"
             />
@@ -1115,7 +1100,7 @@ export function EditorScreen() {
               active={tool === "background"}
               onPress={() => {
                 setMultiSelectMode(false);
-                setTool("background");
+                selectTool("background");
               }}
               icon="image"
             />
@@ -1390,6 +1375,69 @@ function NumberRow({
         </IconButton>
       </View>
     </View>
+  );
+}
+
+/**
+ * One part tile in the parts strip.
+ *
+ * Split out of the screen because it owns press feedback — hooks cannot be
+ * called from inside the parent's `map`.
+ */
+function PartTile({
+  label,
+  text,
+  fontKey,
+  index,
+  active,
+  onPress,
+}: {
+  label: string;
+  text: string;
+  fontKey: string;
+  index: number;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const { colors: c } = useTheme();
+  const { language } = useT();
+  const fonts = fontRoles[language];
+  const press = usePressFeedback();
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: press.scale.value }],
+  }));
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={label}
+      style={[
+        styles.partTile,
+        {
+          borderColor: active ? c.accent : c.border,
+          backgroundColor: active ? c.accentSoft : c.surfaceAlt,
+        },
+        animStyle,
+      ]}
+    >
+      {/* Rendered with the part's own font, so the tile shows the glyph exactly
+          as the canvas does. */}
+      <Text
+        numberOfLines={1}
+        style={[styles.partGlyph, { color: c.ink, fontFamily: fontKey }]}
+      >
+        {text}
+      </Text>
+      <Text
+        style={[styles.partIndex, { color: c.muted, fontFamily: fonts.ui }]}
+      >
+        {index + 1}
+      </Text>
+    </AnimatedPressable>
   );
 }
 

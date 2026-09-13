@@ -1,9 +1,23 @@
 import { StyleSheet, View } from "react-native";
 
 import { useTheme } from "@/hooks/use-theme";
+import { rowStyle } from "@/i18n/rtl";
 import { radius, spacing } from "@/theme";
 
-export function StepDots({ count, index }: { count: number; index: number }) {
+const DOT_HEIGHT = 7;
+/** Current step: elongated pill so progress reads at a glance. */
+const ACTIVE_DOT_WIDTH = 28;
+const INACTIVE_DOT_WIDTH = DOT_HEIGHT;
+
+export function StepDots({
+  count,
+  index,
+  isRTL = false,
+}: {
+  count: number;
+  index: number;
+  isRTL?: boolean;
+}) {
   const { colors: c } = useTheme();
   return (
     <View
@@ -12,7 +26,9 @@ export function StepDots({ count, index }: { count: number; index: number }) {
       accessibilityValue={{ min: 1, max: count, now: index + 1 }}
       accessibilityLabel={`${index + 1} / ${count}`}
     >
-      <View style={styles.row}>
+      {/* Dots are ordered step 1 → last, so the row has to mirror for RTL:
+          step 1 sits at the trailing (right) edge and progress walks left. */}
+      <View style={[styles.row, rowStyle(isRTL)]}>
         {Array.from({ length: count }, (_, i) => (
           <View
             key={i}
@@ -20,7 +36,7 @@ export function StepDots({ count, index }: { count: number; index: number }) {
               styles.dot,
               {
                 backgroundColor: i === index ? c.ink : c.border,
-                width: i === index ? 18 : 7,
+                width: i === index ? ACTIVE_DOT_WIDTH : INACTIVE_DOT_WIDTH,
               },
             ]}
           />
@@ -40,7 +56,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   dot: {
-    height: 7,
+    height: DOT_HEIGHT,
     borderRadius: radius.pill,
   },
 });

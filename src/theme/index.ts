@@ -26,6 +26,8 @@ export {
   palettes,
   radius,
   spacing,
+  springDampingRatios,
+  springs,
   tagType,
   typeScale,
 } from "./tokens";

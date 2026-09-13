@@ -6,6 +6,7 @@ import {
   vec,
   type DataModule,
   type SkParagraph,
+  type SkTextStyle,
   type SkTypefaceFontProvider,
 } from "@shopify/react-native-skia";
 
@@ -108,18 +109,28 @@ function buildParagraph(
     fonts,
   );
 
-  builder.pushStyle({
+  // Optional keys must be *absent*, not `undefined`. The native style reader
+  // guards every field with `hasProperty`, which is true for a key that exists
+  // and holds `undefined`, and it then converts that value as an object — which
+  // throws "Value is undefined, expected an Object". Most text objects carry no
+  // shadows (`shadows` is optional, and the Classic preset clears it), so
+  // passing the key through unconditionally broke shaping on native. CanvasKit
+  // tolerates the `undefined`, which is why this only ever failed on device.
+  const style: SkTextStyle = {
     fontFamilies: [family],
     fontSize: spec.fontSize,
     heightMultiplier: spec.lineHeight > 0 ? spec.lineHeight / spec.fontSize : 1,
     color: Skia.Color(spec.color),
     fontStyle: { weight: 400 },
-    shadows: spec.shadows?.map((s) => ({
+  };
+  if (spec.shadows?.length) {
+    style.shadows = spec.shadows.map((s) => ({
       color: Skia.Color(s.color),
       offset: vec(s.offsetX, s.offsetY),
       blurRadius: s.blur,
-    })),
-  });
+    }));
+  }
+  builder.pushStyle(style);
   builder.addText(spec.text);
 
   const paragraph = builder.build();

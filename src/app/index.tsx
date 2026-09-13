@@ -153,7 +153,11 @@ export default function OnboardingScreen() {
 
           {/* footer: dots + language + CTA */}
           <View style={styles.footer}>
-            <StepDots count={STEPS.length} index={index} />
+            <StepDots
+              count={STEPS.length}
+              index={index}
+              isRTL={language === "ar"}
+            />
 
             <View style={styles.langBox}>
               <Text

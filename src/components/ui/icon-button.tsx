@@ -1,8 +1,12 @@
 import { useEffect, useRef, useState, type PropsWithChildren } from "react";
-import { Pressable, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
+import { useAnimatedStyle } from "react-native-reanimated";
 
+import { usePressFeedback } from "@/hooks/use-press-feedback";
 import { useTheme } from "@/hooks/use-theme";
 import { radius } from "@/theme";
+
+import { AnimatedPressable } from "./pressable";
 import { Tooltip } from "./tooltip";
 
 export interface IconButtonProps extends PropsWithChildren {
@@ -39,6 +43,14 @@ export function IconButton({
       : variant === "surface"
         ? c.surface
         : "transparent";
+  const press = usePressFeedback();
+  const animStyle = useAnimatedStyle(
+    () => ({
+      opacity: disabled ? 0.4 : press.pressed.value ? 0.7 : 1,
+      transform: [{ scale: press.scale.value }],
+    }),
+    [disabled],
+  );
   useEffect(
     () => () => {
       if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -57,13 +69,15 @@ export function IconButton({
       label={hint ?? accessibilityLabel ?? ""}
       visible={!!hint && hintVisible}
     >
-      <Pressable
+      <AnimatedPressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}
         accessibilityState={{ disabled: !!disabled }}
         disabled={disabled}
         onPress={onPress}
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
         onLongPress={() => {
           show();
           onLongPress?.();
@@ -71,7 +85,7 @@ export function IconButton({
         delayLongPress={350}
         onHoverIn={show}
         onHoverOut={hide}
-        style={({ pressed }) => [
+        style={[
           styles.base,
           {
             width: size,
@@ -79,12 +93,12 @@ export function IconButton({
             borderRadius: radius.lg,
             backgroundColor: bg,
             borderColor: c.border,
-            opacity: disabled ? 0.4 : pressed ? 0.7 : 1,
           },
+          animStyle,
         ]}
       >
         {children}
-      </Pressable>
+      </AnimatedPressable>
     </Tooltip>
   );
 }

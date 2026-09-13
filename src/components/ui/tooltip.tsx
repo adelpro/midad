@@ -15,11 +15,10 @@ export function Tooltip({ label, visible, children }: TooltipProps) {
     <View style={styles.anchor}>
       {children}
       {visible && (
-        <View
-          pointerEvents="none"
-          style={[styles.bubble, { backgroundColor: c.ink }]}
-        >
-          <Text style={[styles.text, { color: c.onInk }]}>{label}</Text>
+        <View pointerEvents="none" style={styles.bubbleWrap}>
+          <View style={[styles.bubble, { backgroundColor: c.ink }]}>
+            <Text style={[styles.text, { color: c.onInk }]}>{label}</Text>
+          </View>
         </View>
       )}
     </View>
@@ -28,17 +27,22 @@ export function Tooltip({ label, visible, children }: TooltipProps) {
 
 const styles = StyleSheet.create({
   anchor: { position: "relative", zIndex: 10 },
-  bubble: {
+  bubbleWrap: {
+    // Spans the anchor so the bubble centres on the trigger at any width. The
+    // old fixed `translateX: -40` only lined up for one bubble size.
     position: "absolute",
     bottom: "100%",
-    left: "50%",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    marginBottom: spacing.xs,
+  },
+  bubble: {
     maxWidth: 220,
     minWidth: 80,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radius.md,
-    transform: [{ translateX: -40 }],
-    marginBottom: spacing.xs,
   },
   text: {
     fontFamily: "monospace",

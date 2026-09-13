@@ -9,11 +9,12 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
-  withTiming,
+  withSpring,
 } from "react-native-reanimated";
 
-import { motion } from "@/theme";
+import { springs } from "@/theme";
 
 export interface StepPagerProps {
   count: number;
@@ -54,6 +55,7 @@ function StepPagerBase({
   const [pageWidth, setPageWidth] = useState(0);
   const viewportRef = useRef<View>(null);
   const { width: windowWidth } = useWindowDimensions();
+  const reduceMotion = useReducedMotion();
 
   // Page `i` sits in slot `i` in LTR. In RTL the first step is right-most, so
   // slots reverse and advancing moves the strip toward the leading (left) edge.
@@ -109,8 +111,14 @@ function StepPagerBase({
     }
     const slot = isRTL ? count - 1 - index : index;
     current.value = index;
-    x.value = withTiming(-slot * pageWidth, { duration: motion.base });
-  }, [index, count, isRTL, pageWidth, x, current]);
+    // CTA-driven jump: settle by spring, like every other transition — a
+    // duration tween cannot absorb an interruption if the user swipes mid-flight.
+    // Reduce Motion jumps instead: the pager's whole identity is the slide, so a
+    // gentle version of it is still travel, which is exactly what to drop.
+    x.value = reduceMotion
+      ? -slot * pageWidth
+      : withSpring(-slot * pageWidth, springs.ui);
+  }, [index, count, isRTL, pageWidth, x, current, reduceMotion]);
 
   // Re-align instantly when the viewport resizes — animating here would read as
   // a slide the user never asked for.
@@ -158,8 +166,17 @@ function StepPagerBase({
       const slot = isRTL ? count - 1 - target : target;
       // eslint-disable-next-line react-hooks/immutability
       current.value = target;
+      // Hand the release velocity to the spring so a flick carries through
+      // instead of restarting from a standstill (DESIGN.md §6).
+      // Reduce Motion keeps the drag — that is direct manipulation, not
+      // animation — but snaps to the settled page instead of springing there.
       // eslint-disable-next-line react-hooks/immutability
-      x.value = withTiming(-slot * pageWidth, { duration: motion.base });
+      x.value = reduceMotion
+        ? -slot * pageWidth
+        : withSpring(-slot * pageWidth, {
+            ...springs.momentum,
+            velocity: e.velocityX,
+          });
       if (target !== index) {
         runOnJS(onIndexChange)(target);
       }

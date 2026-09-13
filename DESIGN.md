@@ -23,22 +23,22 @@ with the canvas.
 
 ### Light — "Warm Paper"
 
-| Name | Hex | Role |
-|---|---|---|
-| Bone Paper | `#F7F6F3` | App background (`paper`) |
-| Paper Bright | `#FBFBFA` | Elevated background zones (`paperBright`) |
-| Pure Surface | `#FFFFFF` | Cards, sheets, docks (`surface`) |
-| Whisper Alt | `#F9F9F8` | Subtle fills, secondary buttons (`surfaceAlt`) |
-| Pressed Cloth | `#EFEEE9` | Pressed states (`surfacePressed`) |
-| Iron Ink | `#111111` | Primary text, solid CTAs (`ink`) |
-| Soft Iron | `#2F3437` | Strong secondary text (`inkSoft`) |
-| Graphite | `#6E6D68` | Secondary text — AA on paper (`muted`) |
-| Faded Ash | `#A9A69F` | Disabled, tertiary (`faint`) |
-| Hairline | `#EAEAEA` | Structural borders only (`border`) |
+| Name               | Hex       | Role                                                                     |
+| ------------------ | --------- | ------------------------------------------------------------------------ |
+| Bone Paper         | `#F7F6F3` | App background (`paper`)                                                 |
+| Paper Bright       | `#FBFBFA` | Elevated background zones (`paperBright`)                                |
+| Pure Surface       | `#FFFFFF` | Cards, sheets, docks (`surface`)                                         |
+| Whisper Alt        | `#F9F9F8` | Subtle fills, secondary buttons (`surfaceAlt`)                           |
+| Pressed Cloth      | `#EFEEE9` | Pressed states (`surfacePressed`)                                        |
+| Iron Ink           | `#111111` | Primary text, solid CTAs (`ink`)                                         |
+| Soft Iron          | `#2F3437` | Strong secondary text (`inkSoft`)                                        |
+| Graphite           | `#6E6D68` | Secondary text — AA on paper (`muted`)                                   |
+| Faded Ash          | `#A9A69F` | Disabled, tertiary (`faint`)                                             |
+| Hairline           | `#EAEAEA` | Structural borders only (`border`)                                       |
 | **Saffron Accent** | `#B0894F` | THE accent — selection rings, active tools, focus, undo links (`accent`) |
-| Saffron Text | `#956400` | Accent text on light bg (`accentText`) |
-| Saffron Wash | `#F5EEE2` | Accent tint backgrounds (`accentSoft`) |
-| Oxblood | `#9F2F2D` | Destructive only (`danger`) |
+| Saffron Text       | `#956400` | Accent text on light bg (`accentText`)                                   |
+| Saffron Wash       | `#F5EEE2` | Accent tint backgrounds (`accentSoft`)                                   |
+| Oxblood            | `#9F2F2D` | Destructive only (`danger`)                                              |
 
 ### Dark — "Warm Ink" (inverts paper↔ink)
 
@@ -46,7 +46,8 @@ Background `#16150F` · Surface `#211F18` · Ink `#F2EFE7` · Accent lifts to
 `#C9A05C`. Full token set: `src/theme/tokens.ts`.
 
 **Rules**
-- Max ONE accent (Saffron). It marks *selection and state*, never decoration.
+
+- Max ONE accent (Saffron). It marks _selection and state_, never decoration.
 - No pure black `#000000`, no pure white chrome — ink is `#111111`, dark surfaces are warm-charcoal, never neutral gray.
 - Zero hardcoded hex in screens/components. Canvas **content** palettes (swatches written into project files) are the sole exception, grouped in named constants with a content comment.
 
@@ -91,11 +92,21 @@ is FORBIDDEN for these (see §7).
 
 Engine: reanimated springs only. Presets in `springs` tokens:
 
-| Token | Physics | Use |
-|---|---|---|
-| `ui` | damping 1.0, stiffness 260 | presses, toggles, thumbs |
-| `momentum` | damping 0.8, stiffness 320 | flicks, throws |
-| `sheet` | damping 0.85, stiffness 300 | sheet enter/exit |
+| Token      | Physics               | Use                                   |
+| ---------- | --------------------- | ------------------------------------- |
+| `ui`       | ζ 1.0, stiffness 260  | presses, toggles, thumbs              |
+| `momentum` | ζ 0.8, stiffness 320  | flicks, throws                        |
+| `sheet`    | ζ 0.85, stiffness 300 | sheet enter/exit                      |
+| `exit`     | ζ 1.0, stiffness 380  | dismissals and other system responses |
+
+- ζ is the **damping ratio**: `1` is critically damped (fastest approach, no
+  overshoot), below `1` overshoots. Author presets as ζ + stiffness, never as a
+  bare `damping`. Reanimated's `withSpring` `damping` is an _absolute
+  coefficient_ (`damping = 2 · ζ · √(stiffness · mass)`), so passing a ratio
+  there yields a ~30× underdamped spring that visibly rings for seconds.
+  `tokens.ts` does this conversion in `dampingFor`, and
+  `springDampingRatios` exposes the raw ζ for APIs that want a ratio
+  (`LayoutAnimation.springDamping`).
 
 - Respond on pointer-down; feedback continuous during gestures; commit on release.
 - Animate `transform` + `opacity` exclusively.

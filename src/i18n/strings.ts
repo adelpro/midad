@@ -27,6 +27,7 @@ export interface Translation {
     unlock: string;
     loading: string;
     confirm: string;
+    undo: string;
   };
   tabs: {
     gallery: string;
@@ -56,10 +57,18 @@ export interface Translation {
     untitled: string;
     importDesigns: string;
     importFailed: string;
-    deleteTitle: string;
-    deleteBody: string;
     copySuffix: string;
     importFailedHint: string;
+    /**
+     * Row actions. `pin`/`unpin` are also used as screen-reader custom action
+     * labels, so they must read as verbs.
+     */
+    pin: string;
+    unpin: string;
+    pinned: string;
+    rowActions: string;
+    /** 5s undo notice after a delete, e.g. "Deleted “Sketch”". */
+    deletedNotice: string;
   };
   settings: {
     title: string;
@@ -193,6 +202,7 @@ export const strings: Record<Language, Translation> = {
       unlock: "فتح القفل",
       loading: "جارٍ التحميل…",
       confirm: "تأكيد",
+      undo: "تراجع",
     },
     tabs: {
       gallery: "لوحتي",
@@ -221,13 +231,16 @@ export const strings: Record<Language, Translation> = {
       emptyTitle: "لا توجد تصاميم بعد",
       emptyBody: "ابدأ رحلتك مع الخط العربي وأنشئ أول لوحة.",
       newDesign: "تصميم جديد",
-      untitled: "بدون عنوان",
+      untitled: "دون عنوان",
       importDesigns: "استيراد",
       importFailed: "تعذّر استيراد الملف",
-      deleteTitle: "حذف التصميم؟",
-      deleteBody: "سيُحذف التصميم وصورته المصغّرة نهائيًا ولا يمكن التراجع.",
       copySuffix: " — نسخة",
       importFailedHint: "تأكد من أن الملف بصيغة ‎.midad أو JSON صالح.",
+      pin: "تثبيت",
+      unpin: "إلغاء التثبيت",
+      pinned: "مثبّت",
+      rowActions: "خيارات التصميم",
+      deletedNotice: "تم حذف «{name}»",
     },
     settings: {
       title: "الإعدادات",
@@ -354,6 +367,7 @@ export const strings: Record<Language, Translation> = {
       rename: "Rename",
       duplicate: "Duplicate",
       lock: "Lock",
+      undo: "Undo",
       unlock: "Unlock",
       loading: "Loading…",
       confirm: "Confirm",
@@ -390,11 +404,13 @@ export const strings: Record<Language, Translation> = {
       untitled: "Untitled",
       importDesigns: "Import",
       importFailed: "Could not import file",
-      deleteTitle: "Delete this design?",
-      deleteBody:
-        "The design and its thumbnail will be permanently removed. This cannot be undone.",
       copySuffix: " (copy)",
       importFailedHint: "Make sure the file is a valid .midad or JSON file.",
+      pin: "Pin",
+      unpin: "Unpin",
+      pinned: "Pinned",
+      rowActions: "Design options",
+      deletedNotice: "Deleted “{name}”",
     },
     settings: {
       title: "Settings",
@@ -527,14 +543,43 @@ const COUNT_TEMPLATES: Record<Language, Record<Intl.LDMLPluralRule, string>> = {
 };
 
 /**
+ * CLDR plural category, computed locally.
+ *
+ * Hermes ships `Intl.Collator` / `Intl.DateTimeFormat` / `Intl.NumberFormat`
+ * but **not** `Intl.PluralRules`, so `new Intl.PluralRules(...)` throws
+ * `undefined cannot be used as a constructor` on Android. The app only ships
+ * `ar` and `en`, so their CLDR rules are applied directly — same output as
+ * `Intl.PluralRules`, no engine dependency.
+ */
+function pluralCategory(n: number, language: Language): Intl.LDMLPluralRule {
+  if (language !== "ar") {
+    return n === 1 ? "one" : "other";
+  }
+  if (n === 0) {
+    return "zero";
+  }
+  if (n === 1) {
+    return "one";
+  }
+  if (n === 2) {
+    return "two";
+  }
+  const mod100 = n % 100;
+  if (mod100 >= 3 && mod100 <= 10) {
+    return "few";
+  }
+  if (mod100 >= 11 && mod100 <= 99) {
+    return "many";
+  }
+  return "other";
+}
+
+/**
  * Latin (Western) digits everywhere by default — Arabic text keeps its
  * plural grammar but numerals stay `2026`-style unless the user opts in.
  */
 export function formatGalleryCount(n: number, language: Language): string {
-  const category = new Intl.PluralRules(language === "ar" ? "ar" : "en").select(
-    n,
-  );
-  const template = COUNT_TEMPLATES[language][category];
+  const template = COUNT_TEMPLATES[language][pluralCategory(n, language)];
   const digits = n.toLocaleString("en-US");
   return template.replace("{n}", digits);
 }
@@ -556,4 +601,14 @@ export function formatPartLabel(
   return strings[language].editor.hints.partLabel
     .replace("{n}", (index + 1).toLocaleString("en-US"))
     .replace("{total}", total.toLocaleString("en-US"));
+}
+
+/**
+ * Undo-snackbar copy after deleting a design, e.g. "Deleted “Sketch”" /
+ * "تم حذف «رسمة»". Falls back to the localized "Untitled" so an unnamed design
+ * never renders as an empty pair of quotes.
+ */
+export function formatDeletedNotice(name: string, language: Language): string {
+  const display = name.trim() || strings[language].gallery.untitled;
+  return strings[language].gallery.deletedNotice.replace("{name}", display);
 }

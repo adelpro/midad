@@ -37,6 +37,7 @@ import {
   PencilSimple,
   PenNib,
   Plus,
+  PushPin,
   Scissors,
   SelectionPlus,
   ShareNetwork,
@@ -96,6 +97,7 @@ export type IconName =
   | "more"
   | "export"
   | "pen"
+  | "pin"
   | "language"
   | "gallery"
   | "multiSelect"
@@ -145,6 +147,7 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   more: DotsThree,
   export: Export,
   pen: PenNib,
+  pin: PushPin,
   language: Translate,
   gallery: SquaresFour,
   multiSelect: SelectionPlus,

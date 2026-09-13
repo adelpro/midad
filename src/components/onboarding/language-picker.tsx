@@ -1,13 +1,68 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { useAnimatedStyle } from "react-native-reanimated";
 
+import { AnimatedPressable } from "@/components/ui/pressable";
+import { usePressFeedback } from "@/hooks/use-press-feedback";
 import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
 import { fontRoles, layout, radius, spacing } from "@/theme";
 
+/**
+ * One segment of the track.
+ *
+ * Split out of `LanguagePicker` because it owns press feedback — the hook
+ * cannot be called from inside the parent's `map`.
+ */
+function SegmentItem({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const { colors: c } = useTheme();
+  const { language } = useT();
+  const fonts = fontRoles[language];
+  const press = usePressFeedback();
+
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: press.pressed.value ? 0.8 : 1,
+    transform: [{ scale: press.scale.value }],
+  }));
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      style={[
+        styles.segmentItem,
+        { backgroundColor: active ? c.ink : "transparent" },
+        animStyle,
+      ]}
+    >
+      <Text
+        style={[
+          styles.segmentLabel,
+          {
+            fontFamily: active ? fonts.uiBold : fonts.ui,
+            color: active ? c.onInk : c.muted,
+          },
+        ]}
+      >
+        {label}
+      </Text>
+    </AnimatedPressable>
+  );
+}
+
 export function LanguagePicker() {
   const { colors: c } = useTheme();
   const { t, language, setLanguage } = useT();
-  const fonts = fontRoles[language];
 
   return (
     <View
@@ -16,36 +71,14 @@ export function LanguagePicker() {
         { backgroundColor: c.surfaceAlt, borderColor: c.border },
       ]}
     >
-      {(["ar", "en"] as const).map((lang) => {
-        const active = language === lang;
-        return (
-          <Pressable
-            key={lang}
-            onPress={() => setLanguage(lang)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active }}
-            style={({ pressed }) => [
-              styles.segmentItem,
-              {
-                backgroundColor: active ? c.ink : "transparent",
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.segmentLabel,
-                {
-                  fontFamily: active ? fonts.uiBold : fonts.ui,
-                  color: active ? c.onInk : c.muted,
-                },
-              ]}
-            >
-              {lang === "ar" ? t.onboarding.arabic : t.onboarding.english}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {(["ar", "en"] as const).map((lang) => (
+        <SegmentItem
+          key={lang}
+          label={lang === "ar" ? t.onboarding.arabic : t.onboarding.english}
+          active={language === lang}
+          onPress={() => setLanguage(lang)}
+        />
+      ))}
     </View>
   );
 }

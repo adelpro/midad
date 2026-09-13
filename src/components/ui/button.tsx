@@ -1,16 +1,19 @@
 import { forwardRef } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   View,
   type ViewStyle,
 } from "react-native";
+import { useAnimatedStyle } from "react-native-reanimated";
 
+import { usePressFeedback } from "@/hooks/use-press-feedback";
 import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
 import { fontRoles, radius, spacing, type MidadPalette } from "@/theme";
+
+import { AnimatedPressable } from "./pressable";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -74,8 +77,22 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
   const fonts = fontRoles[language];
   const vc = variantColors(variant, c);
   const dimmed = disabled || loading;
+  const press = usePressFeedback();
+
+  const restBg = vc.bg;
+  const activeBg = vc.pressed ?? vc.bg;
+  // Press feedback is continuous from touch-DOWN to release (DESIGN.md §6):
+  // the fill flips the instant the pointer lands, the scale springs back.
+  const animStyle = useAnimatedStyle(
+    () => ({
+      transform: [{ scale: press.scale.value }],
+      backgroundColor: press.pressed.value ? activeBg : restBg,
+    }),
+    [activeBg, restBg],
+  );
+
   return (
-    <Pressable
+    <AnimatedPressable
       ref={ref}
       testID={testID}
       accessibilityRole="button"
@@ -83,25 +100,22 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
       accessibilityState={{ disabled: dimmed, selected }}
       disabled={dimmed}
       onPress={onPress}
-      style={({ pressed }) => {
-        // Press feedback is continuous from touch-DOWN to release (DESIGN.md §6).
-        const active = pressed && !dimmed;
-        return [
-          styles.base,
-          {
-            height: heights[size],
-            backgroundColor: active ? (vc.pressed ?? vc.bg) : vc.bg,
-            // Only `secondary` draws a hairline. Filled and ghost variants must
-            // not inherit a platform-default border colour — it shows as a dark
-            // ring around the light `ink` fill in dark mode.
-            borderColor: vc.border ?? "transparent",
-            opacity: dimmed ? 0.5 : 1,
-            transform: [{ scale: active ? 0.98 : 1 }],
-          },
-          fullWidth && styles.fullWidth,
-          style,
-        ];
-      }}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[
+        styles.base,
+        {
+          height: heights[size],
+          // Only `secondary` draws a hairline. Filled and ghost variants must
+          // not inherit a platform-default border colour — it shows as a dark
+          // ring around the light `ink` fill in dark mode.
+          borderColor: vc.border ?? "transparent",
+          opacity: dimmed ? 0.5 : 1,
+        },
+        fullWidth && styles.fullWidth,
+        style,
+        animStyle,
+      ]}
     >
       {loading ? (
         <ActivityIndicator color={vc.text} />
@@ -120,7 +134,7 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
           {label}
         </Text>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 });
 

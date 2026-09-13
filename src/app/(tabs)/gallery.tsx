@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
+import { useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Image,
+  LayoutAnimation,
   Platform,
   Pressable,
   RefreshControl,
@@ -10,29 +11,82 @@ import {
   TextInput,
   useWindowDimensions,
   View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
-import { FlashList } from '@shopify/flash-list';
+} from "react-native";
+import {
+  useAnimatedScrollHandler,
+  useReducedMotion,
+  useSharedValue,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Button, Card, EmptyState, Icon, DirectionIcon, Sheet, ProjectCardSkeleton } from '@/components/ui';
-import { GALLERY_HEADER_LARGE, GalleryHeader } from '@/components/gallery/gallery-header';
-import { useTheme } from '@/hooks/use-theme';
-import { useT } from '@/i18n';
-import { formatGalleryCount } from '@/i18n/strings';
-import { rowStyle } from '@/i18n/rtl';
-import { DEFAULT_CANVASES, useSettings } from '@/storage/settings';
-import { listProjects, loadProject, saveProject, deleteProject } from '@/storage/projects';
-import { getThumb, deleteThumb } from '@/storage/thumbs';
-import { importProjectFromJson } from '@/storage/import-project';
-import { breakpoint, fontRoles, spacing, typeScale } from '@/theme';
-import type { MidadProject } from '@/storage/project-schema';
+import {
+  GALLERY_HEADER_LARGE,
+  GalleryHeader,
+} from "@/components/gallery/gallery-header";
+import { ProjectRow, type SwipeSide } from "@/components/gallery/project-row";
+import { useDeferredDelete } from "@/components/gallery/use-deferred-delete";
+import {
+  Button,
+  EmptyState,
+  Icon,
+  ProjectCardSkeleton,
+  Sheet,
+  Snackbar,
+} from "@/components/ui";
+import { hapticDelete, hapticTick } from "@/haptics";
+import { useTheme } from "@/hooks/use-theme";
+import { useT } from "@/i18n";
+import { rowStyle } from "@/i18n/rtl";
+import { formatGalleryCount } from "@/i18n/strings";
+import { importProjectFromJson } from "@/storage/import-project";
+import { sortPinnedFirst, usePins } from "@/storage/pins";
+import { isWeb } from "@/storage/platform";
+import type { MidadProject } from "@/storage/project-schema";
+import { listProjects, loadProject, saveProject } from "@/storage/projects";
+import { DEFAULT_CANVASES, useSettings } from "@/storage/settings";
+import { getThumb } from "@/storage/thumbs";
+import {
+  breakpoint,
+  fontRoles,
+  spacing,
+  springDampingRatios,
+  typeScale,
+} from "@/theme";
 
 const MIN_COLUMN_WIDTH = 168;
-const THUMB_RATIO = 4 / 3;
 /** Centered content cap so the grid never sprawls on desktop/tablet. */
 const MAX_LIST_WIDTH = 920;
-const ROW_THUMB_W = 116;
+
+/**
+ * Row reordering (pin / unpin) animation.
+ *
+ * FlashList v2 has no `itemLayoutAnimation` prop any more — RN's
+ * `LayoutAnimation` is the documented path, and it requires
+ * `prepareForLayoutAnimationRender()` beforehand. `update: spring` keeps the
+ * move inside the spring-only vocabulary of DESIGN.md §6.
+ *
+ * FlashList's own docs call Android's LayoutAnimation "experimental" and it is
+ * a no-op on react-native-web, so on those platforms rows simply jump. No
+ * `UIManager.setLayoutAnimationEnabledExperimental` call is needed (or wanted):
+ * it is a no-op under the New Architecture this app runs on.
+ */
+const REORDER_LAYOUT = {
+  duration: 300,
+  update: {
+    type: LayoutAnimation.Types.spring,
+    // `springDamping` is a *ratio* here (0–1), exactly like the ζ the presets are
+    // authored in — not Reanimated's absolute `damping` coefficient.
+    springDamping: springDampingRatios.sheet,
+  },
+  create: {
+    type: LayoutAnimation.Types.easeOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+  delete: {
+    type: LayoutAnimation.Types.easeOut,
+    property: LayoutAnimation.Properties.opacity,
+  },
+};
 
 function makeNewProject(index: number): MidadProject {
   const now = new Date().toISOString();
@@ -41,27 +95,17 @@ function makeNewProject(index: number): MidadProject {
     version: 1,
     id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     // Empty name so the UI localizes "Untitled" per language.
-    name: '',
+    name: "",
     createdAt: now,
     updatedAt: now,
     canvas: {
       width: size.width,
       height: size.height,
-      background: { type: 'paper', color: '#F7F6F3' },
+      background: { type: "paper", color: "#F7F6F3" },
     },
     objects: [],
     gridEnabled: false,
   };
-}
-
-function formatDate(iso: string, language: string): string {
-  const d = new Date(iso);
-  // Latin digits for Arabic too (`ar-u-nu-latn`) — numerals stay Western by default.
-  return d.toLocaleDateString(language === 'ar' ? 'ar-u-nu-latn' : 'en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
 }
 
 export default function GalleryScreen() {
@@ -71,7 +115,9 @@ export default function GalleryScreen() {
   const fonts = fontRoles[language];
   const insets = useSafeAreaInsets();
   const { defaultCanvasIndex } = useSettings();
+  const pinnedIds = usePins((s) => s.pinnedIds);
   const { width: windowWidth } = useWindowDimensions();
+  const reduceMotion = useReducedMotion();
 
   // Phone-first: one card per line on narrow screens; multi-column grid on
   // wide surfaces, capped so the list stays centered and scannable.
@@ -87,12 +133,20 @@ export default function GalleryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  // Only one row may show its swipe actions at a time; the parent owns which.
+  const [openRow, setOpenRow] = useState<{
+    id: string;
+    side: SwipeSide;
+  } | null>(null);
 
   // Project action menu state.
   const [menuProject, setMenuProject] = useState<MidadProject | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [renaming, setRenaming] = useState(false);
-  const [renameText, setRenameText] = useState('');
+  const [renameText, setRenameText] = useState("");
+
+  // Only needed so `prepareForLayoutAnimationRender()` can be called before a
+  // pinned row is reordered.
+  const listRef = useRef<FlashListRef<MidadProject>>(null);
 
   // Scroll offset shared with the collapsible header.
   const scrollY = useSharedValue(0);
@@ -100,26 +154,37 @@ export default function GalleryScreen() {
     scrollY.value = event.contentOffset.y;
   });
 
+  // Pinned designs float to the top. Pins are device-local, so the ordering
+  // lives here rather than in `listProjects()` — the stored documents never
+  // carry the flag.
+  const sortedProjects = useMemo(
+    () => sortPinnedFirst(projects, pinnedIds),
+    [projects, pinnedIds],
+  );
+
   // FlashList's grid manager lays out columns with absolute `left` positions,
   // which never mirrors under RTL. Reverse each row's items so the grid reads
   // right-to-left in Arabic without reshuffling which project sits in which row.
   const displayData = useMemo(() => {
     if (!isRTL || numColumns <= 1) {
-      return projects;
+      return sortedProjects;
     }
     const out: MidadProject[] = [];
-    for (let i = 0; i < projects.length; i += numColumns) {
-      out.push(...projects.slice(i, i + numColumns).reverse());
+    for (let i = 0; i < sortedProjects.length; i += numColumns) {
+      out.push(...sortedProjects.slice(i, i + numColumns).reverse());
     }
     return out;
-  }, [isRTL, numColumns, projects]);
+  }, [isRTL, numColumns, sortedProjects]);
 
   const fetchAll = useCallback(async () => {
     const list = await listProjects();
     const entries = await Promise.all(
       list.map(async (p) => [p.id, await getThumb(p.id)] as const),
     );
-    return { list, thumbs: Object.fromEntries(entries) as Record<string, string | null> };
+    return {
+      list,
+      thumbs: Object.fromEntries(entries) as Record<string, string | null>,
+    };
   }, []);
 
   // Fetch projects on mount. All setState calls happen inside the async
@@ -131,6 +196,7 @@ export default function GalleryScreen() {
         if (!active) return;
         setProjects(list);
         setThumbs(nextThumbs);
+        usePins.getState().prunePins(list.map((p) => p.id));
         setLoading(false);
       })
       .catch(() => undefined);
@@ -139,21 +205,54 @@ export default function GalleryScreen() {
     };
   }, [fetchAll]);
 
+  /** Reads storage into state, without touching the pull-to-refresh spinner. */
+  const reload = useCallback(async () => {
+    const { list, thumbs: nextThumbs } = await fetchAll();
+    setProjects(list);
+    setThumbs(nextThumbs);
+    // Drop pins whose design no longer exists.
+    usePins.getState().prunePins(list.map((p) => p.id));
+  }, [fetchAll]);
+
+  const handleUndoDelete = useCallback(() => {
+    // Nothing was written to disk, so a refetch is all it takes to restore the
+    // card — with its thumbnail, ordering and pin intact.
+    void reload();
+  }, [reload]);
+
+  const {
+    pending: pendingDelete,
+    notice: deleteNotice,
+    requestDelete: requestDeferredDelete,
+    undo: undoDelete,
+    flush: flushDeferredDelete,
+  } = useDeferredDelete(handleUndoDelete);
+
+  const handleUndo = useCallback(() => {
+    // Putting a design back is a selection-like change, not a "success".
+    hapticTick();
+    undoDelete();
+  }, [undoDelete]);
+
+  /**
+   * Every explicit reload settles a pending delete first. Without that,
+   * renaming / duplicating / importing inside the undo window would read the
+   * not-yet-deleted file back off disk and resurrect the card.
+   */
   const refresh = useCallback(async () => {
+    flushDeferredDelete();
     setRefreshing(true);
     try {
-      const { list, thumbs: nextThumbs } = await fetchAll();
-      setProjects(list);
-      setThumbs(nextThumbs);
+      await reload();
     } finally {
       setRefreshing(false);
     }
-  }, [fetchAll]);
+  }, [flushDeferredDelete, reload]);
 
   const handleImportText = useCallback(
     async (text: string) => {
       const status = await importProjectFromJson(text);
-      if (status !== 'ok') {
+      if (status !== "ok") {
         setImportError(t.gallery.importFailed);
         return;
       }
@@ -165,10 +264,10 @@ export default function GalleryScreen() {
 
   const importProject = useCallback(async () => {
     setImportError(null);
-    if (Platform.OS === 'web') {
-      const el = document.createElement('input');
-      el.type = 'file';
-      el.accept = '.midad,application/json,.json';
+    if (Platform.OS === "web") {
+      const el = document.createElement("input");
+      el.type = "file";
+      el.accept = ".midad,application/json,.json";
       el.onchange = () => {
         const file = el.files?.[0];
         if (!file) return;
@@ -181,15 +280,15 @@ export default function GalleryScreen() {
       return;
     }
     try {
-      const DocumentPicker = await import('expo-document-picker');
+      const DocumentPicker = await import("expo-document-picker");
       const res = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
+        type: "application/json",
         copyToCacheDirectory: true,
       });
       if (res.canceled || !res.assets?.length) {
         return;
       }
-      const { File } = await import('expo-file-system');
+      const { File } = await import("expo-file-system");
       const text = await new File(res.assets[0].uri).text();
       await handleImportText(text);
     } catch {
@@ -210,15 +309,11 @@ export default function GalleryScreen() {
     [router],
   );
 
-  const openMenu = useCallback(
-    (project: MidadProject) => {
-      setMenuProject(project);
-      setConfirmDelete(false);
-      setRenaming(false);
-      setRenameText(project.name || '');
-    },
-    [],
-  );
+  const openMenu = useCallback((project: MidadProject) => {
+    setMenuProject(project);
+    setRenaming(false);
+    setRenameText(project.name || "");
+  }, []);
 
   const closeMenu = useCallback(() => setMenuProject(null), []);
 
@@ -229,7 +324,7 @@ export default function GalleryScreen() {
     const copy: MidadProject = {
       ...src,
       id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      name: src.name ? `${src.name}${t.gallery.copySuffix}` : '',
+      name: src.name ? `${src.name}${t.gallery.copySuffix}` : "",
       createdAt: now,
       updatedAt: now,
     };
@@ -241,18 +336,55 @@ export default function GalleryScreen() {
   const renameProject = useCallback(async () => {
     if (!menuProject) return;
     const name = renameText.trim();
-    await saveProject({ ...menuProject, name, updatedAt: new Date().toISOString() });
+    await saveProject({
+      ...menuProject,
+      name,
+      updatedAt: new Date().toISOString(),
+    });
     closeMenu();
     await refresh();
   }, [closeMenu, menuProject, refresh, renameText]);
 
-  const removeProject = useCallback(async () => {
+  /**
+   * Removes the design optimistically: the card leaves the list immediately,
+   * but the files are only deleted once the undo window closes — see
+   * `useDeferredDelete` for why this is not delete-then-restore.
+   */
+  const deleteDesign = useCallback(
+    (project: MidadProject) => {
+      setOpenRow(null);
+      hapticDelete();
+      setProjects((prev) => prev.filter((p) => p.id !== project.id));
+      requestDeferredDelete(project);
+    },
+    [requestDeferredDelete],
+  );
+
+  const togglePin = useCallback(
+    (project: MidadProject) => {
+      // Close the row first: the list re-sorts, and a row that is both open and
+      // moving is hard to follow.
+      setOpenRow(null);
+      hapticTick();
+      if (!reduceMotion) {
+        // FlashList has to be told a reorder is coming *before* RN starts
+        // animating, otherwise it recycles the moving cells and the move glitches.
+        // Reduce Motion skips it entirely: `LayoutAnimation` does not consult the
+        // OS setting on every platform, so it has to be gated by hand.
+        listRef.current?.prepareForLayoutAnimationRender();
+        LayoutAnimation.configureNext(REORDER_LAYOUT);
+      }
+      usePins.getState().togglePin(project.id);
+    },
+    [reduceMotion],
+  );
+
+  const removeProject = useCallback(() => {
     if (!menuProject) return;
-    await deleteProject(menuProject.id);
-    await deleteThumb(menuProject.id);
+    const project = menuProject;
     closeMenu();
-    await refresh();
-  }, [closeMenu, menuProject, refresh]);
+    deleteDesign(project);
+  }, [closeMenu, deleteDesign, menuProject]);
 
   const sheetTitle = menuProject?.name || t.gallery.untitled;
 
@@ -263,16 +395,22 @@ export default function GalleryScreen() {
         rowStyle(isRTL),
         { backgroundColor: c.dangerBg },
       ]}
-      accessibilityLiveRegion="polite">
+      accessibilityLiveRegion="polite"
+    >
       <View style={styles.importErrorText}>
-        <Text style={[styles.importError, { color: c.danger }]}>{importError}</Text>
-        <Text style={[styles.importHint, { color: c.muted }]}>{t.gallery.importFailedHint}</Text>
+        <Text style={[styles.importError, { color: c.danger }]}>
+          {importError}
+        </Text>
+        <Text style={[styles.importHint, { color: c.muted }]}>
+          {t.gallery.importFailedHint}
+        </Text>
       </View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t.common.close}
         hitSlop={10}
-        onPress={() => setImportError(null)}>
+        onPress={() => setImportError(null)}
+      >
         <Icon name="close" size={16} color={c.muted} />
       </Pressable>
     </View>
@@ -285,25 +423,33 @@ export default function GalleryScreen() {
           style={[
             styles.skeletonWrap,
             { paddingTop: contentTop + spacing.md, maxWidth: MAX_LIST_WIDTH },
-          ]}>
+          ]}
+        >
           {Array.from({ length: isWide ? 4 : 6 }).map((_, i) => (
-            <ProjectCardSkeleton key={i} layout={isWide ? 'stack' : 'row'} />
+            <ProjectCardSkeleton key={i} layout={isWide ? "stack" : "row"} />
           ))}
         </View>
       ) : projects.length === 0 ? (
-        <View style={[styles.emptyWrap, { paddingTop: contentTop, maxWidth: MAX_LIST_WIDTH }]}>
+        <View
+          style={[
+            styles.emptyWrap,
+            { paddingTop: contentTop, maxWidth: MAX_LIST_WIDTH },
+          ]}
+        >
           {!!importError && renderImportError()}
           <View style={styles.center}>
             <EmptyState
               glyph="خط"
               title={t.gallery.emptyTitle}
-              description={t.gallery.emptyBody}>
+              description={t.gallery.emptyBody}
+            >
               <Button label={t.gallery.newDesign} onPress={createNew} />
             </EmptyState>
           </View>
         </View>
       ) : (
         <FlashList
+          ref={listRef}
           key={numColumns}
           data={displayData}
           numColumns={numColumns}
@@ -314,7 +460,10 @@ export default function GalleryScreen() {
           ListHeaderComponent={importError ? renderImportError : undefined}
           contentContainerStyle={[
             styles.list,
-            { paddingTop: contentTop, paddingBottom: spacing.xxxl + insets.bottom },
+            {
+              paddingTop: contentTop,
+              paddingBottom: spacing.xxxl + insets.bottom,
+            },
           ]}
           refreshControl={
             <RefreshControl
@@ -325,43 +474,31 @@ export default function GalleryScreen() {
               progressBackgroundColor={c.surface}
             />
           }
-          renderItem={({ item }) => {
-            const thumbUri = thumbs[item.id];
-            return (
-              <Card
-                onPress={() => openProject(item.id)}
-                onLongPress={() => openMenu(item)}
-                style={[styles.card, !isWide && styles.cardRow, !isWide && rowStyle(isRTL)]}>
-                <View
-                  style={[
-                    styles.thumb,
-                    !isWide && styles.thumbRow,
-                    { backgroundColor: c.surfaceAlt, borderColor: c.border },
-                  ]}>
-                  {thumbUri ? (
-                    <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} resizeMode="contain" />
-                  ) : (
-                    <Icon name="pen" color={c.faint} size={22} />
-                  )}
-                </View>
-                <View style={!isWide ? styles.cardBodyRow : styles.cardBody}>
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.cardName, { fontFamily: fonts.ui, color: c.ink }]}>
-                    {item.name || t.gallery.untitled}
-                  </Text>
-                  <Text style={[styles.cardDate, { fontFamily: fonts.ui, color: c.faint }]}>
-                    {formatDate(item.updatedAt, language)}
-                  </Text>
-                </View>
-                {!isWide && (
-                  <View style={styles.rowChevron}>
-                    <DirectionIcon isRTL={isRTL} color={c.faint} size={18} />
-                  </View>
-                )}
-              </Card>
-            );
-          }}
+          renderItem={({ item }) => (
+            <ProjectRow
+              project={item}
+              thumbUri={thumbs[item.id] ?? null}
+              layout={isWide ? "stack" : "row"}
+              // Swipe is a touch affordance for the full-width row only: grid
+              // tiles are too narrow for it, and a mouse drag on web is
+              // undiscoverable — those get the overflow button instead.
+              swipeable={!isWide && !isWeb}
+              openSide={
+                !isWide && openRow?.id === item.id ? openRow.side : null
+              }
+              onOpenChange={(side) => {
+                if (side) {
+                  // Confirm the reveal the moment it latches, like a detent.
+                  hapticTick();
+                }
+                setOpenRow(side ? { id: item.id, side } : null);
+              }}
+              onPress={() => openProject(item.id)}
+              onMenu={() => openMenu(item)}
+              onTogglePin={() => togglePin(item)}
+              onDelete={() => deleteDesign(item)}
+            />
+          )}
         />
       )}
 
@@ -373,19 +510,19 @@ export default function GalleryScreen() {
         onCreate={createNew}
       />
 
+      {/* Sibling of the list, so it survives the list unmounting when the last
+          design is deleted. It sits inside the tab scene, so the tab bar is
+          already below it and no bottom safe-area inset is needed. */}
+      <Snackbar
+        visible={pendingDelete !== null}
+        message={deleteNotice}
+        actionLabel={t.common.undo}
+        onAction={handleUndo}
+        bottomOffset={spacing.lg}
+      />
+
       <Sheet visible={!!menuProject} onClose={closeMenu} title={sheetTitle}>
-        {confirmDelete ? (
-          <View style={styles.sheetBody}>
-            <Text style={[styles.confirmText, { color: c.ink, fontFamily: fonts.ui }]}>
-              {t.gallery.deleteTitle}
-            </Text>
-            <Text style={[styles.confirmSub, { color: c.muted, fontFamily: fonts.ui }]}>
-              {t.gallery.deleteBody}
-            </Text>
-            <Button label={t.common.delete} onPress={removeProject} variant="danger" fullWidth />
-            <Button label={t.common.cancel} onPress={() => setConfirmDelete(false)} variant="secondary" fullWidth />
-          </View>
-        ) : renaming ? (
+        {renaming ? (
           <View style={styles.sheetBody}>
             <TextInput
               value={renameText}
@@ -395,11 +532,21 @@ export default function GalleryScreen() {
               autoFocus
               style={[
                 styles.renameInput,
-                { backgroundColor: c.surfaceAlt, borderColor: c.border, color: c.ink, fontFamily: fonts.ui },
+                {
+                  backgroundColor: c.surfaceAlt,
+                  borderColor: c.border,
+                  color: c.ink,
+                  fontFamily: fonts.ui,
+                },
               ]}
             />
             <Button label={t.common.save} onPress={renameProject} fullWidth />
-            <Button label={t.common.cancel} onPress={() => setRenaming(false)} variant="secondary" fullWidth />
+            <Button
+              label={t.common.cancel}
+              onPress={() => setRenaming(false)}
+              variant="secondary"
+              fullWidth
+            />
           </View>
         ) : (
           <View style={styles.sheetBody}>
@@ -417,8 +564,18 @@ export default function GalleryScreen() {
               variant="secondary"
               fullWidth
             />
-            <Button label={t.common.duplicate} onPress={duplicateProject} variant="secondary" fullWidth />
-            <Button label={t.common.delete} onPress={() => setConfirmDelete(true)} variant="danger" fullWidth />
+            <Button
+              label={t.common.duplicate}
+              onPress={duplicateProject}
+              variant="secondary"
+              fullWidth
+            />
+            <Button
+              label={t.common.delete}
+              onPress={removeProject}
+              variant="danger"
+              fullWidth
+            />
           </View>
         )}
       </Sheet>
@@ -431,8 +588,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   importErrorWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: spacing.xl,
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -452,80 +609,29 @@ const styles = StyleSheet.create({
   },
   center: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   emptyWrap: {
     flex: 1,
-    width: '100%',
-    alignSelf: 'center',
+    width: "100%",
+    alignSelf: "center",
   },
   listWrap: {
-    width: '100%',
-    alignSelf: 'center',
+    width: "100%",
+    alignSelf: "center",
   },
   list: {
     paddingHorizontal: spacing.sm,
     gap: spacing.md,
   },
-  card: {
-    flex: 1,
-    overflow: 'hidden',
-    marginHorizontal: spacing.xs,
-  },
-  // Phone layout — horizontal row card.
-  cardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  thumb: {
-    aspectRatio: THUMB_RATIO,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-  },
-  thumbRow: {
-    width: ROW_THUMB_W,
-    height: ROW_THUMB_W / THUMB_RATIO,
-    borderEndWidth: 1,
-    borderBottomWidth: 0,
-  },
-  rowChevron: {
-    marginEnd: spacing.lg,
-  },
-  cardBody: {
-    padding: spacing.md,
-    gap: spacing.xxs,
-  },
-  cardBodyRow: {
-    flex: 1,
-    padding: spacing.md,
-    gap: spacing.xxs,
-  },
-  cardName: {
-    fontSize: typeScale.small.size,
-    lineHeight: typeScale.small.lineHeight,
-    fontWeight: '600',
-  },
-  cardDate: {
-    fontSize: typeScale.caption.size,
-  },
   skeletonWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     paddingHorizontal: spacing.sm,
     gap: spacing.md,
   },
   sheetBody: {
     gap: spacing.md,
-  },
-  confirmText: {
-    fontSize: typeScale.body.size,
-    lineHeight: typeScale.body.lineHeight,
-    fontWeight: '600',
-  },
-  confirmSub: {
-    fontSize: typeScale.small.size,
-    lineHeight: typeScale.small.lineHeight,
   },
   renameInput: {
     borderWidth: 1,
