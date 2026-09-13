@@ -19,10 +19,12 @@ import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
 import { rowStyle } from "@/i18n/rtl";
 import {
+  elevationStyle,
   fontRoles,
   layout,
   motion,
   radius,
+  shadows,
   spacing,
   springs,
   typeScale,
@@ -105,12 +107,8 @@ export function Snackbar({
         style={[
           styles.bar,
           rowStyle(isRTL),
-          {
-            backgroundColor: c.surface,
-            borderColor: c.border,
-            shadowColor: c.shadowColor,
-            shadowOpacity: c.shadowOpacity,
-          },
+          { backgroundColor: c.surface, borderColor: c.border },
+          elevationStyle(c, shadows.float),
         ]}
       >
         <Text
@@ -160,9 +158,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
   },
   message: {
     flex: 1,

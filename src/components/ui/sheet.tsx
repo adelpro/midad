@@ -22,7 +22,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useTheme } from "@/hooks/use-theme";
-import { radius, spacing, springs } from "@/theme";
+import { elevationStyle, radius, shadows, spacing, springs } from "@/theme";
 
 export interface SheetProps extends PropsWithChildren {
   visible: boolean;
@@ -185,12 +185,8 @@ export function Sheet({
             onLayout={onPanelLayout}
             style={[
               isBottom ? styles.bottomSheet : styles.modalSheet,
-              {
-                backgroundColor: c.surface,
-                borderColor: c.border,
-                shadowColor: c.shadowColor,
-                shadowOpacity: c.shadowOpacity,
-              },
+              { backgroundColor: c.surface, borderColor: c.border },
+              elevationStyle(c, isBottom ? shadows.sheet : shadows.panel),
               panelStyle,
             ]}
           >
@@ -224,9 +220,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     borderWidth: 1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 8,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
     paddingTop: spacing.sm,
@@ -235,9 +228,6 @@ const styles = StyleSheet.create({
   modalSheet: {
     borderRadius: radius.xl,
     borderWidth: 1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
     margin: spacing.xl,
     padding: spacing.lg,
     maxHeight: "82%",
