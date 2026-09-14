@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Gesture, type ComposedGesture } from "react-native-gesture-handler";
-import { runOnJS } from "react-native-reanimated";
+import { runOnJS, useReducedMotion } from "react-native-reanimated";
 
 import {
   isCornerHandle,
@@ -13,7 +13,8 @@ import {
   type SizedObject,
 } from "@/editor/hit-test";
 import { useEditorStore, type DragOrigin } from "@/editor/store";
-import type { ObjectTransform } from "@/storage/project-schema";
+import { hapticTick } from "@/haptics";
+import type { DesignObject, ObjectTransform } from "@/storage/project-schema";
 
 /** Hit radius around a resize handle, in the object's local frame (design units). */
 const HANDLE_HIT_PAD = 18 / Math.SQRT2;
@@ -25,6 +26,20 @@ const MAX_WRAP_WIDTH = 20000;
 /** Bounds for a uniform scale resize. */
 const MIN_SCALE = 0.05;
 const MAX_SCALE = 20;
+/** Rotation snap: magnet window around each 45° multiple, in degrees. */
+const SNAP_INCREMENT_DEG = 45;
+const SNAP_WINDOW_DEG = 4;
+/**
+ * Release-settle spring: critically damped (ζ = 1, the `springs.ui` preset in
+ * DESIGN.md), so it glides onto the snap target without overshoot.
+ */
+const SETTLE_STIFFNESS = 260;
+const SETTLE_C = 2 * Math.sqrt(SETTLE_STIFFNESS);
+const SETTLE_MAX_MS = 400;
+const SETTLE_EPS_ANGLE = 0.05;
+const SETTLE_EPS_VEL = 5;
+/** Clamp for the release angular velocity handed to the settle spring. */
+const MAX_RELEASE_VEL = 720;
 
 export interface ObjectGestures {
   gestures: ComposedGesture;
@@ -203,6 +218,97 @@ function angleStep(from: number, to: number): number {
 }
 
 /**
+ * Nearest 45° multiple when `rotation` sits inside the magnet window, else
+ * null. Multiples are evenly spaced, so plain arithmetic (no wrap handling)
+ * always finds the closest one.
+ */
+function snapRotationTarget(rotation: number): number | null {
+  const target = Math.round(rotation / SNAP_INCREMENT_DEG) * SNAP_INCREMENT_DEG;
+  return Math.abs(rotation - target) <= SNAP_WINDOW_DEG ? target : null;
+}
+
+/** Cancel handle for an in-flight rotation settle, if any. */
+let cancelSettle: (() => void) | null = null;
+
+/**
+ * A new grab always wins over a settle: the next drag starts from the live
+ * on-screen rotation, so interrupting mid-settle is seamless.
+ */
+function cancelRotationSettle() {
+  cancelSettle?.();
+  cancelSettle = null;
+}
+
+/**
+ * Animate a rotation onto its snap target after the pointer lifts.
+ *
+ * Critically damped (ζ = 1): no overshoot, well under half a second. Seeded
+ * with the pointer's release angular velocity (velocity handoff) so the drag
+ * and the settle read as one motion. Reduced motion jumps straight to the
+ * target. Runs on rAF and writes through the store, so it is release-time
+ * only — tracking during the drag is untouched.
+ */
+function settleRotation(
+  id: string,
+  target: number,
+  v0: number,
+  reduceMotion: boolean,
+) {
+  cancelRotationSettle();
+  const store = useEditorStore.getState();
+  const obj = store.project?.objects.find((o) => o.id === id);
+  if (!obj) {
+    return;
+  }
+  const from = obj.transform.rotation;
+  if (reduceMotion || from === target) {
+    if (from !== target) {
+      store.updateObject(id, {
+        transform: { ...obj.transform, rotation: target },
+      });
+    }
+    return;
+  }
+  const start = performance.now();
+  const A = from - target;
+  const B = v0 + SETTLE_C * A;
+  let raf = 0;
+  let cancelled = false;
+  const step = (now: number) => {
+    if (cancelled) {
+      return;
+    }
+    const t = Math.min((now - start) / 1000, SETTLE_MAX_MS / 1000);
+    const e = Math.exp(-SETTLE_C * t);
+    const x = target + (A + B * t) * e;
+    const v = (B - SETTLE_C * (A + B * t)) * e;
+    const s = useEditorStore.getState();
+    const o = s.project?.objects.find((p) => p.id === id);
+    if (!o) {
+      cancelSettle = null;
+      return;
+    }
+    const done =
+      (Math.abs(x - target) < SETTLE_EPS_ANGLE &&
+        Math.abs(v) < SETTLE_EPS_VEL) ||
+      now - start >= SETTLE_MAX_MS;
+    s.updateObject(id, {
+      transform: { ...o.transform, rotation: done ? target : x },
+    });
+    if (done) {
+      cancelSettle = null;
+      return;
+    }
+    raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
+  cancelSettle = () => {
+    cancelled = true;
+    cancelAnimationFrame(raf);
+  };
+}
+
+/**
  * Pan start.
  *
  * Handles exist only around a single object (a multi-selection is outlined as
@@ -219,6 +325,7 @@ function angleStep(from: number, to: number): number {
  * the trailing tap does not toggle it a second time.
  */
 function beginDrag(viewX: number, viewY: number, enabled: boolean) {
+  cancelRotationSettle();
   const store = useEditorStore.getState();
   if (!enabled) {
     store.setGs({ resizeTargetId: null, resizeHandle: null, dragOrigins: [] });
@@ -233,6 +340,8 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
   if (single && handle) {
     const t = single.transform;
     const local = toLocal(t, p);
+    // Pointer-down feedback: the grab is acknowledged the instant it lands.
+    hapticTick();
     store.setGs({
       resizeTargetId: single.id,
       resizeHandle: handle,
@@ -249,6 +358,9 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
       resizeStartLocalX: local.x,
       resizeStartLocalY: local.y,
       resizeLastAngle: pointerAngle(p, t.x, t.y),
+      resizeLastAngleAt: Date.now(),
+      rotateVelocity: 0,
+      lastSnapAngle: null,
       dragOrigins: [],
       selectionHandledOnDown: false,
     });
@@ -329,6 +441,11 @@ function updateDrag(
     updateResize(store, resizeId, translationX, translationY);
     return;
   }
+  // A two-finger pinch/rotate owns the object while it runs — the pan must
+  // not also move it (relative and absolute writers would fight).
+  if (store.gs.transformTargetId) {
+    return;
+  }
   const origins = store.gs.dragOrigins;
   if (origins.length === 0) {
     return;
@@ -337,19 +454,27 @@ function updateDrag(
   const dx = translationX / viewport.scale;
   const dy = translationY / viewport.scale;
   // Every object in the selection moves by the same delta from its own origin,
-  // so a group drag preserves the relative layout.
+  // so a group drag preserves the relative layout. One store write for the
+  // whole selection — N objects, one render per frame instead of N.
+  const patches: { id: string; patch: Partial<DesignObject> }[] = [];
   for (const origin of origins) {
     const obj = store.project?.objects.find((o) => o.id === origin.id);
     if (!obj) {
       continue;
     }
-    store.updateObject(origin.id, {
-      transform: {
-        ...obj.transform,
-        x: origin.x + dx,
-        y: origin.y + dy,
+    patches.push({
+      id: origin.id,
+      patch: {
+        transform: {
+          ...obj.transform,
+          x: origin.x + dx,
+          y: origin.y + dy,
+        },
       },
     });
+  }
+  if (patches.length > 0) {
+    store.updateObjects(patches);
   }
 }
 
@@ -400,11 +525,30 @@ function updateResize(
   if (isRotateHandle(handle)) {
     const angle = pointerAngle(p, origin.x, origin.y);
     const step = angleStep(gs.resizeLastAngle, angle);
-    store.setGs({ resizeLastAngle: angle });
+    const now = Date.now();
+    const dt = Math.max(1, now - gs.resizeLastAngleAt) / 1000;
+    // Smoothed angular velocity — the release handoff for the settle spring.
+    const rotateVelocity = Math.max(
+      -MAX_RELEASE_VEL,
+      Math.min(MAX_RELEASE_VEL, 0.7 * gs.rotateVelocity + 0.3 * (step / dt)),
+    );
+    const next = obj.transform.rotation + step;
+    // Magnet feedback only: tick once per snap-window entry. The rotation
+    // itself stays 1:1 with the pointer; the settle on release lands it.
+    const snapped = snapRotationTarget(next);
+    if (snapped !== null && snapped !== gs.lastSnapAngle) {
+      hapticTick();
+    }
+    store.setGs({
+      resizeLastAngle: angle,
+      resizeLastAngleAt: now,
+      rotateVelocity,
+      lastSnapAngle: snapped,
+    });
     store.updateObject(id, {
       transform: {
         ...obj.transform,
-        rotation: obj.transform.rotation + step,
+        rotation: next,
       },
     });
     return;
@@ -453,13 +597,50 @@ function clearResize() {
   useEditorStore.getState().setGs({
     resizeTargetId: null,
     resizeHandle: null,
+    transformTargetId: null,
+    lastSnapAngle: null,
     dragOrigins: [],
   });
 }
 
+/**
+ * Pan end. A rotation drag that stops inside a snap window settles onto the
+ * 45° multiple with a short spring (velocity handoff from the pointer);
+ * everything else is already at rest.
+ */
+function endDrag(reduceMotion: boolean) {
+  const store = useEditorStore.getState();
+  const { gs } = store;
+  if (gs.resizeTargetId && gs.resizeHandle === "rotate") {
+    const obj = store.project?.objects.find((o) => o.id === gs.resizeTargetId);
+    if (obj) {
+      const snapped = snapRotationTarget(obj.transform.rotation);
+      if (snapped !== null && snapped !== obj.transform.rotation) {
+        settleRotation(
+          gs.resizeTargetId,
+          snapped,
+          gs.rotateVelocity,
+          reduceMotion,
+        );
+      }
+    }
+  }
+}
+
 /** Pinch/rotate start: capture the selection's current scale & rotation. */
 function beginTransform() {
+  cancelRotationSettle();
   const store = useEditorStore.getState();
+  // A handle drag owns the object — a second finger must not start a
+  // competing absolute transform on top of it.
+  if (store.gs.resizeTargetId) {
+    return;
+  }
+  // Pinch and rotate both fire onStart for the same two-finger touch; the
+  // second call must not re-snapshot (it would double the history entry).
+  if (store.gs.transformTargetId) {
+    return;
+  }
   // Pinch and rotate have a single pivot about one object's centre; with a
   // group selected there is no unambiguous pivot, so they stay inert.
   if (store.selectedIds.length !== 1) {
@@ -524,6 +705,7 @@ export function useObjectGestures(selectEnabled = true): ObjectGestures {
   const [tapPoint, setTapPoint] = useState<{ x: number; y: number } | null>(
     null,
   );
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     tapRelay = setTapPoint;
@@ -532,47 +714,59 @@ export function useObjectGestures(selectEnabled = true): ObjectGestures {
     };
   }, []);
 
-  const tap = Gesture.Tap()
-    .maxDuration(220)
-    .onEnd((e) => {
-      runOnJS(handleTap)(e.x, e.y);
-    });
+  // Memoized: rebuilding the composition every render used to hand RNGH a new
+  // gesture object on every animation frame of a drag.
+  const gestures = useMemo<ComposedGesture>(() => {
+    const tap = Gesture.Tap()
+      .maxDuration(220)
+      .onEnd((e) => {
+        runOnJS(handleTap)(e.x, e.y);
+      });
 
-  const pan = Gesture.Pan()
-    .minDistance(6)
-    .onStart((e) => {
-      runOnJS(beginDrag)(e.x, e.y, selectEnabled);
-    })
-    .onUpdate((e) => {
-      runOnJS(updateDrag)(e.translationX, e.translationY, selectEnabled);
-    })
-    .onEnd(() => {
-      runOnJS(clearResize)();
-    })
-    .onFinalize(() => {
-      runOnJS(clearResize)();
-    });
+    const pan = Gesture.Pan()
+      // Resolve the grab at pointer-down (onBegin), not after a movement
+      // threshold: a handle must be caught where the finger lands, and the
+      // resize/rotate baselines are measured from that exact point. The 2px
+      // hysteresis only filters jitter — translation is still measured from
+      // the touch-down point, so tracking stays 1:1.
+      .minDistance(2)
+      .onBegin((e) => {
+        runOnJS(beginDrag)(e.x, e.y, selectEnabled);
+      })
+      .onUpdate((e) => {
+        runOnJS(updateDrag)(e.translationX, e.translationY, selectEnabled);
+      })
+      .onEnd(() => {
+        runOnJS(endDrag)(reduceMotion);
+      })
+      .onFinalize(() => {
+        runOnJS(clearResize)();
+      });
 
-  const pinch = Gesture.Pinch()
-    .onStart(() => {
-      runOnJS(beginTransform)();
-    })
-    .onUpdate((e) => {
-      runOnJS(applyPinch)(e.scale);
-    });
+    const pinch = Gesture.Pinch()
+      .onStart(() => {
+        runOnJS(beginTransform)();
+      })
+      .onUpdate((e) => {
+        runOnJS(applyPinch)(e.scale);
+      })
+      .onFinalize(() => {
+        runOnJS(clearResize)();
+      });
 
-  const rotate = Gesture.Rotation()
-    .onStart(() => {
-      runOnJS(beginTransform)();
-    })
-    .onUpdate((e) => {
-      runOnJS(applyRotation)(e.rotation);
-    });
+    const rotate = Gesture.Rotation()
+      .onStart(() => {
+        runOnJS(beginTransform)();
+      })
+      .onUpdate((e) => {
+        runOnJS(applyRotation)(e.rotation);
+      })
+      .onFinalize(() => {
+        runOnJS(clearResize)();
+      });
 
-  const gestures: ComposedGesture = Gesture.Race(
-    tap,
-    Gesture.Simultaneous(pan, pinch, rotate),
-  );
+    return Gesture.Race(tap, Gesture.Simultaneous(pan, pinch, rotate));
+  }, [selectEnabled, reduceMotion]);
 
   return { gestures, tapPoint };
 }

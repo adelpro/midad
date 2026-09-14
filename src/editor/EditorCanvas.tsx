@@ -8,7 +8,7 @@ import {
   Rect,
   vec,
 } from "@shopify/react-native-skia";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 
 import {
@@ -24,7 +24,11 @@ import {
 import { GlyphRenderer } from "@/editor/skia/glyph-shape";
 import { SHAPE_BASE_SIZE } from "@/editor/skia/shape-geometry";
 import { ShapeRenderer } from "@/editor/skia/shapes";
-import { textObjectSize, useTextLayouts } from "@/editor/skia/use-text-layouts";
+import {
+  textObjectSize,
+  useTextLayouts,
+  type TextLayouts,
+} from "@/editor/skia/use-text-layouts";
 import { useEditorStore } from "@/editor/store";
 import type { DesignObject, MidadProject } from "@/storage/project-schema";
 
@@ -123,12 +127,27 @@ export function EditorCanvas({
     useEditorStore.getState().setViewport({ scale, offsetX, offsetY });
   }, [scale, offsetX, offsetY]);
 
+  // Latest values for the tap effect below. `sized` gets a new identity on
+  // every drag frame and `onTapResult` on most screen renders; keying the
+  // effect on `tapPoint` alone makes it fire exactly once per real tap
+  // instead of looping a hit-test + selection write on every frame.
+  const sizedRef = useRef(sized);
+  const onTapResultRef = useRef(onTapResult);
+  useEffect(() => {
+    sizedRef.current = sized;
+  }, [sized]);
+  useEffect(() => {
+    onTapResultRef.current = onTapResult;
+  }, [onTapResult]);
+
   // Resolve a tap into a selection (effect, not render-time side effect).
   useEffect(() => {
-    if (tapPoint && onTapResult) {
-      onTapResult(hitTest(sized, tapPoint.x, tapPoint.y));
+    if (tapPoint) {
+      onTapResultRef.current?.(
+        hitTest(sizedRef.current, tapPoint.x, tapPoint.y),
+      );
     }
-  }, [tapPoint, sized, onTapResult]);
+  }, [tapPoint]);
 
   const groupBox = useMemo(
     () =>
@@ -138,17 +157,13 @@ export function EditorCanvas({
     [selectedIds, sized],
   );
 
-  const objects = useMemo(
-    () =>
-      project.objects
-        .map((obj) => ({
-          ...obj,
-          box: objectBox(obj, layouts),
-          paragraph:
-            obj.type === "text" ? layouts[obj.id]?.paragraph : undefined,
-        }))
-        .sort((a, b) => a.zIndex - b.zIndex),
-    [project.objects, layouts],
+  // Draw order, front-to-back. Keeps the RAW object references from
+  // `project.objects` (the store preserves them for untouched objects during a
+  // drag), so each `ObjectLayer`'s memo can bail out for every object that did
+  // not move — only the dragged object re-renders per frame.
+  const sortedObjects = useMemo(
+    () => [...project.objects].sort((a, b) => a.zIndex - b.zIndex),
+    [project.objects],
   );
 
   const { width, height } = project.canvas;
@@ -180,71 +195,17 @@ export function EditorCanvas({
           )}
 
           {/* Objects */}
-          {objects.map((obj) => {
-            const t = obj.transform;
-            const rot = (t.rotation * Math.PI) / 180;
-            const scaleX = t.flipH ? -t.scale : t.scale;
-            const scaleY = t.flipV ? -t.scale : t.scale;
-            const content =
-              obj.type === "text" && obj.paragraph ? (
-                <Paragraph
-                  paragraph={obj.paragraph}
-                  x={-obj.box.width / 2}
-                  y={-obj.box.height / 2}
-                  width={obj.box.width}
-                />
-              ) : obj.type === "shape" ? (
-                // Renderers draw into a 0..size box, so shift it to sit centred on
-                // the object origin — which is what the overlay and hit-test assume.
-                <Group
-                  transform={[
-                    { translateX: -obj.box.width / 2 },
-                    { translateY: -obj.box.height / 2 },
-                  ]}
-                >
-                  <ShapeRenderer shape={obj} size={obj.box.width} />
-                </Group>
-              ) : obj.type === "glyph" ? (
-                <Group
-                  transform={[
-                    { translateX: -obj.box.width / 2 },
-                    { translateY: -obj.box.height / 2 },
-                  ]}
-                >
-                  <GlyphRenderer glyph={obj} size={obj.box.width} />
-                </Group>
-              ) : null;
-            // Fading happens on a nested group so the object's selection chrome
-            // stays fully opaque. Skipped at full opacity to avoid paying for an
-            // offscreen layer on every object.
-            const opacity = obj.opacity ?? 1;
-            return (
-              <Group
-                key={obj.id}
-                transform={[
-                  { translateX: t.x },
-                  { translateY: t.y },
-                  { rotate: rot },
-                  { scaleX },
-                  { scaleY },
-                ]}
-                origin={vec(0, 0)}
-              >
-                {opacity < 1 ? (
-                  <Group opacity={opacity}>{content}</Group>
-                ) : (
-                  content
-                )}
-                {selectedIds.length === 1 && selectedIds.includes(obj.id) && (
-                  <SelectionOverlay
-                    box={obj.box}
-                    scale={scale}
-                    objectScale={Math.abs(t.scale) || 1}
-                  />
-                )}
-              </Group>
-            );
-          })}
+          {sortedObjects.map((obj) => (
+            <ObjectLayer
+              key={obj.id}
+              obj={obj}
+              layouts={layouts}
+              scale={scale}
+              isSelected={
+                selectedIds.length === 1 && selectedIds.includes(obj.id)
+              }
+            />
+          ))}
           {groupBox && <GroupSelectionOverlay box={groupBox} scale={scale} />}
         </Group>
       </Canvas>
@@ -252,7 +213,98 @@ export function EditorCanvas({
   );
 }
 
-function GroupSelectionOverlay({ box, scale }: { box: Aabb; scale: number }) {
+/**
+ * One object's transform group + content + selection chrome.
+ *
+ * Memoized on the RAW object reference: the store preserves the reference of
+ * every untouched object during a drag, so only the object being moved,
+ * resized or rotated re-renders per frame. `box`/`paragraph` are derived
+ * inside from `obj` + `layouts` (both stable for untouched objects), so the
+ * memo's shallow compare stays effective.
+ */
+const ObjectLayer = memo(function ObjectLayer({
+  obj,
+  layouts,
+  scale,
+  isSelected,
+}: {
+  obj: DesignObject;
+  layouts: TextLayouts;
+  scale: number;
+  isSelected: boolean;
+}) {
+  const box = useMemo(() => objectBox(obj, layouts), [obj, layouts]);
+  const paragraph = useMemo(
+    () => (obj.type === "text" ? layouts[obj.id]?.paragraph : undefined),
+    [obj, layouts],
+  );
+  const t = obj.transform;
+  const rot = (t.rotation * Math.PI) / 180;
+  const scaleX = t.flipH ? -t.scale : t.scale;
+  const scaleY = t.flipV ? -t.scale : t.scale;
+  const content =
+    obj.type === "text" && paragraph ? (
+      <Paragraph
+        paragraph={paragraph}
+        x={-box.width / 2}
+        y={-box.height / 2}
+        width={box.width}
+      />
+    ) : obj.type === "shape" ? (
+      // Renderers draw into a 0..size box, so shift it to sit centred on
+      // the object origin — which is what the overlay and hit-test assume.
+      <Group
+        transform={[
+          { translateX: -box.width / 2 },
+          { translateY: -box.height / 2 },
+        ]}
+      >
+        <ShapeRenderer shape={obj} size={box.width} />
+      </Group>
+    ) : obj.type === "glyph" ? (
+      <Group
+        transform={[
+          { translateX: -box.width / 2 },
+          { translateY: -box.height / 2 },
+        ]}
+      >
+        <GlyphRenderer glyph={obj} size={box.width} />
+      </Group>
+    ) : null;
+  // Fading happens on a nested group so the object's selection chrome
+  // stays fully opaque. Skipped at full opacity to avoid paying for an
+  // offscreen layer on every object.
+  const opacity = obj.opacity ?? 1;
+  return (
+    <Group
+      transform={[
+        { translateX: t.x },
+        { translateY: t.y },
+        { rotate: rot },
+        { scaleX },
+        { scaleY },
+      ]}
+      origin={vec(0, 0)}
+    >
+      {opacity < 1 ? <Group opacity={opacity}>{content}</Group> : content}
+      {isSelected && (
+        <SelectionOverlay
+          box={box}
+          scale={scale}
+          objectScale={Math.abs(t.scale) || 1}
+        />
+      )}
+    </Group>
+  );
+});
+
+const GroupSelectionOverlay = memo(function GroupSelectionOverlay({
+  box,
+  scale,
+}: {
+  box: Aabb;
+  scale: number;
+}) {
   const border = 1.5 / scale;
   return (
     <Rect
@@ -267,9 +319,9 @@ function GroupSelectionOverlay({ box, scale }: { box: Aabb; scale: number }) {
       <DashPathEffect intervals={[6 / scale, 5 / scale]} />
     </Rect>
   );
-}
+});
 
-function GridOverlay({
+const GridOverlay = memo(function GridOverlay({
   width,
   height,
   scale,
@@ -278,32 +330,35 @@ function GridOverlay({
   height: number;
   scale: number;
 }) {
-  const step = 40;
-  const lines = [];
-  for (let i = 1; i <= Math.floor(width / step); i++) {
-    lines.push(
-      <Line
-        key={`v${i}`}
-        p1={vec(i * step, 0)}
-        p2={vec(i * step, height)}
-        color="rgba(0,0,0,0.08)"
-        strokeWidth={1 / scale}
-      />,
-    );
-  }
-  for (let j = 1; j <= Math.floor(height / step); j++) {
-    lines.push(
-      <Line
-        key={`h${j}`}
-        p1={vec(0, j * step)}
-        p2={vec(width, j * step)}
-        color="rgba(0,0,0,0.08)"
-        strokeWidth={1 / scale}
-      />,
-    );
-  }
+  const lines = useMemo(() => {
+    const arr = [];
+    const step = 40;
+    for (let i = 1; i <= Math.floor(width / step); i++) {
+      arr.push(
+        <Line
+          key={`v${i}`}
+          p1={vec(i * step, 0)}
+          p2={vec(i * step, height)}
+          color="rgba(0,0,0,0.08)"
+          strokeWidth={1 / scale}
+        />,
+      );
+    }
+    for (let j = 1; j <= Math.floor(height / step); j++) {
+      arr.push(
+        <Line
+          key={`h${j}`}
+          p1={vec(0, j * step)}
+          p2={vec(width, j * step)}
+          color="rgba(0,0,0,0.08)"
+          strokeWidth={1 / scale}
+        />,
+      );
+    }
+    return arr;
+  }, [width, height, scale]);
   return <Group>{lines}</Group>;
-}
+});
 
 /**
  * Dashed selection outline, eight resize handles, and a rotation grip around
@@ -313,7 +368,7 @@ function GridOverlay({
  * proportionally, east/west edges re-flow text width, north/south edges scale
  * the text size, and the grip above the top edge rotates about the centre.
  */
-function SelectionOverlay({
+const SelectionOverlay = memo(function SelectionOverlay({
   box,
   scale,
   objectScale,
@@ -385,7 +440,7 @@ function SelectionOverlay({
       <Circle c={vec(grip.x, grip.y)} r={gripR} color="#FFFFFF" />
     </Group>
   );
-}
+});
 
 const styles = StyleSheet.create({
   canvas: { flex: 1 },

@@ -115,10 +115,31 @@ export interface GlyphObject {
   locked?: boolean;
 }
 
+/**
+ * The shape family.
+ *
+ * Lives beside the object that persists the key rather than in the renderer:
+ * the Skia renderer, the imperative PNG path, the SVG serializer and the
+ * library UI all switch on it, and they must never disagree about the set.
+ */
+export type ShapeKey =
+  | "circle"
+  | "square"
+  | "line"
+  | "star"
+  | "triangle"
+  | "ring"
+  | "diamond"
+  | "pentagon"
+  | "hexagon"
+  | "octagon"
+  | "crescent"
+  | "arch";
+
 export interface ShapeObject {
   id: string;
   type: "shape";
-  shapeKey: "circle" | "square" | "line" | "star" | "triangle" | "ring";
+  shapeKey: ShapeKey;
   color: string;
   fill: boolean;
   strokeWidth: number;

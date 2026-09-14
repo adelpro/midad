@@ -69,6 +69,16 @@ interface GestureScratch {
   resizeStartLocalY: number;
   /** Last pointer angle (degrees) seen during a rotation drag. */
   resizeLastAngle: number;
+  /** Timestamp (ms) of `resizeLastAngle`, for release-velocity estimation. */
+  resizeLastAngleAt: number;
+  /** Smoothed angular velocity (deg/s) during a rotation drag. */
+  rotateVelocity: number;
+  /**
+   * The 45° multiple currently magnetized during a rotation drag, or null
+   * when the pointer is outside every snap window. Tracked so the snap tick
+   * fires once per window entry, not per frame.
+   */
+  lastSnapAngle: number | null;
   /**
    * Arrow-key nudge burst bookkeeping. The timestamp stops a held key from
    * recording the ~30 history entries per second it auto-repeats at. The anchor
@@ -101,6 +111,9 @@ const EMPTY_SCRATCH: GestureScratch = {
   resizeStartLocalX: 0,
   resizeStartLocalY: 0,
   resizeLastAngle: 0,
+  resizeLastAngleAt: 0,
+  rotateVelocity: 0,
+  lastSnapAngle: null,
   nudgeBurstAt: 0,
   nudgeBurstAnchor: null,
 };
@@ -126,6 +139,14 @@ interface EditorState {
 
   addObject: (obj: DesignObject) => void;
   updateObject: (id: string, patch: Partial<DesignObject>) => void;
+  /**
+   * Apply several object patches as ONE store write (one notification). A
+   * group drag uses this so N selected objects cost one render per frame
+   * instead of N.
+   */
+  updateObjects: (
+    patches: { id: string; patch: Partial<DesignObject> }[],
+  ) => void;
   removeObjects: (ids: string[]) => void;
   duplicateObjects: (ids: string[]) => void;
   /**
@@ -192,17 +213,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }),
 
   select: (id, additive = false) => {
-    if (id == null) {
-      set({ selectedIds: [] });
-      return;
-    }
     set((s) => {
+      if (id == null) {
+        // Bail when already empty — a no-op must not allocate a new array
+        // (and re-render every selection subscriber) for nothing.
+        return s.selectedIds.length === 0 ? s : { selectedIds: [] };
+      }
       if (additive) {
         return {
           selectedIds: s.selectedIds.includes(id)
             ? s.selectedIds.filter((x) => x !== id)
             : [...s.selectedIds, id],
         };
+      }
+      // Same single selection — bail for the same reason.
+      if (s.selectedIds.length === 1 && s.selectedIds[0] === id) {
+        return s;
       }
       return { selectedIds: [id] };
     });
@@ -218,7 +244,27 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedIds: enabled ? s.selectedIds : s.selectedIds.slice(0, 1),
     })),
 
-  setSizedObjects: (sizedObjects) => set({ sizedObjects }),
+  setSizedObjects: (sizedObjects) =>
+    set((s) => {
+      const prev = s.sizedObjects;
+      // The canvas rebuilds this list on every render; skip the write (and
+      // the notification) when nothing that hit-testing reads has changed.
+      if (
+        prev.length === sizedObjects.length &&
+        prev.every((o, i) => {
+          const n = sizedObjects[i];
+          return (
+            o.id === n.id &&
+            o.transform === n.transform &&
+            o.box.width === n.box.width &&
+            o.box.height === n.box.height
+          );
+        })
+      ) {
+        return s;
+      }
+      return { sizedObjects };
+    }),
 
   setViewport: (viewport) => {
     const v = get().viewport;
@@ -256,6 +302,28 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           : o,
       );
       return { project: { ...s.project!, objects } };
+    });
+  },
+
+  updateObjects: (patches) => {
+    set((s) => {
+      const byId = new Map(patches.map((p) => [p.id, p.patch]));
+      let changed = false;
+      const objects = s.project!.objects.map((o) => {
+        const patch = byId.get(o.id);
+        if (!patch) {
+          return o;
+        }
+        changed = true;
+        return {
+          ...o,
+          ...patch,
+          transform: patch.transform
+            ? { ...o.transform, ...patch.transform }
+            : o.transform,
+        } as DesignObject;
+      });
+      return changed ? { project: { ...s.project!, objects } } : s;
     });
   },
 

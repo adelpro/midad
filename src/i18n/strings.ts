@@ -106,6 +106,22 @@ export interface Translation {
     text: string;
     glyphs: string;
     shapes: string;
+    // The two groups the ornament library splits its tiles into.
+    glyphMarks: string;
+    glyphLetters: string;
+    // Shape names, used as the library's tile labels.
+    shapeCircle: string;
+    shapeSquare: string;
+    shapeLine: string;
+    shapeStar: string;
+    shapeTriangle: string;
+    shapeRing: string;
+    shapeDiamond: string;
+    shapePentagon: string;
+    shapeHexagon: string;
+    shapeOctagon: string;
+    shapeCrescent: string;
+    shapeArch: string;
     colors: string;
     undo: string;
     redo: string;
@@ -278,6 +294,20 @@ export const strings: Record<Language, Translation> = {
       text: "نص",
       glyphs: "زخارف",
       shapes: "أشكال",
+      glyphMarks: "الحركات",
+      glyphLetters: "أشكال الحروف",
+      shapeCircle: "دائرة",
+      shapeSquare: "مربع",
+      shapeLine: "خط",
+      shapeStar: "نجمة",
+      shapeTriangle: "مثلث",
+      shapeRing: "حلقة",
+      shapeDiamond: "معيّن",
+      shapePentagon: "مخمّس",
+      shapeHexagon: "مسدّس",
+      shapeOctagon: "مثمّن",
+      shapeCrescent: "هلال",
+      shapeArch: "طاق",
       colors: "الألوان",
       undo: "تراجع",
       redo: "إعادة",
@@ -450,6 +480,20 @@ export const strings: Record<Language, Translation> = {
       text: "Text",
       glyphs: "Ornaments",
       shapes: "Shapes",
+      glyphMarks: "Marks",
+      glyphLetters: "Letter forms",
+      shapeCircle: "Circle",
+      shapeSquare: "Square",
+      shapeLine: "Line",
+      shapeStar: "Star",
+      shapeTriangle: "Triangle",
+      shapeRing: "Ring",
+      shapeDiamond: "Diamond",
+      shapePentagon: "Pentagon",
+      shapeHexagon: "Hexagon",
+      shapeOctagon: "Octagon",
+      shapeCrescent: "Crescent",
+      shapeArch: "Arch",
       colors: "Colors",
       undo: "Undo",
       redo: "Redo",

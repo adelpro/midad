@@ -2,9 +2,9 @@ import { Asset } from "expo-asset";
 
 import { getGlyphEntry, glyphPlacement } from "@/editor/glyphs";
 import {
-  buildStarPath,
-  buildTrianglePath,
   SHAPE_BASE_SIZE,
+  SHAPE_INSET,
+  SHAPE_PATH_BUILDERS,
 } from "@/editor/skia/shape-geometry";
 import type {
   CalligraphyTextObject,
@@ -194,12 +194,12 @@ function shapeGeometryToSvg(shape: ShapeObject, size: number): string | null {
     case "circle": {
       const attrs = shapePaintAttrs(shape);
       if (!attrs) return null;
-      return `<circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" ${attrs} />`;
+      return `<circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - SHAPE_INSET}" ${attrs} />`;
     }
     case "square": {
       const attrs = shapePaintAttrs(shape);
       if (!attrs) return null;
-      return `<rect x="1" y="1" width="${size - 2}" height="${size - 2}" ${attrs} />`;
+      return `<rect x="${SHAPE_INSET}" y="${SHAPE_INSET}" width="${size - SHAPE_INSET * 2}" height="${size - SHAPE_INSET * 2}" ${attrs} />`;
     }
     case "ring": {
       const attrs = shapePaintAttrs(shape, (shape.strokeWidth ?? 2) * 2);
@@ -209,21 +209,16 @@ function shapeGeometryToSvg(shape: ShapeObject, size: number): string | null {
       const attrs = shapePaintAttrs(shape, (shape.strokeWidth ?? 2) * 2);
       return `<line x1="2" y1="${size / 2}" x2="${size - 2}" y2="${size / 2}" ${attrs} />`;
     }
-    case "triangle":
-    case "star": {
+    default: {
+      const build = SHAPE_PATH_BUILDERS[shape.shapeKey];
+      if (!build) return null;
       const attrs = shapePaintAttrs(shape);
       if (!attrs) return null;
-      const d =
-        shape.shapeKey === "star"
-          ? buildStarPath(size)
-          : buildTrianglePath(size);
       const join = attrs.includes('fill="none"')
         ? ' stroke-linejoin="round"'
         : "";
-      return `<path d="${d}"${join} ${attrs} />`;
+      return `<path d="${build(size)}"${join} ${attrs} />`;
     }
-    default:
-      return null;
   }
 }
 

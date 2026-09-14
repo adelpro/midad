@@ -31,6 +31,7 @@ import {
   collectUsedFamilies,
   projectToSvg,
 } from "@/editor/export/svg";
+import { InsertSheet, type ShapeKey } from "@/editor/insert-sheet";
 import { renderProjectToPng } from "@/editor/render/offscreen";
 import {
   NUDGE_STEP,
@@ -89,7 +90,7 @@ import {
   presetPatch,
 } from "@/theme/presentations";
 
-type ActiveTool = "select" | "text" | "color" | "background";
+type ActiveTool = "select" | "text" | "insert" | "color" | "background";
 
 /** Font-size bounds for the size gauge (design units). */
 const MIN_FONT_SIZE = 12;
@@ -106,6 +107,22 @@ const FONT_SIZE_STEP = 4;
 const CONTEXT_RAIL_HEIGHT = 56;
 /** Size given to newly created text — 96pt on a 1080-wide canvas. */
 const DEFAULT_FONT_SIZE = 96;
+/**
+ * Size given to a newly inserted decoration.
+ *
+ * `GlyphObject` and `ShapeObject` carry no size of their own: both render into a
+ * `SHAPE_BASE_SIZE` (120) box and are scaled by `transform.scale`, so one
+ * constant serves both. 2 puts a fresh ornament at 240 design units — a little
+ * larger than the default 96pt text, which is the size a decoration wants in
+ * order to be usable the moment it lands.
+ */
+const DECOR_INSERT_SCALE = 2;
+/**
+ * Stroke width for a new shape, in the renderer's base units. `ShapeRenderer`
+ * doubles it for `ring` and `line`, and the library's previews use the same
+ * value, so a tile shows the object you actually get.
+ */
+const SHAPE_STROKE_WIDTH = 4;
 /** Opacity bounds — never fully invisible, or the object could not be re-found. */
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 1;
@@ -167,6 +184,8 @@ export function EditorScreen() {
   const [draftFont, setDraftFont] = useState<string>(calligraphyFonts[0].key);
   const [draftFontSize, setDraftFontSize] = useState(DEFAULT_FONT_SIZE);
   const [editingId, setEditingId] = useState<string | null>(null);
+  /** The ornament and shape library. */
+  const [insertSheetOpen, setInsertSheetOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -603,6 +622,70 @@ export function EditorScreen() {
     setTool("select");
   }, [project, draftText, draftFont, draftFontSize, editingId, addObject]);
 
+  /**
+   * Insert a decoration — the library's only write path.
+   *
+   * Both kinds share one transform: centred on the canvas, size carried by
+   * `scale`, and a `zIndex` following the same `* 10` spacing text objects use,
+   * so the newest object lands on top. The rail returns to Select because the
+   * sheet has closed and the new object is what wants the handles.
+   */
+  const insertGlyph = useCallback(
+    (glyphKey: string) => {
+      if (!project) {
+        return;
+      }
+      addObject({
+        id: `g_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        type: "glyph",
+        glyphKey,
+        color: DEFAULT_INK,
+        opacity: 1,
+        transform: {
+          x: project.canvas.width / 2,
+          y: project.canvas.height / 2,
+          scale: DECOR_INSERT_SCALE,
+          rotation: 0,
+          flipH: false,
+          flipV: false,
+        },
+        zIndex: (project.objects.length + 1) * 10,
+      });
+      setTool("select");
+    },
+    [project, addObject],
+  );
+
+  const insertShape = useCallback(
+    (shapeKey: ShapeKey) => {
+      if (!project) {
+        return;
+      }
+      addObject({
+        id: `s_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        type: "shape",
+        shapeKey,
+        color: DEFAULT_INK,
+        // Stroked to match the library's previews and the ornament idiom —
+        // rules, frames and rings — rather than a filled block.
+        fill: false,
+        strokeWidth: SHAPE_STROKE_WIDTH,
+        opacity: 1,
+        transform: {
+          x: project.canvas.width / 2,
+          y: project.canvas.height / 2,
+          scale: DECOR_INSERT_SCALE,
+          rotation: 0,
+          flipH: false,
+          flipV: false,
+        },
+        zIndex: (project.objects.length + 1) * 10,
+      });
+      setTool("select");
+    },
+    [project, addObject],
+  );
+
   const deleteSelected = useCallback(() => {
     if (!selectedIds.length) {
       return;
@@ -712,7 +795,8 @@ export function EditorScreen() {
    * which is also what leaves Escape free for react-native-web to close it.
    */
   const shortcuts = useKeyboardShortcuts({
-    enabled: !textSheetOpen && !styleSheetOpen && !exportOpen,
+    enabled:
+      !textSheetOpen && !styleSheetOpen && !insertSheetOpen && !exportOpen,
     handlers: {
       delete: deleteSelected,
       undo,
@@ -1278,6 +1362,16 @@ export function EditorScreen() {
               icon="type"
             />
             <ToolBtn
+              label={t.editor.glyphs}
+              active={tool === "insert"}
+              onPress={() => {
+                setMultiSelectMode(false);
+                selectTool("insert");
+                setInsertSheetOpen(true);
+              }}
+              icon="sparkle"
+            />
+            <ToolBtn
               label={t.editor.colors}
               active={tool === "color"}
               onPress={() => {
@@ -1345,6 +1439,14 @@ export function EditorScreen() {
             <Button label={t.common.done} onPress={saveTextObject} fullWidth />
           </View>
         </Sheet>
+
+        {/* Ornament and shape library */}
+        <InsertSheet
+          visible={insertSheetOpen}
+          onClose={() => setInsertSheetOpen(false)}
+          onPickGlyph={insertGlyph}
+          onPickShape={insertShape}
+        />
 
         {/* Style sheet — presentation and typography for the selected object */}
         <Sheet
@@ -1564,7 +1666,7 @@ function ToolBtn({
   hint?: string;
   active: boolean;
   onPress: () => void;
-  icon: "pen" | "type" | "palette" | "image" | "multiSelect";
+  icon: "pen" | "type" | "sparkle" | "palette" | "image" | "multiSelect";
 }) {
   const { colors: c } = useTheme();
   const { language } = useT();
@@ -1718,7 +1820,17 @@ const styles = StyleSheet.create({
    * fit-to-view in `EditorCanvas` never re-runs behind the user's back.
    */
   canvasWrap: { flex: 1, padding: spacing.md },
-  canvasCard: { flex: 1, borderRadius: 12, borderWidth: 1, overflow: "hidden" },
+  canvasCard: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+    // RNGH sets touch-action:none on its wrapper, but style resets or browser
+    // default-drags can break pointer capture mid-gesture on web. Belt-and-
+    // suspenders: assert both on the canvas card itself.
+    touchAction: "none",
+    userSelect: "none",
+  },
   /**
    * The context rail — the strip above the tool rail holding whatever the
    * current selection or tool needs.

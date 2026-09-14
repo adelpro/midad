@@ -1,6 +1,6 @@
 import { Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
 
-import { buildStarPath, buildTrianglePath } from '@/editor/skia/shape-geometry';
+import { SHAPE_INSET, SHAPE_PATH_BUILDERS } from '@/editor/skia/shape-geometry';
 import type { ShapeObject } from '@/storage/project-schema';
 
 export type ShapeRenderProps = {
@@ -22,18 +22,21 @@ export function ShapeRenderer({ shape, size }: ShapeRenderProps) {
 
   switch (shape.shapeKey) {
     case 'circle':
-      return <Circle c={center} r={size / 2 - 1} color={color} style={stroke ? 'stroke' : 'fill'} strokeWidth={stroke?.width} />;
+      return <Circle c={center} r={size / 2 - SHAPE_INSET} color={color} style={stroke ? 'stroke' : 'fill'} strokeWidth={stroke?.width} />;
     case 'square':
-      return <Rect x={1} y={1} width={size - 2} height={size - 2} color={color} style={stroke ? 'stroke' : 'fill'} strokeWidth={stroke?.width} />;
+      return <Rect x={SHAPE_INSET} y={SHAPE_INSET} width={size - SHAPE_INSET * 2} height={size - SHAPE_INSET * 2} color={color} style={stroke ? 'stroke' : 'fill'} strokeWidth={stroke?.width} />;
     case 'ring':
       return <Circle c={center} r={size / 3} color={color} style="stroke" strokeWidth={(stroke?.width ?? 2) * 2} />;
     case 'line':
       return <Line p1={vec(2, size / 2)} p2={vec(size - 2, size / 2)} color={color} strokeWidth={(stroke?.width ?? 2) * 2} strokeCap="round" />;
-    case 'triangle':
-      return <Path path={buildTrianglePath(size)} color={color} style={stroke ? 'stroke' : 'fill'} strokeWidth={stroke?.width} strokeJoin="round" />;
-    case 'star':
-      return <Path path={buildStarPath(size)} color={color} style={stroke ? 'stroke' : 'fill'} strokeWidth={stroke?.width} strokeJoin="round" />;
-    default:
-      return <Group />;
+    default: {
+      // Shared with the PNG renderer and the SVG exporter — one table, so a new
+      // path shape cannot exist on the canvas but vanish from an export.
+      const build = SHAPE_PATH_BUILDERS[shape.shapeKey];
+      if (!build) {
+        return <Group />;
+      }
+      return <Path path={build(size)} color={color} style={stroke ? 'stroke' : 'fill'} strokeWidth={stroke?.width} strokeJoin="round" />;
+    }
   }
 }
