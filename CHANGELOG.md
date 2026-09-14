@@ -121,9 +121,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Learn mode can explain the selection bar's "more tools" again.** The `⋯`
   control was bound through the same learn-mode binder as every other action, so
-  while learning a tap explained *it* instead of opening the sheet — leaving the
+  while learning a tap explained _it_ instead of opening the sheet — leaving the
   thirteen actions behind it as the only part of the editor with no explanation
-  on any surface. It is now resolved as a *disclosure*: it keeps working while
+  on any surface. It is now resolved as a _disclosure_: it keeps working while
   learning and opens the overflow set as a centred, scrollable reference list
   (label, role, and its chord on the web, the same rows the help sheet draws)
   rather than as buttons whose every press would explain instead of act.
@@ -139,7 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   language.** It holds up to twenty buttons while a phone rail fits about seven,
   so the old `maxHeight: 104` plus `overflow: hidden` silhouetted the last few
   (delete, and the canvas-centring actions), and scrolling the row only moved
-  the problem: in Arabic the hidden tail sits off the *left* edge, where nothing
+  the problem: in Arabic the hidden tail sits off the _left_ edge, where nothing
   signals that it exists. The bar now renders the highest-priority actions that
   fit and sends the rest to the labelled sheet above, so every action stays one
   tap away at any width. The order, the overflow set and all the copy live in

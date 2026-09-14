@@ -349,8 +349,17 @@ export function resolveSelectionActions(
   ids: readonly SelectionCommandId[],
   sources: SelectionActionSources,
 ): SelectionAction[] {
-  const { t, language, press, shortcuts, run, bar, togglePin, afterRun, disclosure } =
-    sources;
+  const {
+    t,
+    language,
+    press,
+    shortcuts,
+    run,
+    bar,
+    togglePin,
+    afterRun,
+    disclosure,
+  } = sources;
   const inBar = new Set<SelectionActionId>(bar);
   return ids.map((id) => {
     const key = `sel.${id}` as HelpKey;

@@ -66,13 +66,18 @@ export function HelpRow({ label, role, icon, keys, divided }: HelpRowProps) {
       <View style={styles.rowBody}>
         <View style={[styles.rowHead, rowStyle(isRTL)]}>
           <Text
-            style={[styles.rowLabel, { fontFamily: fonts.uiBold, color: c.ink }]}
+            style={[
+              styles.rowLabel,
+              { fontFamily: fonts.uiBold, color: c.ink },
+            ]}
           >
             {label}
           </Text>
           {keys ? <Kbd>{keys}</Kbd> : null}
         </View>
-        <Text style={[styles.rowRole, { fontFamily: fonts.ui, color: c.muted }]}>
+        <Text
+          style={[styles.rowRole, { fontFamily: fonts.ui, color: c.muted }]}
+        >
           {role}
         </Text>
       </View>
