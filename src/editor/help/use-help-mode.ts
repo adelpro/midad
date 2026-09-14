@@ -24,13 +24,21 @@ export interface HelpMode {
    *
    * Off-mode it is a plain pass-through, so a call site reads the same either
    * way: `onPress={help.press("sel.delete", deleteSelected)}`.
+   *
+   * **One press is deliberately not bound here.** A control that *reveals*
+   * other annotated controls — the selection rail's `⋯` — has to keep working
+   * while learning, or the actions it hides could never be inspected. Those are
+   * resolved through `SelectionActionSources.disclosure` instead, and they are
+   * the reason the overflow sheet has a read-only form to open into.
    */
   press: (key: HelpKey, action?: () => void) => () => void;
 }
 
 /**
  * Learn mode: a state where every editor control explains itself on tap
- * instead of acting.
+ * instead of acting — with the single exception of a control that *opens* a set
+ * of other controls, which keeps working so its contents can be explained at
+ * all (see `press`).
  *
  * State lives in the editor screen rather than in a store or a context. Every
  * control it annotates — including the buttons inside the three editor sheets —

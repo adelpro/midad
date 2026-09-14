@@ -366,6 +366,14 @@ export const HELP_ENTRIES = [
     icon: "centerV",
   },
   {
+    key: "sel.more",
+    group: "selection",
+    label: { ar: "المزيد", en: "More" },
+    roleAr: "عرض بقية إجراءات التحديد التي لا تظهر في الشريط.",
+    roleEn: "Show the rest of the selection actions that do not fit the bar.",
+    icon: "more",
+  },
+  {
     key: "sel.stylePrev",
     group: "selection",
     label: { hint: "stylePrev" },
@@ -386,6 +394,30 @@ export const HELP_ENTRIES = [
     roleAr: "فتح لوحة النمط لضبط النص المحدّد.",
     roleEn: "Open the style panel to tune the selected text.",
     icon: "sparkle",
+  },
+  // The bar's own controls. They are not selection *actions* — nothing about the
+  // selection makes them apply — but they live in the same sheet, and a control
+  // with no entry is a control no surface can explain.
+  {
+    key: "sel.pinToBar",
+    group: "selection",
+    // Doubles as the sheet's one-line explanation of the pin, which is why the
+    // role reads as an instruction rather than as a description of a control.
+    label: { ar: "تثبيت في الشريط", en: "Pin to the bar" },
+    roleAr: "تثبيت الإجراء في مقدّمة شريط التحديد، حيث لا يقتطعه ضيق الصف.",
+    roleEn:
+      "Keep this action at the front of the selection bar, where the width of the row can never cut it.",
+    icon: "pin",
+  },
+  {
+    key: "sel.unpinFromBar",
+    group: "selection",
+    label: { ar: "إلغاء التثبيت", en: "Unpin from the bar" },
+    roleAr:
+      "إخراج الإجراء من شريط التحديد وإعادته إلى قائمة المزيد. وفي الشريط، الضغطة المطوّلة تفعل الشيء نفسه.",
+    roleEn:
+      "Take this action out of the selection bar and back into More. In the bar itself, a long press does the same.",
+    icon: "pin",
   },
   {
     key: "sel.partPrev",

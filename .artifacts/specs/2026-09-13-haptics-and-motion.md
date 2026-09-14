@@ -25,11 +25,11 @@ library's own manifest merge.
 
 Three semantic verbs in `src/haptics.ts` rather than raw calls at call sites:
 
-| Verb | iOS / Web | Android |
-| --- | --- | --- |
-| `hapticTick()` — a detent | `selectionAsync()` | `performAndroidHapticsAsync(Segment_Tick)` |
-| `hapticDelete()` — destruction | `notificationAsync(Warning)` | `performAndroidHapticsAsync(Reject)` |
-| `hapticSuccess()` — work landed | `notificationAsync(Success)` | `performAndroidHapticsAsync(Confirm)` |
+| Verb                            | iOS / Web                    | Android                                    |
+| ------------------------------- | ---------------------------- | ------------------------------------------ |
+| `hapticTick()` — a detent       | `selectionAsync()`           | `performAndroidHapticsAsync(Segment_Tick)` |
+| `hapticDelete()` — destruction  | `notificationAsync(Warning)` | `performAndroidHapticsAsync(Reject)`       |
+| `hapticSuccess()` — work landed | `notificationAsync(Success)` | `performAndroidHapticsAsync(Confirm)`      |
 
 Android deliberately does **not** use `impactAsync`/`notificationAsync`: Expo's
 own docs state Android's `Vibrator` API "is not recommended for implementing

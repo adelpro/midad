@@ -3,8 +3,6 @@
  * Two palettes (light paper / dark ink) + spacing, radii, shadows, motion, type.
  */
 
-import { Platform, type ViewStyle } from "react-native";
-
 export interface MidadPalette {
   // Canvas & surfaces
   paper: string; // app background
@@ -145,67 +143,6 @@ export const radius = {
   xl: 12,
   pill: 9999,
 } as const;
-
-/** One step of the elevation ramp: dp offset + blur, plus the Android z-order. */
-export interface ShadowSpec {
-  /** Vertical offset in dp; negative casts upward (bottom sheets). */
-  offsetY: number;
-  /** Blur radius in dp. */
-  blurRadius: number;
-  /** Android `elevation`: the shadow below API 28, and z-order everywhere. */
-  elevation: number;
-}
-
-/**
- * The elevation ramp. Only these four surfaces lift off the page — everything
- * else separates by tone and hairlines, never by stacked borders.
- */
-export const shadows = {
-  /** Resting card. */
-  card: { offsetY: 2, blurRadius: 8, elevation: 1 },
-  /** Panel lifted over the page (modal sheet). */
-  panel: { offsetY: 2, blurRadius: 8, elevation: 1 },
-  /** Floating bar over the content (snackbar). */
-  float: { offsetY: 4, blurRadius: 16, elevation: 8 },
-  /** Bottom sheet, anchored to the bottom edge — so it casts upward. */
-  sheet: { offsetY: -4, blurRadius: 16, elevation: 8 },
-} as const;
-
-/** `#RRGGBB` + alpha → `rgba()`; every palette shadow ink is hex. */
-function shadowInk(hex: string, alpha: number): string {
-  const n = Number.parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 0xff}, ${(n >> 8) & 0xff}, ${n & 0xff}, ${alpha})`;
-}
-
-/**
- * Elevation → platform styles.
- *
- * Web gets `boxShadow`: react-native-web 0.21 warns once that the `shadow*`
- * props are deprecated, and rewrites them to `boxShadow` internally anyway.
- * Native keeps `shadow*` + `elevation` — React Native still recommends those
- * props, `elevation` also drives Android z-order, and `boxShadow` only paints
- * on Android API 28+ (below that it is a silent no-op).
- */
-export function elevationStyle(
-  colors: MidadPalette,
-  spec: ShadowSpec,
-): ViewStyle {
-  if (Platform.OS === "web") {
-    return {
-      boxShadow: `0 ${spec.offsetY}px ${spec.blurRadius}px ${shadowInk(
-        colors.shadowColor,
-        colors.shadowOpacity,
-      )}`,
-    };
-  }
-  return {
-    shadowColor: colors.shadowColor,
-    shadowOpacity: colors.shadowOpacity,
-    shadowRadius: spec.blurRadius,
-    shadowOffset: { width: 0, height: spec.offsetY },
-    elevation: spec.elevation,
-  };
-}
 
 /** Layout breakpoints (dp): phone-first; `wide` switches to tablet/desktop. */
 export const breakpoint = {

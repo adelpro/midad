@@ -13,7 +13,7 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
 import { usePressFeedback } from "@/hooks/use-press-feedback";
 import { useTheme } from "@/hooks/use-theme";
-import { elevationStyle, radius, shadows } from "@/theme";
+import { radius, type MidadPalette } from "@/theme";
 
 export interface CardProps extends PropsWithChildren {
   onPress?: () => void;
@@ -62,7 +62,7 @@ export function Card({
   const baseStyle = [
     styles.base,
     { backgroundColor: c.surface, borderColor: c.border },
-    elevated && elevationStyle(c, shadows.card),
+    elevated && shadowStyle(c),
     style,
   ];
   if (onPress || onLongPress) {
@@ -86,6 +86,16 @@ export function Card({
       {children}
     </View>
   );
+}
+
+function shadowStyle(c: MidadPalette) {
+  return {
+    shadowColor: c.shadowColor,
+    shadowOpacity: c.shadowOpacity,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  };
 }
 
 const styles = StyleSheet.create({

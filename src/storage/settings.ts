@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import type { SelectionActionId } from "@/editor/selection-actions";
 import type { Language } from "@/i18n/strings";
 
 export type ThemePreference = "system" | "light" | "dark";
@@ -37,11 +38,28 @@ interface SettingsState {
   theme: ThemePreference;
   autoSaveEnabled: boolean;
   autoSaveIntervalMs: number;
+  /**
+   * The selection bar's actions, in the order the rail renders them — or `null`
+   * while the user has never changed it.
+   *
+   * `null` rather than a seeded copy of the default order on purpose: the table
+   * in `src/editor/selection-actions.tsx` stays the one place that decides what
+   * a fresh bar holds, so a reordering there reaches everyone who never
+   * customised the bar, while anyone who did keeps exactly the bar they built.
+   *
+   * A device-local preference, like the gallery's pins: it describes how this
+   * device presents the editor, so it never enters the project document (no
+   * schema bump, nothing for `import-project.ts` to validate). The cost is that
+   * a customised bar does not travel with an exported `.midad` file — which is
+   * the intended trade.
+   */
+  selectionBarActions: SelectionActionId[] | null;
   setLanguage: (lang: Language) => void;
   setDefaultCanvas: (index: number) => void;
   setTheme: (theme: ThemePreference) => void;
   setAutoSaveEnabled: (enabled: boolean) => void;
   setAutoSaveInterval: (ms: number) => void;
+  setSelectionBarActions: (ids: SelectionActionId[] | null) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -52,11 +70,14 @@ export const useSettings = create<SettingsState>()(
       theme: "system",
       autoSaveEnabled: true,
       autoSaveIntervalMs: AUTO_SAVE_INTERVAL_DEFAULT_MS,
+      selectionBarActions: null,
       setLanguage: (language) => set({ language }),
       setDefaultCanvas: (defaultCanvasIndex) => set({ defaultCanvasIndex }),
       setTheme: (theme) => set({ theme }),
       setAutoSaveEnabled: (autoSaveEnabled) => set({ autoSaveEnabled }),
       setAutoSaveInterval: (autoSaveIntervalMs) => set({ autoSaveIntervalMs }),
+      setSelectionBarActions: (selectionBarActions) =>
+        set({ selectionBarActions }),
     }),
     {
       name: "midad:settings",

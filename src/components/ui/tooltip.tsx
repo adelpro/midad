@@ -11,13 +11,22 @@ export interface TooltipProps extends PropsWithChildren {
    * Which side of the trigger the bubble sits on.
    *
    * The default clears the trigger upward, which suits the editor's bottom
-   * rails. Chrome pinned to the top of the screen has to flip: those controls
-   * sit at y 0 on the web, where `SafeAreaView` reports no inset, so a bubble
-   * above them lands outside the viewport instead of over the status bar.
+   * rails. Chrome pinned to the top of the screen has to flip: a bubble above a
+   * control that sits at the very top of the window would land over the
+   * status-bar strip, where it is clipped rather than read.
    */
   placement?: "above" | "below";
 }
 
+/**
+ * The transient name bubble behind `IconButton`'s `hint`.
+ *
+ * A bubble is an *additional* label, never the only one: it is native-only
+ * (`ui/icon-button.tsx` never opens one on web, where learn mode is the naming
+ * route instead) and it is suppressed outright while a control claims its own
+ * long-press. So always pass `accessibilityLabel` too — the bubble is a
+ * convenience, not the control's name.
+ */
 export function Tooltip({
   label,
   visible,

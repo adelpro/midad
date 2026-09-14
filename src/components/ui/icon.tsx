@@ -29,9 +29,7 @@ import {
   GearSix,
   GlobeSimple,
   GridFour,
-  HandTap,
   Image,
-  Keyboard,
   LockSimple,
   LockSimpleOpen,
   Minus,
@@ -40,7 +38,6 @@ import {
   PenNib,
   Plus,
   PushPin,
-  Question,
   Scissors,
   SelectionPlus,
   ShareNetwork,
@@ -111,10 +108,7 @@ export type IconName =
   | "alignMiddleV"
   | "alignBottom"
   | "centerH"
-  | "centerV"
-  | "help"
-  | "keyboard"
-  | "handTap";
+  | "centerV";
 
 const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   plus: Plus,
@@ -165,9 +159,6 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   alignBottom: AlignBottom,
   centerH: ArrowsOutLineHorizontal,
   centerV: ArrowsOutLineVertical,
-  help: Question,
-  keyboard: Keyboard,
-  handTap: HandTap,
 };
 
 export interface IconProps {

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Selection overflow sheet** — the actions that do not fit the selection bar,
+  as square tiles carrying each action's glyph, its name and a pin, plus a
+  permanent `⋯` control at the end of the bar and a `Selection bar → More` entry
+  in the help reference.
+- **Pinnable selection bar** — pin an action to the head of the bar (the one
+  position the width budget can never cut) from the sheet's tile, and long-press
+  a button in the bar to take it out again. The order is device-local, like the
+  gallery's pins, so it never enters the project document.
 - **Export & share (Phase 4):**
   - Offscreen PNG rasterizer mirroring the editor canvas (zIndex order,
     transforms, flips, centered shaped paragraphs) at any target resolution
@@ -77,6 +85,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Web shows no tooltips.** The hint bubble is native-only now: the same label
+  is one tap away in learn mode, which is how the editor names its icon-only
+  chrome everywhere else. A control that claims its own long-press — the
+  selection bar's pin — suppresses the bubble as well, so one gesture keeps one
+  meaning.
+- **The selection bar's context rail has a top gap**, so its controls no longer
+  sit flush against the canvas card. The gap lives inside the rail's fixed
+  height, so the canvas box above it still cannot change under the user.
 - React Compiler compliance across the onboarding pager and editor gesture
   hooks (shared-value writes annotated, ref/state access moved into the store);
   gallery project fetch restructured out of the synchronous render path
@@ -103,6 +119,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Learn mode can explain the selection bar's "more tools" again.** The `⋯`
+  control was bound through the same learn-mode binder as every other action, so
+  while learning a tap explained *it* instead of opening the sheet — leaving the
+  thirteen actions behind it as the only part of the editor with no explanation
+  on any surface. It is now resolved as a *disclosure*: it keeps working while
+  learning and opens the overflow set as a centred, scrollable reference list
+  (label, role, and its chord on the web, the same rows the help sheet draws)
+  rather than as buttons whose every press would explain instead of act.
 - **Selecting an object no longer resized the editor canvas.** The contextual
   bars (selection actions, parts strip, style navigator, split notice, colour
   swatches) were in-flow siblings under a `flex: 1` canvas, so every bar that
@@ -111,10 +135,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   design re-zoomed with it. They now float over the canvas stage as translucent
   cards, leaving the canvas box constant; the colour strips moved in with them,
   so switching tools no longer resizes it either.
-- **The selection bar no longer clips its trailing controls.** It holds up to
-  twenty buttons, and the old `maxHeight: 104` plus `overflow: hidden` silently
-  hid the last few (delete, and the canvas-centring actions) on a phone. It is
-  now a single row that scrolls horizontally, matching the parts strip.
+- **The selection bar no longer hides its trailing controls — in either
+  language.** It holds up to twenty buttons while a phone rail fits about seven,
+  so the old `maxHeight: 104` plus `overflow: hidden` silhouetted the last few
+  (delete, and the canvas-centring actions), and scrolling the row only moved
+  the problem: in Arabic the hidden tail sits off the *left* edge, where nothing
+  signals that it exists. The bar now renders the highest-priority actions that
+  fit and sends the rest to the labelled sheet above, so every action stays one
+  tap away at any width. The order, the overflow set and all the copy live in
+  `editor/selection-actions.tsx`, which reads them from the help table, and the
+  rail measures both its own width and the width its parts/style/colour zone
+  needs rather than assuming either. **The style navigator left the bar for the
+  same reason:** its two arrows and name chip cost five of the seven slots a
+  phone rail has, leaving room for two actions. The style panel now opens from
+  a `Style` button at the head of the bar — the one control that could not
+  afford to be truncated — and stepping through presets moved into the `⋯`
+  sheet, where picking one from the panel's grid is still a single tap.
 - **Text boxes were always one unit too narrow, so every auto-width text wrapped
   onto a second line** inside a container that looked too small. Skia truncates
   a paragraph's layout width to an integer, and the width was taken straight
