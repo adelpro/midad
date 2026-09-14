@@ -35,8 +35,8 @@ import {
 } from "@/editor/skia/shape-geometry";
 import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
-import { fontRoles, radius, spacing, typeScale } from "@/theme";
 import type { ShapeKey } from "@/storage/project-schema";
+import { fontRoles, radius, spacing, typeScale } from "@/theme";
 
 export type InsertTab = "glyphs" | "shapes";
 
@@ -326,7 +326,9 @@ export function InsertSheet({
                     { color: c.muted, fontFamily: fonts.uiBold },
                   ]}
                 >
-                  {group === "mark" ? t.editor.glyphMarks : t.editor.glyphLetters}
+                  {group === "mark"
+                    ? t.editor.glyphMarks
+                    : t.editor.glyphLetters}
                 </Text>
                 <View style={styles.grid}>
                   {glyphsInGroup(group).map((entry) => (

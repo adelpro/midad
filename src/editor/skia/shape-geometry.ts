@@ -1,7 +1,7 @@
-import { PaintStyle, Skia, StrokeCap } from '@shopify/react-native-skia';
-import type { SkCanvas, SkPaint } from '@shopify/react-native-skia';
+import type { SkCanvas, SkPaint } from "@shopify/react-native-skia";
+import { PaintStyle, Skia, StrokeCap } from "@shopify/react-native-skia";
 
-import type { ShapeKey, ShapeObject } from '@/storage/project-schema';
+import type { ShapeKey, ShapeObject } from "@/storage/project-schema";
 
 /** Base box size (design units) a shape is rendered into before its transform. */
 export const SHAPE_BASE_SIZE = 120;
@@ -27,10 +27,10 @@ export function buildStarPath(size: number): string {
     const angle = (Math.PI / 5) * i - Math.PI / 2;
     const x = cx + r * Math.cos(angle);
     const y = cy + r * Math.sin(angle);
-    points.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`);
+    points.push(`${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`);
   }
-  points.push('Z');
-  return points.join(' ');
+  points.push("Z");
+  return points.join(" ");
 }
 
 export function buildTrianglePath(size: number): string {
@@ -48,10 +48,10 @@ function buildRegularPolygon(size: number, sides: number): string {
   for (let i = 0; i < sides; i++) {
     const a = (2 * Math.PI * i) / sides - Math.PI / 2;
     points.push(
-      `${i === 0 ? 'M' : 'L'} ${f(c + r * Math.cos(a))} ${f(c + r * Math.sin(a))}`,
+      `${i === 0 ? "M" : "L"} ${f(c + r * Math.cos(a))} ${f(c + r * Math.sin(a))}`,
     );
   }
-  return `${points.join(' ')} Z`;
+  return `${points.join(" ")} Z`;
 }
 
 export function buildPentagonPath(size: number): string {
@@ -180,15 +180,19 @@ function strokeOnlyPaint(shape: ShapeObject, width: number): SkPaint {
  * Draw a shape object into a `size`×`size` box on an imperative canvas,
  * matching the declarative <ShapeRenderer> output exactly.
  */
-export function drawShapeOnCanvas(canvas: SkCanvas, shape: ShapeObject, size: number): void {
+export function drawShapeOnCanvas(
+  canvas: SkCanvas,
+  shape: ShapeObject,
+  size: number,
+): void {
   switch (shape.shapeKey) {
-    case 'circle': {
+    case "circle": {
       const p = fillOrStrokePaint(shape);
       if (!p) return;
       canvas.drawCircle(size / 2, size / 2, size / 2 - SHAPE_INSET, p);
       return;
     }
-    case 'square': {
+    case "square": {
       const p = fillOrStrokePaint(shape);
       if (!p) return;
       canvas.drawRect(
@@ -202,12 +206,23 @@ export function drawShapeOnCanvas(canvas: SkCanvas, shape: ShapeObject, size: nu
       );
       return;
     }
-    case 'ring': {
-      canvas.drawCircle(size / 2, size / 2, size / 3, strokeOnlyPaint(shape, (shape.strokeWidth ?? 2) * 2));
+    case "ring": {
+      canvas.drawCircle(
+        size / 2,
+        size / 2,
+        size / 3,
+        strokeOnlyPaint(shape, (shape.strokeWidth ?? 2) * 2),
+      );
       return;
     }
-    case 'line': {
-      canvas.drawLine(2, size / 2, size - 2, size / 2, strokeOnlyPaint(shape, (shape.strokeWidth ?? 2) * 2));
+    case "line": {
+      canvas.drawLine(
+        2,
+        size / 2,
+        size - 2,
+        size / 2,
+        strokeOnlyPaint(shape, (shape.strokeWidth ?? 2) * 2),
+      );
       return;
     }
     default: {
