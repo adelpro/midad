@@ -130,6 +130,8 @@ export interface Translation {
     export: string;
     saveProject: string;
     backgroundImage: string;
+    bgImagePick: string;
+    bgImageClear: string;
     transparent: string;
     paper: string;
     enterText: string;
@@ -316,6 +318,8 @@ export const strings: Record<Language, Translation> = {
       export: "تصدير",
       saveProject: "حفظ",
       backgroundImage: "صورة خلفية",
+      bgImagePick: "اختيار صورة",
+      bgImageClear: "إزالة الصورة",
       transparent: "شفاف",
       paper: "ورق",
       enterText: "اكتب نصك هنا…",
@@ -502,6 +506,8 @@ export const strings: Record<Language, Translation> = {
       export: "Export",
       saveProject: "Save",
       backgroundImage: "Background image",
+      bgImagePick: "Pick image",
+      bgImageClear: "Remove image",
       transparent: "Transparent",
       paper: "Paper",
       enterText: "Type your text…",

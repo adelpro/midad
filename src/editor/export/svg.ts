@@ -312,7 +312,9 @@ export function projectToSvg(
   const bgRect =
     bg.type === "transparent"
       ? ""
-      : `<rect width="${W}" height="${H}" fill="${bg.type === "paper" ? escapeXml(bg.color ?? "#F7F6F3") : "#FFFFFF"}" />`;
+      : bg.type === "image" && bg.imageUri
+        ? `<image href="${escapeXml(bg.imageUri)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice" />`
+        : `<rect width="${W}" height="${H}" fill="${bg.type === "paper" ? escapeXml(bg.color ?? "#F7F6F3") : "#FFFFFF"}" />`;
 
   const sorted = [...project.objects].sort((a, b) => a.zIndex - b.zIndex);
   const body: string[] = [];

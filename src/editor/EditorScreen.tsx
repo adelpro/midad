@@ -59,6 +59,7 @@ import { usePressFeedback } from "@/hooks/use-press-feedback";
 import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
 import { formatPartLabel, formatSelectedCount } from "@/i18n/strings";
+import { pickBackgroundImage } from "@/storage/background-image";
 import { shareFile, shareImage } from "@/storage/export";
 import type {
   CalligraphyTextObject,
@@ -80,6 +81,7 @@ import {
 } from "@/theme";
 import {
   DEFAULT_INK,
+  DEFAULT_PAPER,
   inkSwatches,
   paperSwatches,
 } from "@/theme/content-palette";
@@ -788,6 +790,27 @@ export function EditorScreen() {
   }, []);
 
   /**
+   * Launch the system image picker and set the chosen image as the design's
+   * background. The image is embedded in the project file as a base64 data URI,
+   * so it travels with `.midad.json` export/import.
+   */
+  const setBgImage = useCallback(async () => {
+    const uri = await pickBackgroundImage();
+    if (uri) {
+      useEditorStore.getState().setCanvas({
+        background: { type: "image", imageUri: uri },
+      });
+    }
+  }, []);
+
+  /** Revert an image background to the default paper colour. */
+  const clearBgImage = useCallback(() => {
+    useEditorStore.getState().setCanvas({
+      background: { type: "paper", color: DEFAULT_PAPER },
+    });
+  }, []);
+
+  /**
    * Keyboard shortcuts. Every action routed here already exists as a button —
    * the layer only adds the key, so the two paths cannot drift apart.
    *
@@ -1301,22 +1324,53 @@ export function EditorScreen() {
 
             {/* Background tool */}
             {tool === "background" && (
-              <View
-                style={[
-                  styles.colorStrip,
-                  { borderColor: c.border, backgroundColor: c.surfaceAlt },
-                ]}
-              >
-                {paperSwatches.map((col) => (
+              <View style={styles.bgToolWrap}>
+                <View
+                  style={[
+                    styles.colorStrip,
+                    { borderColor: c.border, backgroundColor: c.surfaceAlt },
+                  ]}
+                >
+                  {paperSwatches.map((col) => (
+                    <Pressable
+                      key={col}
+                      style={[
+                        styles.colorSwatch,
+                        { backgroundColor: col, borderColor: c.border },
+                      ]}
+                      onPress={() => setBgColor(col)}
+                    />
+                  ))}
+                  {/* Image background — pick from the photo library */}
                   <Pressable
-                    key={col}
+                    onPress={() => void setBgImage()}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.editor.backgroundImage}
                     style={[
-                      styles.colorSwatch,
-                      { backgroundColor: col, borderColor: c.border },
+                      styles.bgImageBtn,
+                      { borderColor: c.border, backgroundColor: c.surface },
+                      project.canvas.background.type === "image" && {
+                        borderColor: c.accentText,
+                        backgroundColor: c.accentSoft,
+                      },
                     ]}
-                    onPress={() => setBgColor(col)}
-                  />
-                ))}
+                  >
+                    <Icon name="image" size={16} color={c.ink} />
+                  </Pressable>
+                  {project.canvas.background.type === "image" && (
+                    <Pressable
+                      onPress={clearBgImage}
+                      accessibilityRole="button"
+                      accessibilityLabel={t.editor.bgImageClear}
+                      style={[
+                        styles.bgImageBtn,
+                        { borderColor: c.border, backgroundColor: c.surface },
+                      ]}
+                    >
+                      <Icon name="trash" size={16} color={c.danger} />
+                    </Pressable>
+                  )}
+                </View>
               </View>
             )}
           </ScrollView>
@@ -1853,6 +1907,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
     paddingHorizontal: spacing.md,
+    // Lets a short strip (e.g. the background toolbox) fill the rail so it can
+    // centre itself; wide content still scrolls normally.
+    flexGrow: 1,
   },
   /**
    * The section scrolls horizontally instead of wrapping: the selection alone
@@ -1886,6 +1943,22 @@ const styles = StyleSheet.create({
   },
   colorSwatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 1 },
   colorSwatchActive: { borderWidth: 3, borderColor: "#B0894F" },
+  /** Centres the background toolbox within the rail. */
+  bgToolWrap: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  /** Circle image button, sized to sit flush with the paper swatches. */
+  bgImageBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   input: {
     borderWidth: 1,
     borderRadius: 8,

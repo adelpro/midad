@@ -57,7 +57,7 @@ export function LearnOverlay({
   const gestureGroup = helpGroup("canvas");
 
   return (
-    <View pointerEvents="box-none" style={styles.overlay}>
+    <View style={[styles.overlay, { pointerEvents: "box-none" }]}>
       <Reveal
         style={[
           styles.banner,

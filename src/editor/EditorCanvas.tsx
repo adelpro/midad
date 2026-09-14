@@ -6,6 +6,8 @@ import {
   Line,
   Paragraph,
   Rect,
+  Image as SkiaImage,
+  useImage,
   vec,
 } from "@shopify/react-native-skia";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -55,6 +57,39 @@ function objectBox(
       // so including it here would apply it twice.
       return { width: SHAPE_BASE_SIZE, height: SHAPE_BASE_SIZE };
   }
+}
+
+/**
+ * The design's background image, drawn behind every object.
+ *
+ * `useImage` decodes the data URI asynchronously and returns `null` until it is
+ * ready, so the first frame falls back to a white rect and the image pops in
+ * once decoded. `fit="cover"` scales the image to fill the canvas and crops the
+ * overflow — the same mapping the PNG and SVG export paths use.
+ */
+function BackgroundImage({
+  uri,
+  width,
+  height,
+}: {
+  uri: string;
+  width: number;
+  height: number;
+}) {
+  const image = useImage(uri);
+  if (!image) {
+    return <Rect x={0} y={0} width={width} height={height} color="#FFFFFF" />;
+  }
+  return (
+    <SkiaImage
+      image={image}
+      x={0}
+      y={0}
+      width={width}
+      height={height}
+      fit="cover"
+    />
+  );
 }
 
 export function EditorCanvas({
@@ -181,13 +216,17 @@ export function EditorCanvas({
           ]}
         >
           {/* Background */}
-          <Rect
-            x={0}
-            y={0}
-            width={width}
-            height={height}
-            color={bg.type === "transparent" ? "transparent" : paperColor}
-          />
+          {bg.type === "image" && bg.imageUri ? (
+            <BackgroundImage uri={bg.imageUri} width={width} height={height} />
+          ) : (
+            <Rect
+              x={0}
+              y={0}
+              width={width}
+              height={height}
+              color={bg.type === "transparent" ? "transparent" : paperColor}
+            />
+          )}
 
           {/* Grid */}
           {project.gridEnabled && (

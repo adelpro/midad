@@ -1,4 +1,5 @@
 import type {
+  SkCanvas,
   SkPaint,
   SkTypefaceFontProvider,
 } from "@shopify/react-native-skia";
@@ -10,6 +11,7 @@ import {
   drawShapeOnCanvas,
 } from "@/editor/skia/shape-geometry";
 import { layoutArabicText } from "@/editor/skia/text";
+import { dataUriToBase64 } from "@/storage/background-image";
 import type { MidadProject } from "@/storage/project-schema";
 
 export interface RenderedPngResult {
@@ -28,6 +30,38 @@ function solidPaint(color: string): SkPaint {
   paint.setColor(Skia.Color(color));
   paint.setStyle(PaintStyle.Fill);
   return paint;
+}
+
+/**
+ * Draw a background image over the full canvas with cover fit — scale to fill
+ * and center-crop the overflow, matching the live canvas and SVG export. Falls
+ * back to white if the image cannot be decoded.
+ */
+function drawBackgroundImage(
+  c: SkCanvas,
+  imageUri: string,
+  W: number,
+  H: number,
+): void {
+  const data = Skia.Data.fromBase64(dataUriToBase64(imageUri));
+  const img = Skia.Image.MakeImageFromEncoded(data);
+  if (!img) {
+    c.drawRect(Skia.XYWHRect(0, 0, W, H), solidPaint("#FFFFFF"));
+    return;
+  }
+  const iw = img.width();
+  const ih = img.height();
+  const scale = Math.max(W / iw, H / ih);
+  const dw = iw * scale;
+  const dh = ih * scale;
+  const dx = (W - dw) / 2;
+  const dy = (H - dh) / 2;
+  c.drawImageRect(
+    img,
+    Skia.XYWHRect(0, 0, iw, ih),
+    Skia.XYWHRect(dx, dy, dw, dh),
+    Skia.Paint(),
+  );
 }
 
 /**
@@ -61,10 +95,14 @@ export function renderProjectToPng(
 
   const bg = project.canvas.background;
   if (bg.type !== "transparent") {
-    const color = bg.type === "paper" ? (bg.color ?? "#F7F6F3") : "#FFFFFF";
     c.save();
     c.scale(s, s);
-    c.drawRect(Skia.XYWHRect(0, 0, W, H), solidPaint(color));
+    if (bg.type === "image" && bg.imageUri) {
+      drawBackgroundImage(c, bg.imageUri, W, H);
+    } else {
+      const color = bg.type === "paper" ? (bg.color ?? "#F7F6F3") : "#FFFFFF";
+      c.drawRect(Skia.XYWHRect(0, 0, W, H), solidPaint(color));
+    }
     c.restore();
   }
 

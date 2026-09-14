@@ -11,10 +11,7 @@
       "icon": "./assets/expo.icon",
       "supportsTablet": true,
       "infoPlist": {
-        "CFBundleLocalizations": [
-          "ar",
-          "en"
-        ],
+        "CFBundleLocalizations": ["ar", "en"],
         "CFBundleDevelopmentRegion": "ar"
       }
     },
@@ -48,7 +45,13 @@
       ],
       "expo-sharing",
       "expo-localization",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "يستخدم التطبيق مكتبة الصور لاختيار صورة خلفية للتصميم / The app uses your photo library to choose a design background image."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

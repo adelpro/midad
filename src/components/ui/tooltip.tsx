@@ -40,7 +40,7 @@ export function Tooltip({
     <View style={styles.anchor}>
       {children}
       {visible && (
-        <View pointerEvents="none" style={wrapStyle}>
+        <View style={[wrapStyle, { pointerEvents: "none" }]}>
           <View style={[styles.bubble, { backgroundColor: c.ink }]}>
             <Text style={[styles.text, { color: c.onInk }]}>{label}</Text>
           </View>

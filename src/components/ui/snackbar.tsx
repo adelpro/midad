@@ -99,8 +99,12 @@ export function Snackbar({
 
   return (
     <Animated.View
-      style={[styles.anchor, { bottom: bottomOffset }, animStyle]}
-      pointerEvents={visible ? "box-none" : "none"}
+      style={[
+        styles.anchor,
+        { bottom: bottomOffset },
+        animStyle,
+        { pointerEvents: visible ? "box-none" : "none" },
+      ]}
       accessibilityLiveRegion="polite"
     >
       <View

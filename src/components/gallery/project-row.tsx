@@ -276,8 +276,10 @@ export function ProjectRow({
   // Grid tiles and web keep an always-visible entry point to the full menu.
   const overflow = swipeable ? null : (
     <View
-      style={[styles.overflow, { top: spacing.sm, end: spacing.sm }]}
-      pointerEvents="box-none"
+      style={[
+        styles.overflow,
+        { top: spacing.sm, end: spacing.sm, pointerEvents: "box-none" },
+      ]}
     >
       <IconButton
         onPress={onMenu}
