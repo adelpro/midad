@@ -19,6 +19,8 @@ export interface IconButtonProps extends PropsWithChildren {
   accessibilityHint?: string;
   /** Visible hint text on web hover and native long-press. */
   hint?: string;
+  /** Which side the hint bubble opens on. Defaults to above the button. */
+  hintPlacement?: "above" | "below";
   onLongPress?: () => void;
 }
 
@@ -31,6 +33,7 @@ export function IconButton({
   accessibilityLabel,
   accessibilityHint,
   hint,
+  hintPlacement,
   onLongPress,
   children,
 }: IconButtonProps) {
@@ -68,6 +71,7 @@ export function IconButton({
     <Tooltip
       label={hint ?? accessibilityLabel ?? ""}
       visible={!!hint && hintVisible}
+      placement={hintPlacement}
     >
       <AnimatedPressable
         accessibilityRole="button"

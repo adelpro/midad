@@ -34,7 +34,8 @@ export type ShortcutId =
   | "toolSelect"
   | "toolMultiSelect"
   | "toolText"
-  | "toggleGrid";
+  | "toggleGrid"
+  | "openHelp";
 
 /** Nudge distance in design units. Shift moves ten times as far. */
 export const NUDGE_STEP = 1;
@@ -117,6 +118,11 @@ export const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   { id: "toolMultiSelect", code: "KeyM" },
   { id: "toolText", code: "KeyT" },
   { id: "toggleGrid", code: "KeyG" },
+
+  // The help sheet. By `code` for the same reason as the letters: `?` needs
+  // Shift on every layout, and "Slash" names the physical key, so an Arabic
+  // keymap reaches it exactly as an English one does.
+  { id: "openHelp", code: "Slash", shift: true },
 ];
 
 /** The slice of `KeyboardEvent` the matcher reads. Keeps this module testable. */
@@ -138,9 +144,7 @@ export interface ShortcutKeyEvent {
  * modifiers it declared — the nudge bindings accept Shift either way and rely
  * on the press context to pick a distance.
  */
-export function matchShortcut(
-  event: ShortcutKeyEvent,
-): ShortcutBinding | null {
+export function matchShortcut(event: ShortcutKeyEvent): ShortcutBinding | null {
   // An in-flight IME composition owns the keystroke; stealing it would break
   // composition-based input.
   if (event.isComposing) {

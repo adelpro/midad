@@ -146,6 +146,17 @@ export interface Translation {
     alignLeft: string;
     alignCenter: string;
     alignRight: string;
+    // Help surfaces: the learn-mode banner and the help sheet.
+    /** Help sheet title. */
+    helpTitle: string;
+    /** One line under the help sheet title. */
+    helpIntro: string;
+    /** Learn-mode banner: what a tap will do while the mode is on. */
+    learnHint: string;
+    /** Learn-mode banner action that opens the help sheet. */
+    helpAllTools: string;
+    /** Learn-mode legend note: the canvas is frozen while the mode is on. */
+    learnPaused: string;
     hints: {
       back: string;
       undo: string;
@@ -320,6 +331,11 @@ export const strings: Record<Language, Translation> = {
       alignLeft: "يسار",
       alignCenter: "وسط",
       alignRight: "يمين",
+      helpTitle: "الأدوات والاختصارات",
+      helpIntro: "كل عنصر في المحرّر، ووظيفته في سطر واحد.",
+      learnHint: "وضع التعلّم مفعّل: المس أي عنصر لترى وظيفته دون تنفيذها.",
+      helpAllTools: "كل الأدوات والاختصارات",
+      learnPaused: "التعديل متوقّف ما دام وضع التعلّم مفعّلًا.",
       hints: {
         back: "رجوع",
         undo: "تراجع",
@@ -496,6 +512,11 @@ export const strings: Record<Language, Translation> = {
       alignLeft: "Left",
       alignCenter: "Center",
       alignRight: "Right",
+      helpTitle: "Tools and shortcuts",
+      helpIntro: "Every control in the editor, and what it does.",
+      learnHint: "Learn mode is on: tap any control to read its role.",
+      helpAllTools: "All tools and shortcuts",
+      learnPaused: "Editing is paused while learn mode is on.",
       hints: {
         back: "Back",
         undo: "Undo",

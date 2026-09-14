@@ -31,6 +31,15 @@ import {
   collectUsedFamilies,
   projectToSvg,
 } from "@/editor/export/svg";
+import {
+  HelpSheet,
+  LearnOverlay,
+  helpEntry,
+  helpLabel,
+  helpRole,
+  useHelpMode,
+  type HelpKey,
+} from "@/editor/help";
 import { renderProjectToPng } from "@/editor/render/offscreen";
 import {
   NUDGE_STEP,
@@ -39,17 +48,17 @@ import {
 } from "@/editor/shortcuts";
 import { textLineBreaks, useParagraphFonts } from "@/editor/skia/text";
 import { useEditorStore } from "@/editor/store";
+import {
+  FontSizeGauge,
+  NumberStepper,
+  TextPreview,
+} from "@/editor/text-style-controls";
 import { canSplitIntoClusters } from "@/editor/text/clusters";
 import {
   mergePartTexts,
   splitTextObject,
   type SplitFailure,
 } from "@/editor/text/split";
-import {
-  FontSizeGauge,
-  NumberStepper,
-  TextPreview,
-} from "@/editor/text-style-controls";
 import { useAutoSave } from "@/editor/use-auto-save";
 import { useKeyboardShortcuts } from "@/editor/use-keyboard-shortcuts";
 import { useObjectGestures } from "@/editor/use-object-gestures";
@@ -173,6 +182,26 @@ export function EditorScreen() {
   const [styleSheetOpen, setStyleSheetOpen] = useState(false);
   /** Transient explanation shown when a split is refused. */
   const [splitNotice, setSplitNotice] = useState<string | null>(null);
+  /** The complete tool reference, opened from the top bar or from learn mode. */
+  const [helpSheetOpen, setHelpSheetOpen] = useState(false);
+  /** Learn mode: controls explain themselves on tap instead of acting. */
+  const help = useHelpMode();
+  /**
+   * The `?` button, the swatches and the empty-rail notice read their copy from
+   * the help table like every other control, so there is one place to change it.
+   */
+  const helpText = (key: HelpKey) =>
+    helpLabel(helpEntry(key).label, t, language);
+  /**
+   * Role copy for a control that already shows its own name.
+   *
+   * The five tools carry a visible caption under the icon, so repeating that
+   * caption in the tooltip would say nothing. A tooltip should add whatever the
+   * control does not already show — the name for an icon-only button, the role
+   * for a captioned one.
+   */
+  const helpRoleText = (key: HelpKey) => helpRole(helpEntry(key), language);
+  const learnEntry = helpEntry("topBar.learn");
 
   useAutoSave();
 
@@ -189,7 +218,11 @@ export function EditorScreen() {
     })();
   }, [id, loadProject]);
 
-  const { gestures, tapPoint } = useObjectGestures(tool === "select");
+  // Object gestures freeze in learn mode, so a tap meant as "what is this?"
+  // can never move, resize or rotate the selection instead.
+  const { gestures, tapPoint } = useObjectGestures(
+    tool === "select" && !help.active,
+  );
 
   // Loaded once for offscreen rendering (thumbnails, exports).
   const skiaFonts = useParagraphFonts();
@@ -712,7 +745,14 @@ export function EditorScreen() {
    * which is also what leaves Escape free for react-native-web to close it.
    */
   const shortcuts = useKeyboardShortcuts({
-    enabled: !textSheetOpen && !styleSheetOpen && !exportOpen,
+    // Learn mode owns the keyboard too: the canvas is frozen and every control
+    // is a question, so firing an action from a key would be a lie.
+    enabled:
+      !textSheetOpen &&
+      !styleSheetOpen &&
+      !exportOpen &&
+      !helpSheetOpen &&
+      !help.active,
     handlers: {
       delete: deleteSelected,
       undo,
@@ -769,6 +809,10 @@ export function EditorScreen() {
         openTextSheet();
       },
       toggleGrid: () => setGrid(!gridEnabled),
+      openHelp: () => {
+        help.exit();
+        setHelpSheetOpen(true);
+      },
     },
   });
 
@@ -792,9 +836,10 @@ export function EditorScreen() {
         <View style={[styles.topBar, { borderColor: c.border }]}>
           <View style={styles.barInner}>
             <IconButton
-              onPress={() => router.back()}
+              onPress={help.press("topBar.back", () => router.back())}
               accessibilityLabel={t.editor.hints.back}
               hint={t.editor.hints.back}
+              hintPlacement="below"
             >
               <Icon
                 name={language === "ar" ? "chevronRight" : "chevronLeft"}
@@ -809,26 +854,29 @@ export function EditorScreen() {
             </Text>
             <View style={styles.topActions}>
               <IconButton
-                onPress={undo}
+                onPress={help.press("topBar.undo", undo)}
                 disabled={!canUndo}
                 accessibilityLabel={t.editor.hints.undo}
                 hint={shortcuts.hint(t.editor.hints.undo, "undo")}
+                hintPlacement="below"
               >
                 <Icon name="undo" size={18} color={canUndo ? c.ink : c.faint} />
               </IconButton>
               <IconButton
-                onPress={redo}
+                onPress={help.press("topBar.redo", redo)}
                 disabled={!canRedo}
                 accessibilityLabel={t.editor.hints.redo}
                 hint={shortcuts.hint(t.editor.hints.redo, "redo")}
+                hintPlacement="below"
               >
                 <Icon name="redo" size={18} color={canRedo ? c.ink : c.faint} />
               </IconButton>
               <IconButton
-                onPress={() => setGrid(!gridEnabled)}
+                onPress={help.press("topBar.grid", () => setGrid(!gridEnabled))}
                 variant={gridEnabled ? "ink" : "ghost"}
                 accessibilityLabel={t.editor.hints.grid}
                 hint={shortcuts.hint(t.editor.hints.grid, "toggleGrid")}
+                hintPlacement="below"
               >
                 <Icon
                   name="grid"
@@ -837,22 +885,40 @@ export function EditorScreen() {
                 />
               </IconButton>
               <IconButton
-                onPress={save}
+                onPress={help.press("topBar.save", save)}
                 accessibilityLabel={t.editor.hints.save}
                 accessibilityHint={t.editor.hints.save}
                 hint={shortcuts.hint(t.editor.hints.save, "save")}
+                hintPlacement="below"
               >
                 <Icon name="download" size={18} />
               </IconButton>
               <IconButton
-                onPress={() => {
+                onPress={help.press("topBar.export", () => {
                   setExportError(null);
                   setExportOpen(true);
-                }}
+                })}
                 accessibilityLabel={t.editor.hints.export}
                 hint={t.editor.hints.export}
+                hintPlacement="below"
               >
                 <Icon name="export" size={18} />
+              </IconButton>
+              {/* The one control learn mode cannot swallow — it is how the mode
+                  is left again. */}
+              <IconButton
+                onPress={help.toggle}
+                variant={help.active ? "ink" : "ghost"}
+                accessibilityLabel={helpText("topBar.learn")}
+                hint={helpText("topBar.learn")}
+                accessibilityHint={helpRole(learnEntry, language)}
+                hintPlacement="below"
+              >
+                <Icon
+                  name="help"
+                  size={18}
+                  color={help.active ? c.onInk : c.ink}
+                />
               </IconButton>
             </View>
           </View>
@@ -875,6 +941,13 @@ export function EditorScreen() {
               />
             </View>
           </GestureDetector>
+          {help.active && (
+            <LearnOverlay
+              activeKey={help.activeKey}
+              onExit={help.exit}
+              onOpenHelp={() => setHelpSheetOpen(true)}
+            />
+          )}
         </View>
 
         {/*
@@ -901,333 +974,398 @@ export function EditorScreen() {
             style={styles.contextScroll}
             contentContainerStyle={styles.contextTrack}
           >
-          {/* Selection actions */}
-          {selectedIds.length > 0 && (
-            <View style={styles.selectionActions}>
-              {selectedIds.length > 1 && (
-                <Text style={styles.selectionCount}>
-                  {formatSelectedCount(selectedIds.length, language)}
-                </Text>
-              )}
-              <IconButton
-                accessibilityLabel={t.editor.hints.scaleUp}
-                hint={t.editor.hints.scaleUp}
-                onPress={() =>
-                  transformSelected({
-                    scale: (selectedObject?.transform.scale ?? 1) * 1.1,
-                  })
-                }
-              >
-                <Icon name="plus" size={16} />
-              </IconButton>
-              <IconButton
-                accessibilityLabel={t.editor.hints.scaleDown}
-                hint={t.editor.hints.scaleDown}
-                onPress={() =>
-                  transformSelected({
-                    scale: (selectedObject?.transform.scale ?? 1) * 0.9,
-                  })
-                }
-              >
-                <Icon name="minus" size={16} />
-              </IconButton>
-              <IconButton
-                accessibilityLabel={t.editor.hints.rotateCcw}
-                hint={shortcuts.hint(t.editor.hints.rotateCcw, "rotateCcw")}
-                onPress={() =>
-                  transformSelected({
-                    rotation: (selectedObject?.transform.rotation ?? 0) - 90,
-                  })
-                }
-              >
-                <Icon name="rotateCcw" size={16} />
-              </IconButton>
-              <IconButton
-                accessibilityLabel={t.editor.hints.rotateCw}
-                hint={shortcuts.hint(t.editor.hints.rotateCw, "rotateCw")}
-                onPress={() =>
-                  transformSelected({
-                    rotation: (selectedObject?.transform.rotation ?? 0) + 90,
-                  })
-                }
-              >
-                <Icon name="rotateCw" size={16} />
-              </IconButton>
-              <IconButton
-                accessibilityLabel={t.editor.hints.flipH}
-                hint={shortcuts.hint(t.editor.hints.flipH, "flipH")}
-                onPress={() =>
-                  transformSelected({
-                    flipH: !(selectedObject?.transform.flipH ?? false),
-                  })
-                }
-              >
-                <Icon name="flip" size={16} />
-              </IconButton>
-              {selectedObject?.type === "text" && (
+            {/* Selection actions */}
+            {selectedIds.length > 0 && (
+              <View style={styles.selectionActions}>
+                {selectedIds.length > 1 && (
+                  <Text style={styles.selectionCount}>
+                    {formatSelectedCount(selectedIds.length, language)}
+                  </Text>
+                )}
                 <IconButton
-                  onPress={fitTextToContent}
-                  accessibilityLabel={t.editor.hints.fitText}
-                  hint={t.editor.hints.fitText}
+                  accessibilityLabel={t.editor.hints.scaleUp}
+                  hint={t.editor.hints.scaleUp}
+                  onPress={help.press("sel.scaleUp", () =>
+                    transformSelected({
+                      scale: (selectedObject?.transform.scale ?? 1) * 1.1,
+                    }),
+                  )}
                 >
-                  <Icon name="fitText" size={16} />
+                  <Icon name="plus" size={16} />
                 </IconButton>
-              )}
-              {canSplitSelected && (
                 <IconButton
-                  onPress={splitSelected}
-                  accessibilityLabel={t.editor.hints.split}
-                  hint={t.editor.hints.split}
+                  accessibilityLabel={t.editor.hints.scaleDown}
+                  hint={t.editor.hints.scaleDown}
+                  onPress={help.press("sel.scaleDown", () =>
+                    transformSelected({
+                      scale: (selectedObject?.transform.scale ?? 1) * 0.9,
+                    }),
+                  )}
                 >
-                  <Icon name="split" size={16} />
+                  <Icon name="minus" size={16} />
                 </IconButton>
-              )}
-              {partSiblings.length > 1 && (
                 <IconButton
-                  onPress={rejoinSelected}
-                  accessibilityLabel={t.editor.hints.rejoin}
-                  hint={t.editor.hints.rejoin}
+                  accessibilityLabel={t.editor.hints.rotateCcw}
+                  hint={shortcuts.hint(t.editor.hints.rotateCcw, "rotateCcw")}
+                  onPress={help.press("sel.rotateCcw", () =>
+                    transformSelected({
+                      rotation: (selectedObject?.transform.rotation ?? 0) - 90,
+                    }),
+                  )}
                 >
-                  <Icon name="rejoin" size={16} />
+                  <Icon name="rotateCcw" size={16} />
                 </IconButton>
-              )}
-              <IconButton
-                onPress={duplicateSelected}
-                accessibilityLabel={t.editor.hints.duplicate}
-                hint={shortcuts.hint(t.editor.hints.duplicate, "duplicate")}
-              >
-                <Icon name="duplicate" size={16} />
-              </IconButton>
-              <IconButton
-                accessibilityLabel={t.editor.hints.bringToFront}
-                hint={shortcuts.hint(t.editor.hints.bringToFront, "bringToFront")}
-                onPress={() => bringToFront([selectedIds[0]])}
-              >
-                <Icon name="layerUp" size={16} />
-              </IconButton>
-              <IconButton
-                accessibilityLabel={t.editor.hints.sendToBack}
-                hint={shortcuts.hint(t.editor.hints.sendToBack, "sendToBack")}
-                onPress={() => sendToBack([selectedIds[0]])}
-              >
-                <Icon name="layerDown" size={16} />
-              </IconButton>
-              <IconButton
-                onPress={deleteSelected}
-                accessibilityLabel={t.editor.hints.delete}
-                hint={shortcuts.hint(t.editor.hints.delete, "delete")}
-              >
-                <Icon name="trash" size={16} color={c.danger} />
-              </IconButton>
-              {selectedIds.length > 1 && (
-                <>
+                <IconButton
+                  accessibilityLabel={t.editor.hints.rotateCw}
+                  hint={shortcuts.hint(t.editor.hints.rotateCw, "rotateCw")}
+                  onPress={help.press("sel.rotateCw", () =>
+                    transformSelected({
+                      rotation: (selectedObject?.transform.rotation ?? 0) + 90,
+                    }),
+                  )}
+                >
+                  <Icon name="rotateCw" size={16} />
+                </IconButton>
+                <IconButton
+                  accessibilityLabel={t.editor.hints.flipH}
+                  hint={shortcuts.hint(t.editor.hints.flipH, "flipH")}
+                  onPress={help.press("sel.flipH", () =>
+                    transformSelected({
+                      flipH: !(selectedObject?.transform.flipH ?? false),
+                    }),
+                  )}
+                >
+                  <Icon name="flip" size={16} />
+                </IconButton>
+                {selectedObject?.type === "text" && (
                   <IconButton
-                    onPress={() => alignSelected("left")}
-                    accessibilityLabel={t.editor.hints.alignLeft}
-                    hint={t.editor.hints.alignLeft}
+                    onPress={help.press("sel.fitText", fitTextToContent)}
+                    accessibilityLabel={t.editor.hints.fitText}
+                    hint={t.editor.hints.fitText}
                   >
-                    <Icon name="alignLeft" size={16} />
+                    <Icon name="fitText" size={16} />
                   </IconButton>
+                )}
+                {canSplitSelected && (
                   <IconButton
-                    onPress={() => alignSelected("centerH")}
-                    accessibilityLabel={t.editor.hints.alignCenterH}
-                    hint={t.editor.hints.alignCenterH}
+                    onPress={help.press("sel.split", splitSelected)}
+                    accessibilityLabel={t.editor.hints.split}
+                    hint={t.editor.hints.split}
                   >
-                    <Icon name="alignCenterH" size={16} />
+                    <Icon name="split" size={16} />
                   </IconButton>
+                )}
+                {partSiblings.length > 1 && (
                   <IconButton
-                    onPress={() => alignSelected("right")}
-                    accessibilityLabel={t.editor.hints.alignRight}
-                    hint={t.editor.hints.alignRight}
+                    onPress={help.press("sel.rejoin", rejoinSelected)}
+                    accessibilityLabel={t.editor.hints.rejoin}
+                    hint={t.editor.hints.rejoin}
                   >
-                    <Icon name="alignRight" size={16} />
+                    <Icon name="rejoin" size={16} />
                   </IconButton>
-                  <IconButton
-                    onPress={() => alignSelected("top")}
-                    accessibilityLabel={t.editor.hints.alignTop}
-                    hint={t.editor.hints.alignTop}
-                  >
-                    <Icon name="alignTop" size={16} />
-                  </IconButton>
-                  <IconButton
-                    onPress={() => alignSelected("middleV")}
-                    accessibilityLabel={t.editor.hints.alignMiddleV}
-                    hint={t.editor.hints.alignMiddleV}
-                  >
-                    <Icon name="alignMiddleV" size={16} />
-                  </IconButton>
-                  <IconButton
-                    onPress={() => alignSelected("bottom")}
-                    accessibilityLabel={t.editor.hints.alignBottom}
-                    hint={t.editor.hints.alignBottom}
-                  >
-                    <Icon name="alignBottom" size={16} />
-                  </IconButton>
-                </>
-              )}
-              <IconButton
-                onPress={() => alignSelected("canvasCenterH")}
-                accessibilityLabel={t.editor.hints.centerH}
-                hint={t.editor.hints.centerH}
-              >
-                <Icon name="centerH" size={16} />
-              </IconButton>
-              <IconButton
-                onPress={() => alignSelected("canvasCenterV")}
-                accessibilityLabel={t.editor.hints.centerV}
-                hint={t.editor.hints.centerV}
-              >
-                <Icon name="centerV" size={16} />
-              </IconButton>
-            </View>
-          )}
-
-          {/* Parts strip — the pieces of a split word, in reading order */}
-          {partSiblings.length > 1 && (
-            <Reveal style={styles.partsStrip}>
-              <IconButton
-                onPress={() => stepPart(-1)}
-                accessibilityLabel={t.editor.hints.partPrev}
-                hint={t.editor.hints.partPrev}
-              >
-                <DirectionIcon isRTL={!isRTL} size={16} />
-              </IconButton>
-              <View style={styles.partsTrack}>
-                {partSiblings.map((part, index) => (
-                  <PartTile
-                    key={part.id}
-                    label={formatPartLabel(index, partSiblings.length, language)}
-                    text={part.text}
-                    fontKey={part.fontKey}
-                    index={index}
-                    active={index === activePartIndex}
-                    onPress={() => select(part.id)}
-                  />
-                ))}
+                )}
+                <IconButton
+                  onPress={help.press("sel.duplicate", duplicateSelected)}
+                  accessibilityLabel={t.editor.hints.duplicate}
+                  hint={shortcuts.hint(t.editor.hints.duplicate, "duplicate")}
+                >
+                  <Icon name="duplicate" size={16} />
+                </IconButton>
+                <IconButton
+                  accessibilityLabel={t.editor.hints.bringToFront}
+                  hint={shortcuts.hint(
+                    t.editor.hints.bringToFront,
+                    "bringToFront",
+                  )}
+                  onPress={help.press("sel.bringToFront", () =>
+                    bringToFront([selectedIds[0]]),
+                  )}
+                >
+                  <Icon name="layerUp" size={16} />
+                </IconButton>
+                <IconButton
+                  accessibilityLabel={t.editor.hints.sendToBack}
+                  hint={shortcuts.hint(t.editor.hints.sendToBack, "sendToBack")}
+                  onPress={help.press("sel.sendToBack", () =>
+                    sendToBack([selectedIds[0]]),
+                  )}
+                >
+                  <Icon name="layerDown" size={16} />
+                </IconButton>
+                <IconButton
+                  onPress={help.press("sel.delete", deleteSelected)}
+                  accessibilityLabel={t.editor.hints.delete}
+                  hint={shortcuts.hint(t.editor.hints.delete, "delete")}
+                >
+                  <Icon name="trash" size={16} color={c.danger} />
+                </IconButton>
+                {selectedIds.length > 1 && (
+                  <>
+                    <IconButton
+                      onPress={help.press("sel.alignLeft", () =>
+                        alignSelected("left"),
+                      )}
+                      accessibilityLabel={t.editor.hints.alignLeft}
+                      hint={t.editor.hints.alignLeft}
+                    >
+                      <Icon name="alignLeft" size={16} />
+                    </IconButton>
+                    <IconButton
+                      onPress={help.press("sel.alignCenterH", () =>
+                        alignSelected("centerH"),
+                      )}
+                      accessibilityLabel={t.editor.hints.alignCenterH}
+                      hint={t.editor.hints.alignCenterH}
+                    >
+                      <Icon name="alignCenterH" size={16} />
+                    </IconButton>
+                    <IconButton
+                      onPress={help.press("sel.alignRight", () =>
+                        alignSelected("right"),
+                      )}
+                      accessibilityLabel={t.editor.hints.alignRight}
+                      hint={t.editor.hints.alignRight}
+                    >
+                      <Icon name="alignRight" size={16} />
+                    </IconButton>
+                    <IconButton
+                      onPress={help.press("sel.alignTop", () =>
+                        alignSelected("top"),
+                      )}
+                      accessibilityLabel={t.editor.hints.alignTop}
+                      hint={t.editor.hints.alignTop}
+                    >
+                      <Icon name="alignTop" size={16} />
+                    </IconButton>
+                    <IconButton
+                      onPress={help.press("sel.alignMiddleV", () =>
+                        alignSelected("middleV"),
+                      )}
+                      accessibilityLabel={t.editor.hints.alignMiddleV}
+                      hint={t.editor.hints.alignMiddleV}
+                    >
+                      <Icon name="alignMiddleV" size={16} />
+                    </IconButton>
+                    <IconButton
+                      onPress={help.press("sel.alignBottom", () =>
+                        alignSelected("bottom"),
+                      )}
+                      accessibilityLabel={t.editor.hints.alignBottom}
+                      hint={t.editor.hints.alignBottom}
+                    >
+                      <Icon name="alignBottom" size={16} />
+                    </IconButton>
+                  </>
+                )}
+                <IconButton
+                  onPress={help.press("sel.centerH", () =>
+                    alignSelected("canvasCenterH"),
+                  )}
+                  accessibilityLabel={t.editor.hints.centerH}
+                  hint={t.editor.hints.centerH}
+                >
+                  <Icon name="centerH" size={16} />
+                </IconButton>
+                <IconButton
+                  onPress={help.press("sel.centerV", () =>
+                    alignSelected("canvasCenterV"),
+                  )}
+                  accessibilityLabel={t.editor.hints.centerV}
+                  hint={t.editor.hints.centerV}
+                >
+                  <Icon name="centerV" size={16} />
+                </IconButton>
               </View>
-              <IconButton
-                onPress={() => stepPart(1)}
-                accessibilityLabel={t.editor.hints.partNext}
-                hint={t.editor.hints.partNext}
-              >
-                <DirectionIcon isRTL={isRTL} size={16} />
-              </IconButton>
-            </Reveal>
-          )}
+            )}
 
-          {/* Style navigator — cycles the presentation presets on the selection */}
-          {selectedText && (
-            <Reveal style={styles.styleNav}>
-              <View style={styles.styleNavInner}>
+            {/* Parts strip — the pieces of a split word, in reading order */}
+            {partSiblings.length > 1 && (
+              <Reveal style={styles.partsStrip}>
                 <IconButton
-                  onPress={() => cyclePresentation(-1)}
-                  accessibilityLabel={t.editor.hints.stylePrev}
-                  hint={t.editor.hints.stylePrev}
+                  onPress={help.press("sel.partPrev", () => stepPart(-1))}
+                  accessibilityLabel={t.editor.hints.partPrev}
+                  hint={t.editor.hints.partPrev}
                 >
                   <DirectionIcon isRTL={!isRTL} size={16} />
                 </IconButton>
-                <Pressable
-                  onPress={() => setStyleSheetOpen(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t.editor.style}
-                  style={styles.styleNameWrap}
-                >
-                  <Text
-                    style={[
-                      styles.styleName,
-                      { color: c.muted, fontFamily: fonts.ui },
-                    ]}
-                  >
-                    {t.editor.style}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.styleValue,
-                      { color: c.accentText, fontFamily: fonts.ui },
-                    ]}
-                  >
-                    {language === "ar"
-                      ? activePresentation.labelAr
-                      : activePresentation.labelEn}
-                  </Text>
-                </Pressable>
+                <View style={styles.partsTrack}>
+                  {partSiblings.map((part, index) => (
+                    <PartTile
+                      key={part.id}
+                      label={formatPartLabel(
+                        index,
+                        partSiblings.length,
+                        language,
+                      )}
+                      text={part.text}
+                      fontKey={part.fontKey}
+                      index={index}
+                      active={index === activePartIndex}
+                      onPress={help.press("sel.partTile", () =>
+                        select(part.id),
+                      )}
+                    />
+                  ))}
+                </View>
                 <IconButton
-                  onPress={() => cyclePresentation(1)}
-                  accessibilityLabel={t.editor.hints.styleNext}
-                  hint={t.editor.hints.styleNext}
+                  onPress={help.press("sel.partNext", () => stepPart(1))}
+                  accessibilityLabel={t.editor.hints.partNext}
+                  hint={t.editor.hints.partNext}
                 >
                   <DirectionIcon isRTL={isRTL} size={16} />
                 </IconButton>
-              </View>
-            </Reveal>
-          )}
+              </Reveal>
+            )}
 
-          {/* Why a split was refused */}
-          {!!splitNotice && (
-            <Reveal
-              style={[
-                styles.notice,
-                { backgroundColor: c.dangerBg, borderColor: c.border },
-              ]}
-            >
-              <Text
+            {/* Style navigator — cycles the presentation presets on the selection */}
+            {selectedText && (
+              <Reveal style={styles.styleNav}>
+                <View style={styles.styleNavInner}>
+                  <IconButton
+                    onPress={help.press("sel.stylePrev", () =>
+                      cyclePresentation(-1),
+                    )}
+                    accessibilityLabel={t.editor.hints.stylePrev}
+                    hint={t.editor.hints.stylePrev}
+                  >
+                    <DirectionIcon isRTL={!isRTL} size={16} />
+                  </IconButton>
+                  <Pressable
+                    onPress={help.press("sel.styleOpen", () =>
+                      setStyleSheetOpen(true),
+                    )}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.editor.style}
+                    style={styles.styleNameWrap}
+                  >
+                    <Text
+                      style={[
+                        styles.styleName,
+                        { color: c.muted, fontFamily: fonts.ui },
+                      ]}
+                    >
+                      {t.editor.style}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.styleValue,
+                        { color: c.accentText, fontFamily: fonts.ui },
+                      ]}
+                    >
+                      {language === "ar"
+                        ? activePresentation.labelAr
+                        : activePresentation.labelEn}
+                    </Text>
+                  </Pressable>
+                  <IconButton
+                    onPress={help.press("sel.styleNext", () =>
+                      cyclePresentation(1),
+                    )}
+                    accessibilityLabel={t.editor.hints.styleNext}
+                    hint={t.editor.hints.styleNext}
+                  >
+                    <DirectionIcon isRTL={isRTL} size={16} />
+                  </IconButton>
+                </View>
+              </Reveal>
+            )}
+
+            {/* Why a split was refused */}
+            {!!splitNotice && (
+              <Reveal
                 style={[
-                  styles.noticeText,
-                  { color: c.danger, fontFamily: fonts.ui },
+                  styles.notice,
+                  { backgroundColor: c.dangerBg, borderColor: c.border },
                 ]}
               >
-                {splitNotice}
-              </Text>
-            </Reveal>
-          )}
+                <Text
+                  style={[
+                    styles.noticeText,
+                    { color: c.danger, fontFamily: fonts.ui },
+                  ]}
+                >
+                  {splitNotice}
+                </Text>
+              </Reveal>
+            )}
 
-          {/* Colour picker for the 'color' tool — in the rail, so switching
+            {/* A tool that has nothing to show has to say why (DESIGN.md §8).
+              The colour strip renders nothing without a selection, so this is
+              the one place the empty rail explains itself. */}
+            {tool === "color" && !selectedObject && (
+              <Reveal
+                style={[
+                  styles.notice,
+                  { backgroundColor: c.surfaceAlt, borderColor: c.border },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.noticeText,
+                    { color: c.muted, fontFamily: fonts.ui },
+                  ]}
+                >
+                  {helpRole(helpEntry("sel.empty"), language)}
+                </Text>
+              </Reveal>
+            )}
+
+            {/* Colour picker for the 'color' tool — in the rail, so switching
               tools cannot resize the canvas either. */}
-          {tool === "color" && selectedObject && (
-            <View
-              style={[
-                styles.colorStrip,
-                { borderColor: c.border, backgroundColor: c.surfaceAlt },
-              ]}
-            >
-              {inkSwatches.map((col) => (
-                <Pressable
-                  key={col}
-                  style={[
-                    styles.colorSwatch,
-                    { backgroundColor: col, borderColor: c.border },
-                    selectedObject.color === col && styles.colorSwatchActive,
-                  ]}
-                  onPress={() => {
-                    const store = useEditorStore.getState();
-                    store.snapshot();
-                    updateObject(selectedObject.id, { color: col } as never);
-                  }}
-                />
-              ))}
-            </View>
-          )}
+            {tool === "color" && selectedObject && (
+              <View
+                style={[
+                  styles.colorStrip,
+                  { borderColor: c.border, backgroundColor: c.surfaceAlt },
+                ]}
+              >
+                {inkSwatches.map((col) => (
+                  <Pressable
+                    key={col}
+                    accessibilityRole="button"
+                    accessibilityLabel={helpText("sel.swatchInk")}
+                    accessibilityState={{
+                      selected: selectedObject.color === col,
+                    }}
+                    style={[
+                      styles.colorSwatch,
+                      { backgroundColor: col, borderColor: c.border },
+                      selectedObject.color === col && styles.colorSwatchActive,
+                    ]}
+                    onPress={help.press("sel.swatchInk", () => {
+                      const store = useEditorStore.getState();
+                      store.snapshot();
+                      updateObject(selectedObject.id, { color: col } as never);
+                    })}
+                  />
+                ))}
+              </View>
+            )}
 
-          {/* Background tool */}
-          {tool === "background" && (
-            <View
-              style={[
-                styles.colorStrip,
-                { borderColor: c.border, backgroundColor: c.surfaceAlt },
-              ]}
-            >
-              {paperSwatches.map((col) => (
-                <Pressable
-                  key={col}
-                  style={[
-                    styles.colorSwatch,
-                    { backgroundColor: col, borderColor: c.border },
-                  ]}
-                  onPress={() => setBgColor(col)}
-                />
-              ))}
-            </View>
-          )}
+            {/* Background tool */}
+            {tool === "background" && (
+              <View
+                style={[
+                  styles.colorStrip,
+                  { borderColor: c.border, backgroundColor: c.surfaceAlt },
+                ]}
+              >
+                {paperSwatches.map((col) => (
+                  <Pressable
+                    key={col}
+                    accessibilityRole="button"
+                    accessibilityLabel={helpText("sel.swatchPaper")}
+                    style={[
+                      styles.colorSwatch,
+                      { backgroundColor: col, borderColor: c.border },
+                    ]}
+                    onPress={help.press("sel.swatchPaper", () =>
+                      setBgColor(col),
+                    )}
+                  />
+                ))}
+              </View>
+            )}
           </ScrollView>
         </View>
 
@@ -1241,48 +1379,53 @@ export function EditorScreen() {
           <View style={[styles.barInner, styles.toolRailInner]}>
             <ToolBtn
               label={t.editor.select}
-              hint={shortcuts.hint(t.editor.select, "toolSelect")}
+              hint={shortcuts.hint(helpRoleText("tool.select"), "toolSelect")}
               active={tool === "select" && !multiSelectMode}
-              onPress={() => selectTool("select")}
+              onPress={help.press("tool.select", () => selectTool("select"))}
               icon="pen"
             />
             <ToolBtn
               label={t.editor.hints.multiSelect}
-              hint={shortcuts.hint(t.editor.hints.multiSelect, "toolMultiSelect")}
+              hint={shortcuts.hint(
+                helpRoleText("tool.multiSelect"),
+                "toolMultiSelect",
+              )}
               active={tool === "select" && multiSelectMode}
-              onPress={() => {
+              onPress={help.press("tool.multiSelect", () => {
                 selectTool("select");
                 setMultiSelectMode(!multiSelectMode);
-              }}
+              })}
               icon="multiSelect"
             />
             <ToolBtn
               label={t.editor.text}
-              hint={shortcuts.hint(t.editor.text, "toolText")}
+              hint={shortcuts.hint(helpRoleText("tool.text"), "toolText")}
               active={tool === "text"}
-              onPress={() => {
+              onPress={help.press("tool.text", () => {
                 setMultiSelectMode(false);
                 selectTool("text");
                 openTextSheet();
-              }}
+              })}
               icon="type"
             />
             <ToolBtn
               label={t.editor.colors}
+              hint={helpRoleText("tool.colors")}
               active={tool === "color"}
-              onPress={() => {
+              onPress={help.press("tool.colors", () => {
                 setMultiSelectMode(false);
                 selectTool("color");
-              }}
+              })}
               icon="palette"
             />
             <ToolBtn
               label={t.editor.background}
+              hint={helpRoleText("tool.background")}
               active={tool === "background"}
-              onPress={() => {
+              onPress={help.press("tool.background", () => {
                 setMultiSelectMode(false);
                 selectTool("background");
-              }}
+              })}
               icon="image"
             />
           </View>
@@ -1313,6 +1456,7 @@ export function EditorScreen() {
               value={draftText}
               onChange={setDraftText}
               placeholder={t.editor.enterText}
+              accessibilityLabel={helpText("panel.textInput")}
             />
             <FontSizeGauge
               value={draftFontSize}
@@ -1327,12 +1471,16 @@ export function EditorScreen() {
                   key={f.key}
                   label={language === "ar" ? f.labelAr : f.labelEn}
                   variant={draftFont === f.key ? "primary" : "secondary"}
-                  onPress={() => setDraftFont(f.key)}
+                  onPress={help.press("panel.font", () => setDraftFont(f.key))}
                   style={styles.fontBtn}
                 />
               ))}
             </View>
-            <Button label={t.common.done} onPress={saveTextObject} fullWidth />
+            <Button
+              label={t.common.done}
+              onPress={help.press("panel.done", saveTextObject)}
+              fullWidth
+            />
           </View>
         </Sheet>
 
@@ -1357,7 +1505,9 @@ export function EditorScreen() {
                         accessibilityLabel={label}
                         variant={active ? "primary" : "secondary"}
                         selected={active}
-                        onPress={() => applyPresentation(preset.key)}
+                        onPress={help.press("panel.preset", () =>
+                          applyPresentation(preset.key),
+                        )}
                         style={styles.presetBtn}
                       />
                     );
@@ -1378,14 +1528,18 @@ export function EditorScreen() {
                 <NumberStepper
                   label={t.editor.lineHeight}
                   display={String(Math.round(selectedText.lineHeight))}
-                  onPrev={() => stepLineHeight(-1)}
-                  onNext={() => stepLineHeight(1)}
+                  onPrev={help.press("panel.lineHeight", () =>
+                    stepLineHeight(-1),
+                  )}
+                  onNext={help.press("panel.lineHeight", () =>
+                    stepLineHeight(1),
+                  )}
                 />
                 <NumberStepper
                   label={t.editor.opacity}
                   display={`${Math.round(selectedText.opacity * 100)}%`}
-                  onPrev={() => stepOpacity(-0.1)}
-                  onNext={() => stepOpacity(0.1)}
+                  onPrev={help.press("panel.opacity", () => stepOpacity(-0.1))}
+                  onNext={help.press("panel.opacity", () => stepOpacity(0.1))}
                   prevDisabled={selectedText.opacity <= MIN_OPACITY}
                   nextDisabled={selectedText.opacity >= MAX_OPACITY}
                 />
@@ -1407,9 +1561,9 @@ export function EditorScreen() {
                           selectedText.align === value ? "primary" : "secondary"
                         }
                         selected={selectedText.align === value}
-                        onPress={() =>
-                          patchStyle({ align: value as TextAlign })
-                        }
+                        onPress={help.press("panel.align", () =>
+                          patchStyle({ align: value as TextAlign }),
+                        )}
                         style={styles.alignBtn}
                       />
                     ))}
@@ -1418,7 +1572,9 @@ export function EditorScreen() {
 
                 <Button
                   label={t.common.done}
-                  onPress={() => setStyleSheetOpen(false)}
+                  onPress={help.press("panel.done", () =>
+                    setStyleSheetOpen(false),
+                  )}
                   fullWidth
                 />
               </>
@@ -1444,19 +1600,19 @@ export function EditorScreen() {
           <View style={styles.sheetBody}>
             <Button
               label={t.editor.exportShareImage}
-              onPress={exportImage}
+              onPress={help.press("export.image", exportImage)}
               fullWidth
               variant={exporting === "image" ? "secondary" : "primary"}
             />
             <Button
               label={t.editor.exportSvgAction}
-              onPress={exportSvg}
+              onPress={help.press("export.svg", exportSvg)}
               fullWidth
               variant="secondary"
             />
             <Button
               label={t.editor.exportProjectFile}
-              onPress={exportFile}
+              onPress={help.press("export.project", exportFile)}
               fullWidth
               variant="secondary"
             />
@@ -1474,6 +1630,19 @@ export function EditorScreen() {
             )}
           </View>
         </Sheet>
+
+        {/* Help sheet — the complete tool and shortcut reference */}
+        <HelpSheet
+          visible={helpSheetOpen}
+          onClose={() => setHelpSheetOpen(false)}
+          chord={shortcuts.chord}
+          onStartLearn={() => {
+            setHelpSheetOpen(false);
+            if (!help.active) {
+              help.toggle();
+            }
+          }}
+        />
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -1587,10 +1756,13 @@ function TextInputStub({
   value,
   onChange,
   placeholder,
+  accessibilityLabel,
 }: {
   value: string;
   onChange: (s: string) => void;
   placeholder: string;
+  /** Named by the help table, like every other editor control. */
+  accessibilityLabel?: string;
 }) {
   const { colors: c } = useTheme();
   const { language } = useT();
@@ -1605,6 +1777,7 @@ function TextInputStub({
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
+        accessibilityLabel={accessibilityLabel}
         placeholderTextColor="#9A968C"
         style={{
           color: c.ink,

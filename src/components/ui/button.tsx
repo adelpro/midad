@@ -29,6 +29,8 @@ export interface ButtonProps {
   testID?: string;
   /** Overrides `label` as the accessibility name. */
   accessibilityLabel?: string;
+  /** Extra guidance for screen readers. Never shown visually. */
+  accessibilityHint?: string;
   /** Marks the button as a chosen option in the accessibility tree. */
   selected?: boolean;
 }
@@ -68,6 +70,7 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
     style,
     testID,
     accessibilityLabel,
+    accessibilityHint,
     selected,
   },
   ref,
@@ -97,6 +100,7 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: dimmed, selected }}
       disabled={dimmed}
       onPress={onPress}

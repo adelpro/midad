@@ -121,6 +121,7 @@ const EXPECTED_IDS = [
   "toolMultiSelect",
   "toolText",
   "toggleGrid",
+  "openHelp",
 ];
 
 const bound = new Set(SHORTCUT_BINDINGS.map((b) => b.id));
@@ -133,7 +134,9 @@ eq(
 );
 eq(
   "only Delete and Redo carry an alternate binding",
-  [...bound].filter((id) => SHORTCUT_BINDINGS.filter((b) => b.id === id).length > 1),
+  [...bound].filter(
+    (id) => SHORTCUT_BINDINGS.filter((b) => b.id === id).length > 1,
+  ),
   ["delete", "redo"],
 );
 
@@ -188,27 +191,63 @@ eq(
   "redo",
 );
 eq("Ctrl+Y redoes", idOf({ code: "KeyY", key: "y", ctrlKey: true }), "redo");
-eq("Ctrl+D duplicates", idOf({ code: "KeyD", key: "d", ctrlKey: true }), "duplicate");
-eq("Ctrl+A selects all", idOf({ code: "KeyA", key: "a", ctrlKey: true }), "selectAll");
+eq(
+  "Ctrl+D duplicates",
+  idOf({ code: "KeyD", key: "d", ctrlKey: true }),
+  "duplicate",
+);
+eq(
+  "Ctrl+A selects all",
+  idOf({ code: "KeyA", key: "a", ctrlKey: true }),
+  "selectAll",
+);
 eq("Ctrl+S saves", idOf({ code: "KeyS", key: "s", ctrlKey: true }), "save");
 eq("Escape clears", idOf({ key: "Escape" }), "clearSelection");
 
 eq("Left arrow nudges", idOf({ key: "ArrowLeft" }), "nudgeLeft");
-eq("Shift+Left arrow nudges", idOf({ key: "ArrowLeft", shiftKey: true }), "nudgeLeft");
+eq(
+  "Shift+Left arrow nudges",
+  idOf({ key: "ArrowLeft", shiftKey: true }),
+  "nudgeLeft",
+);
 eq("Right arrow nudges", idOf({ key: "ArrowRight" }), "nudgeRight");
 eq("Up arrow nudges", idOf({ key: "ArrowUp" }), "nudgeUp");
 eq("Down arrow nudges", idOf({ key: "ArrowDown" }), "nudgeDown");
 
 eq("Shift+H flips", idOf({ code: "KeyH", key: "H", shiftKey: true }), "flipH");
-eq("Shift+V flips vertically", idOf({ code: "KeyV", key: "V", shiftKey: true }), "flipV");
-eq("Shift+R rotates clockwise", idOf({ code: "KeyR", key: "R", shiftKey: true }), "rotateCw");
-eq("Shift+E rotates counter-clockwise", idOf({ code: "KeyE", key: "E", shiftKey: true }), "rotateCcw");
+eq(
+  "Shift+V flips vertically",
+  idOf({ code: "KeyV", key: "V", shiftKey: true }),
+  "flipV",
+);
+eq(
+  "Shift+R rotates clockwise",
+  idOf({ code: "KeyR", key: "R", shiftKey: true }),
+  "rotateCw",
+);
+eq(
+  "Shift+E rotates counter-clockwise",
+  idOf({ code: "KeyE", key: "E", shiftKey: true }),
+  "rotateCcw",
+);
 
-eq("Ctrl+] raises", idOf({ code: "BracketRight", key: "]", ctrlKey: true }), "bringToFront");
-eq("Ctrl+[ lowers", idOf({ code: "BracketLeft", key: "[", ctrlKey: true }), "sendToBack");
+eq(
+  "Ctrl+] raises",
+  idOf({ code: "BracketRight", key: "]", ctrlKey: true }),
+  "bringToFront",
+);
+eq(
+  "Ctrl+[ lowers",
+  idOf({ code: "BracketLeft", key: "[", ctrlKey: true }),
+  "sendToBack",
+);
 
 eq("V selects", idOf({ code: "KeyV", key: "v" }), "toolSelect");
-eq("M toggles multi-select", idOf({ code: "KeyM", key: "m" }), "toolMultiSelect");
+eq(
+  "M toggles multi-select",
+  idOf({ code: "KeyM", key: "m" }),
+  "toolMultiSelect",
+);
 eq("T opens text", idOf({ code: "KeyT", key: "t" }), "toolText");
 eq("G toggles the grid", idOf({ code: "KeyG", key: "g" }), "toggleGrid");
 
@@ -263,23 +302,47 @@ eq(
 const byId = (id) => SHORTCUT_BINDINGS.find((b) => b.id === id);
 eq("mac undo chord", formatChord(byId("undo"), true), "⌘Z");
 eq("windows undo chord", formatChord(byId("undo"), false), "Ctrl+Z");
-eq("mac redo chord runs the modifiers together", formatChord(byId("redo"), true), "⇧⌘Z");
-eq("windows redo chord spells them out", formatChord(byId("redo"), false), "Ctrl+Shift+Z");
+eq(
+  "mac redo chord runs the modifiers together",
+  formatChord(byId("redo"), true),
+  "⇧⌘Z",
+);
+eq(
+  "windows redo chord spells them out",
+  formatChord(byId("redo"), false),
+  "Ctrl+Shift+Z",
+);
 eq("named keys read as words", formatChord(byId("delete"), true), "Delete");
 eq("bare letters are shown alone", formatChord(byId("toolSelect"), true), "V");
-eq("brackets survive the code lookup", formatChord(byId("bringToFront"), true), "⌘]");
+eq(
+  "brackets survive the code lookup",
+  formatChord(byId("bringToFront"), true),
+  "⌘]",
+);
 eq("arrows read as glyphs", formatChord(byId("nudgeLeft"), true), "←");
 eq("Shift alone still reads", formatChord(byId("flipH"), true), "⇧H");
-eq("Shift alone on windows reads", formatChord(byId("flipH"), false), "Shift+H");
+eq(
+  "Shift alone on windows reads",
+  formatChord(byId("flipH"), false),
+  "Shift+H",
+);
 
 eq("a chord is appended to its label", formatHint("Undo", "⌘Z"), "Undo · ⌘Z");
 eq("no chord leaves the label alone", formatHint("Undo", ""), "Undo");
 
-eq("every action has a chord", EXPECTED_IDS.filter((id) => !chordFor(id, true)), []);
+eq(
+  "every action has a chord",
+  EXPECTED_IDS.filter((id) => !chordFor(id, true)),
+  [],
+);
 
 const hints = buildShortcutHints(true);
 eq("the hint surface composes", hints.hint("Undo", "undo"), "Undo · ⌘Z");
-eq("the inert surface adds nothing", NO_SHORTCUT_HINTS.hint("Undo", "undo"), "Undo");
+eq(
+  "the inert surface adds nothing",
+  NO_SHORTCUT_HINTS.hint("Undo", "undo"),
+  "Undo",
+);
 eq("the inert surface shows no chord", NO_SHORTCUT_HINTS.chord("undo"), "");
 
 // ---------------------------------------------------------------------------
