@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import {
   GestureDetector,
@@ -32,28 +31,7 @@ import {
   collectUsedFamilies,
   projectToSvg,
 } from "@/editor/export/svg";
-import {
-  HelpSheet,
-  LearnOverlay,
-  helpEntry,
-  helpLabel,
-  helpRole,
-  useHelpMode,
-  type HelpKey,
-} from "@/editor/help";
 import { renderProjectToPng } from "@/editor/render/offscreen";
-import {
-  SelectionOverflowActions,
-  SelectionRailActions,
-  defaultSelectionBar,
-  overflowActionIds,
-  railActionIds,
-  resolveSelectionActions,
-  visibleActionCount,
-  type SelectionActionId,
-  type SelectionCommandId,
-  type SelectionShape,
-} from "@/editor/selection-actions";
 import {
   NUDGE_STEP,
   NUDGE_STEP_LARGE,
@@ -79,7 +57,6 @@ import { hapticDelete, hapticSuccess, hapticTick } from "@/haptics";
 import { usePressFeedback } from "@/hooks/use-press-feedback";
 import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
-import { rowStyle } from "@/i18n/rtl";
 import { formatPartLabel, formatSelectedCount } from "@/i18n/strings";
 import { shareFile, shareImage } from "@/storage/export";
 import type {
@@ -91,7 +68,6 @@ import {
   loadProject as loadProjectFile,
   saveProject,
 } from "@/storage/projects";
-import { useSettings } from "@/storage/settings";
 import { THUMB_MAX_WIDTH_PX, saveThumb } from "@/storage/thumbs";
 import {
   calligraphyFonts,
@@ -120,20 +96,14 @@ const MIN_FONT_SIZE = 12;
 const MAX_FONT_SIZE = 600;
 /** Font-size step per tap — a few points, so a 96pt title needs ~20 taps to double. */
 const FONT_SIZE_STEP = 4;
-/** The rail's top clearance (dp): keeps its controls off the canvas card. */
-const CONTEXT_RAIL_TOP_GAP = spacing.sm;
 /**
  * Height of the context rail (dp) — deliberately fixed.
  *
  * The rail is always laid out, so a control mounting or unmounting inside it
- * cannot change the canvas box above. Its make-up is the tallest occupant (a
- * parts tile), the top gap, and the hairline.
- *
- * The gap lives in here rather than as a margin on the rail, because the
- * hairline is what separates the bar from the canvas: a margin would push the
- * two apart and leave the bar looking detached from the artwork.
+ * cannot change the canvas box above. Sized for its tallest occupant (a parts
+ * tile) plus its hairline.
  */
-const CONTEXT_RAIL_HEIGHT = 56 + CONTEXT_RAIL_TOP_GAP;
+const CONTEXT_RAIL_HEIGHT = 56;
 /** Size given to newly created text — 96pt on a 1080-wide canvas. */
 const DEFAULT_FONT_SIZE = 96;
 /** Opacity bounds — never fully invisible, or the object could not be re-found. */
@@ -203,43 +173,6 @@ export function EditorScreen() {
   const [styleSheetOpen, setStyleSheetOpen] = useState(false);
   /** Transient explanation shown when a split is refused. */
   const [splitNotice, setSplitNotice] = useState<string | null>(null);
-  /** The complete tool reference, opened from the top bar or from learn mode. */
-  const [helpSheetOpen, setHelpSheetOpen] = useState(false);
-  /** The overflow list behind the selection rail's `⋯`. */
-  const [actionSheetOpen, setActionSheetOpen] = useState(false);
-  /** Learn mode: controls explain themselves on tap instead of acting. */
-  const help = useHelpMode();
-  /**
-   * Rail geometry, measured rather than assumed.
-   *
-   * The rail's inner row is capped by `layout.maxToolbar` and nothing else, so
-   * the window's width is already a good first answer — which matters, because
-   * the action count is derived from it and an unmeasured first frame would
-   * otherwise have to guess. `onLayout` then reports the truth (a split view on
-   * a tablet, a scrollbar on the web). The context width is the one figure that
-   * cannot be derived up front: it comes from the zone's content (see the rail
-   * markup).
-   */
-  const { width: windowWidth } = useWindowDimensions();
-  const [railWidth, setRailWidth] = useState(0);
-  const [contextWidth, setContextWidth] = useState(0);
-  const [countWidth, setCountWidth] = useState(0);
-  /**
-   * The `?` button, the swatches and the empty-rail notice read their copy from
-   * the help table like every other control, so there is one place to change it.
-   */
-  const helpText = (key: HelpKey) =>
-    helpLabel(helpEntry(key).label, t, language);
-  /**
-   * Role copy for a control that already shows its own name.
-   *
-   * The five tools carry a visible caption under the icon, so repeating that
-   * caption in the tooltip would say nothing. A tooltip should add whatever the
-   * control does not already show — the name for an icon-only button, the role
-   * for a captioned one.
-   */
-  const helpRoleText = (key: HelpKey) => helpRole(helpEntry(key), language);
-  const learnEntry = helpEntry("topBar.learn");
 
   useAutoSave();
 
@@ -256,11 +189,7 @@ export function EditorScreen() {
     })();
   }, [id, loadProject]);
 
-  // Object gestures freeze in learn mode, so a tap meant as "what is this?"
-  // can never move, resize or rotate the selection instead.
-  const { gestures, tapPoint } = useObjectGestures(
-    tool === "select" && !help.active,
-  );
+  const { gestures, tapPoint } = useObjectGestures(tool === "select");
 
   // Loaded once for offscreen rendering (thumbnails, exports).
   const skiaFonts = useParagraphFonts();
@@ -783,15 +712,7 @@ export function EditorScreen() {
    * which is also what leaves Escape free for react-native-web to close it.
    */
   const shortcuts = useKeyboardShortcuts({
-    // Learn mode owns the keyboard too: the canvas is frozen and every control
-    // is a question, so firing an action from a key would be a lie.
-    enabled:
-      !textSheetOpen &&
-      !styleSheetOpen &&
-      !actionSheetOpen &&
-      !exportOpen &&
-      !helpSheetOpen &&
-      !help.active,
+    enabled: !textSheetOpen && !styleSheetOpen && !exportOpen,
     handlers: {
       delete: deleteSelected,
       undo,
@@ -848,164 +769,8 @@ export function EditorScreen() {
         openTextSheet();
       },
       toggleGrid: () => setGrid(!gridEnabled),
-      openHelp: () => {
-        help.exit();
-        setHelpSheetOpen(true);
-      },
     },
   });
-
-  /**
-   * What each selection action does.
-   *
-   * A `Record` rather than a switch, so adding an action to the table cannot
-   * leave it unwired without the compiler saying so.
-   */
-  const runSelectionAction = useMemo<Record<SelectionCommandId, () => void>>(
-    () => ({
-      styleOpen: () => setStyleSheetOpen(true),
-      stylePrev: () => cyclePresentation(-1),
-      styleNext: () => cyclePresentation(1),
-      scaleUp: () =>
-        transformSelected({
-          scale: (selectedObject?.transform.scale ?? 1) * 1.1,
-        }),
-      scaleDown: () =>
-        transformSelected({
-          scale: (selectedObject?.transform.scale ?? 1) * 0.9,
-        }),
-      rotateCcw: () =>
-        transformSelected({
-          rotation: (selectedObject?.transform.rotation ?? 0) - 90,
-        }),
-      rotateCw: () =>
-        transformSelected({
-          rotation: (selectedObject?.transform.rotation ?? 0) + 90,
-        }),
-      flipH: () =>
-        transformSelected({
-          flipH: !(selectedObject?.transform.flipH ?? false),
-        }),
-      fitText: fitTextToContent,
-      split: splitSelected,
-      rejoin: rejoinSelected,
-      duplicate: duplicateSelected,
-      bringToFront: () => bringToFront([selectedIds[0]]),
-      sendToBack: () => sendToBack([selectedIds[0]]),
-      delete: deleteSelected,
-      alignLeft: () => alignSelected("left"),
-      alignCenterH: () => alignSelected("centerH"),
-      alignRight: () => alignSelected("right"),
-      alignTop: () => alignSelected("top"),
-      alignMiddleV: () => alignSelected("middleV"),
-      alignBottom: () => alignSelected("bottom"),
-      centerH: () => alignSelected("canvasCenterH"),
-      centerV: () => alignSelected("canvasCenterV"),
-      more: () => setActionSheetOpen(true),
-    }),
-    [
-      alignSelected,
-      bringToFront,
-      cyclePresentation,
-      deleteSelected,
-      duplicateSelected,
-      fitTextToContent,
-      rejoinSelected,
-      selectedIds,
-      selectedObject,
-      sendToBack,
-      splitSelected,
-      transformSelected,
-    ],
-  );
-
-  /**
-   * Pin/unpin. The rail truncates from its tail, so a pin puts the action at
-   * the *head* of the bar — the one position the width budget can never cut —
-   * and an unpin takes it out, leaving it in the sheet until it is pinned
-   * again. The first pin materialises the default order, so the rest of the bar
-   * keeps the arrangement the user was looking at.
-   */
-  const toggleActionPin = useCallback((id: SelectionActionId) => {
-    hapticTick();
-    const settings = useSettings.getState();
-    const order = settings.selectionBarActions ?? defaultSelectionBar();
-    settings.setSelectionBarActions(
-      order.includes(id) ? order.filter((x) => x !== id) : [id, ...order],
-    );
-  }, []);
-
-  /** What the current selection can do — the table's only input. */
-  const selectionShape: SelectionShape = {
-    isText: !!selectedText,
-    canSplit: canSplitSelected,
-    canRejoin: partSiblings.length > 1,
-    isMulti: selectedIds.length > 1,
-  };
-
-  /**
-   * Whether the rail has anything to put *beside* the actions. When it does
-   * not, the context zone is absent and its measured width stays out of the
-   * budget, so every action has the whole row to itself.
-   *
-   * The style panel is deliberately not in here: it is a *rail action*
-   * (`styleOpen`), because as a five-slot navigator it crowded the very actions
-   * this bar exists to hold.
-   */
-  const hasContextZone =
-    partSiblings.length > 1 ||
-    !!splitNotice ||
-    tool === "color" ||
-    tool === "background";
-
-  /**
-   * The bar's order: what this device pinned, or the table's own default.
-   *
-   * `null` means it was never customised, and the default is read *through* the
-   * table rather than copied into this file, so a change to what a fresh bar
-   * holds reaches every device that never reordered it.
-   */
-  const storedRailOrder = useSettings((state) => state.selectionBarActions);
-  const railOrder = storedRailOrder ?? defaultSelectionBar();
-  const railIds = railActionIds(selectionShape, railOrder);
-  const visibleCount = visibleActionCount({
-    railWidth: railWidth || Math.min(windowWidth, layout.maxToolbar),
-    // Measured, never guessed: each sibling is sized to its content, so the
-    // cluster is given exactly what is left over. What that content may *claim*
-    // of the budget is capped in there, or the scroller would outbid the
-    // actions for the whole row.
-    contextWidth: hasContextZone ? contextWidth : 0,
-    countWidth: selectedIds.length > 1 ? countWidth : 0,
-    available: railIds.length,
-  });
-  const actionSources = {
-    t,
-    language,
-    press: help.press,
-    shortcuts,
-    run: runSelectionAction,
-    // Where each action stands in the bar, and the one control that changes it.
-    bar: railOrder,
-    togglePin: toggleActionPin,
-  };
-  const railActions = resolveSelectionActions(railIds, actionSources);
-  const overflowActions = resolveSelectionActions(
-    // Everything the bar is *not* showing: whatever the width budget cut, then
-    // the actions that only ever live in the sheet. The table is handed the
-    // visible head so the sheet lists what the user just lost at the top —
-    // which is precisely what they came here looking for.
-    overflowActionIds(selectionShape, railIds.slice(0, visibleCount)),
-    // The sheet closes on press: it covers the canvas, so staying open would
-    // hide the very change the press just made.
-    { ...actionSources, afterRun: () => setActionSheetOpen(false) },
-  );
-  const moreAction = resolveSelectionActions(["more"], {
-    ...actionSources,
-    // The one control learn mode does not swallow: it *reveals* controls, so
-    // explaining it instead of opening it would leave everything behind it with
-    // no explanation on any surface.
-    disclosure: true,
-  })[0];
 
   if (!project) {
     return (
@@ -1027,10 +792,9 @@ export function EditorScreen() {
         <View style={[styles.topBar, { borderColor: c.border }]}>
           <View style={styles.barInner}>
             <IconButton
-              onPress={help.press("topBar.back", () => router.back())}
+              onPress={() => router.back()}
               accessibilityLabel={t.editor.hints.back}
               hint={t.editor.hints.back}
-              hintPlacement="below"
             >
               <Icon
                 name={language === "ar" ? "chevronRight" : "chevronLeft"}
@@ -1045,29 +809,26 @@ export function EditorScreen() {
             </Text>
             <View style={styles.topActions}>
               <IconButton
-                onPress={help.press("topBar.undo", undo)}
+                onPress={undo}
                 disabled={!canUndo}
                 accessibilityLabel={t.editor.hints.undo}
                 hint={shortcuts.hint(t.editor.hints.undo, "undo")}
-                hintPlacement="below"
               >
                 <Icon name="undo" size={18} color={canUndo ? c.ink : c.faint} />
               </IconButton>
               <IconButton
-                onPress={help.press("topBar.redo", redo)}
+                onPress={redo}
                 disabled={!canRedo}
                 accessibilityLabel={t.editor.hints.redo}
                 hint={shortcuts.hint(t.editor.hints.redo, "redo")}
-                hintPlacement="below"
               >
                 <Icon name="redo" size={18} color={canRedo ? c.ink : c.faint} />
               </IconButton>
               <IconButton
-                onPress={help.press("topBar.grid", () => setGrid(!gridEnabled))}
+                onPress={() => setGrid(!gridEnabled)}
                 variant={gridEnabled ? "ink" : "ghost"}
                 accessibilityLabel={t.editor.hints.grid}
                 hint={shortcuts.hint(t.editor.hints.grid, "toggleGrid")}
-                hintPlacement="below"
               >
                 <Icon
                   name="grid"
@@ -1076,40 +837,22 @@ export function EditorScreen() {
                 />
               </IconButton>
               <IconButton
-                onPress={help.press("topBar.save", save)}
+                onPress={save}
                 accessibilityLabel={t.editor.hints.save}
                 accessibilityHint={t.editor.hints.save}
                 hint={shortcuts.hint(t.editor.hints.save, "save")}
-                hintPlacement="below"
               >
                 <Icon name="download" size={18} />
               </IconButton>
               <IconButton
-                onPress={help.press("topBar.export", () => {
+                onPress={() => {
                   setExportError(null);
                   setExportOpen(true);
-                })}
+                }}
                 accessibilityLabel={t.editor.hints.export}
                 hint={t.editor.hints.export}
-                hintPlacement="below"
               >
                 <Icon name="export" size={18} />
-              </IconButton>
-              {/* The one control learn mode cannot swallow — it is how the mode
-                  is left again. */}
-              <IconButton
-                onPress={help.toggle}
-                variant={help.active ? "ink" : "ghost"}
-                accessibilityLabel={helpText("topBar.learn")}
-                hint={helpText("topBar.learn")}
-                accessibilityHint={helpRole(learnEntry, language)}
-                hintPlacement="below"
-              >
-                <Icon
-                  name="help"
-                  size={18}
-                  color={help.active ? c.onInk : c.ink}
-                />
               </IconButton>
             </View>
           </View>
@@ -1132,13 +875,6 @@ export function EditorScreen() {
               />
             </View>
           </GestureDetector>
-          {help.active && (
-            <LearnOverlay
-              activeKey={help.activeKey}
-              onExit={help.exit}
-              onOpenHelp={() => setHelpSheetOpen(true)}
-            />
-          )}
         </View>
 
         {/*
@@ -1159,225 +895,347 @@ export function EditorScreen() {
             { borderColor: c.border, backgroundColor: c.surface },
           ]}
         >
-          <View
-            style={[styles.railInner, rowStyle(isRTL)]}
-            onLayout={(event) => setRailWidth(event.nativeEvent.layout.width)}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.contextScroll}
+            contentContainerStyle={styles.contextTrack}
           >
-            {/*
-             * The selection's actions, ranked by `selection-actions.tsx`. Only
-             * as many render as fit: the rail is one row inside a fixed-height
-             * slot, so the rest wait behind `⋯` rather than scrolling off an
-             * edge — which in Arabic is the left one, where nothing signals
-             * that they exist.
-             */}
+            {/* Selection actions */}
             {selectedIds.length > 0 && (
-              <>
+              <View style={styles.selectionActions}>
                 {selectedIds.length > 1 && (
-                  <Text
-                    onLayout={(event) =>
-                      setCountWidth(event.nativeEvent.layout.width)
-                    }
-                    style={styles.selectionCount}
-                  >
+                  <Text style={styles.selectionCount}>
                     {formatSelectedCount(selectedIds.length, language)}
                   </Text>
                 )}
-                <SelectionRailActions
-                  actions={railActions}
-                  visibleCount={visibleCount}
-                  more={moreAction}
-                  isRTL={isRTL}
-                />
-              </>
-            )}
-
-            {/*
-             * Everything that exists because of the current tool, or because of
-             * the way the selection is built. It keeps a scroller of its own: a
-             * split word can hold more parts than a phone is wide, and unlike
-             * the actions beside it, parts are content — scrolling them is the
-             * honest degradation. The row is measured so the actions know how
-             * much room is left.
-             */}
-            {hasContextZone && (
-              <View style={styles.railContextZone}>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.railContextTrack}
+                <IconButton
+                  accessibilityLabel={t.editor.hints.scaleUp}
+                  hint={t.editor.hints.scaleUp}
+                  onPress={() =>
+                    transformSelected({
+                      scale: (selectedObject?.transform.scale ?? 1) * 1.1,
+                    })
+                  }
                 >
-                  {/*
-                   * Measured inside the scroller, not on it: the content
-                   * container is sized to its children, so this reports how
-                   * wide the zone *wants* to be — which is the number the
-                   * actions above subtract from their budget.
-                   */}
-                  <View
-                    style={[styles.railContextRow, rowStyle(isRTL)]}
-                    onLayout={(event) =>
-                      setContextWidth(event.nativeEvent.layout.width)
-                    }
+                  <Icon name="plus" size={16} />
+                </IconButton>
+                <IconButton
+                  accessibilityLabel={t.editor.hints.scaleDown}
+                  hint={t.editor.hints.scaleDown}
+                  onPress={() =>
+                    transformSelected({
+                      scale: (selectedObject?.transform.scale ?? 1) * 0.9,
+                    })
+                  }
+                >
+                  <Icon name="minus" size={16} />
+                </IconButton>
+                <IconButton
+                  accessibilityLabel={t.editor.hints.rotateCcw}
+                  hint={shortcuts.hint(t.editor.hints.rotateCcw, "rotateCcw")}
+                  onPress={() =>
+                    transformSelected({
+                      rotation: (selectedObject?.transform.rotation ?? 0) - 90,
+                    })
+                  }
+                >
+                  <Icon name="rotateCcw" size={16} />
+                </IconButton>
+                <IconButton
+                  accessibilityLabel={t.editor.hints.rotateCw}
+                  hint={shortcuts.hint(t.editor.hints.rotateCw, "rotateCw")}
+                  onPress={() =>
+                    transformSelected({
+                      rotation: (selectedObject?.transform.rotation ?? 0) + 90,
+                    })
+                  }
+                >
+                  <Icon name="rotateCw" size={16} />
+                </IconButton>
+                <IconButton
+                  accessibilityLabel={t.editor.hints.flipH}
+                  hint={shortcuts.hint(t.editor.hints.flipH, "flipH")}
+                  onPress={() =>
+                    transformSelected({
+                      flipH: !(selectedObject?.transform.flipH ?? false),
+                    })
+                  }
+                >
+                  <Icon name="flip" size={16} />
+                </IconButton>
+                {selectedObject?.type === "text" && (
+                  <IconButton
+                    onPress={fitTextToContent}
+                    accessibilityLabel={t.editor.hints.fitText}
+                    hint={t.editor.hints.fitText}
                   >
-                    {/* Parts strip — the pieces of a split word, in reading order */}
-                    {partSiblings.length > 1 && (
-                      <Reveal style={styles.partsStrip}>
-                        <IconButton
-                          onPress={help.press("sel.partPrev", () =>
-                            stepPart(-1),
-                          )}
-                          accessibilityLabel={t.editor.hints.partPrev}
-                          hint={t.editor.hints.partPrev}
-                        >
-                          <DirectionIcon isRTL={!isRTL} size={16} />
-                        </IconButton>
-                        <View style={styles.partsTrack}>
-                          {partSiblings.map((part, index) => (
-                            <PartTile
-                              key={part.id}
-                              label={formatPartLabel(
-                                index,
-                                partSiblings.length,
-                                language,
-                              )}
-                              text={part.text}
-                              fontKey={part.fontKey}
-                              index={index}
-                              active={index === activePartIndex}
-                              onPress={help.press("sel.partTile", () =>
-                                select(part.id),
-                              )}
-                            />
-                          ))}
-                        </View>
-                        <IconButton
-                          onPress={help.press("sel.partNext", () =>
-                            stepPart(1),
-                          )}
-                          accessibilityLabel={t.editor.hints.partNext}
-                          hint={t.editor.hints.partNext}
-                        >
-                          <DirectionIcon isRTL={isRTL} size={16} />
-                        </IconButton>
-                      </Reveal>
-                    )}
-
-                    {/* Why a split was refused */}
-                    {!!splitNotice && (
-                      <Reveal
-                        style={[
-                          styles.notice,
-                          {
-                            backgroundColor: c.dangerBg,
-                            borderColor: c.border,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.noticeText,
-                            { color: c.danger, fontFamily: fonts.ui },
-                          ]}
-                        >
-                          {splitNotice}
-                        </Text>
-                      </Reveal>
-                    )}
-
-                    {/* A tool that has nothing to show has to say why
-                      (DESIGN.md §8). The colour strip renders nothing without
-                      a selection, so this is the one place the empty rail
-                      explains itself. */}
-                    {tool === "color" && !selectedObject && (
-                      <Reveal
-                        style={[
-                          styles.notice,
-                          {
-                            backgroundColor: c.surfaceAlt,
-                            borderColor: c.border,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.noticeText,
-                            { color: c.muted, fontFamily: fonts.ui },
-                          ]}
-                        >
-                          {helpRole(helpEntry("sel.empty"), language)}
-                        </Text>
-                      </Reveal>
-                    )}
-
-                    {/* Colour picker for the 'color' tool — in the rail, so
-                      switching tools cannot resize the canvas either. */}
-                    {tool === "color" && selectedObject && (
-                      <View
-                        style={[
-                          styles.colorStrip,
-                          {
-                            borderColor: c.border,
-                            backgroundColor: c.surfaceAlt,
-                          },
-                        ]}
-                      >
-                        {inkSwatches.map((col) => (
-                          <Pressable
-                            key={col}
-                            accessibilityRole="button"
-                            accessibilityLabel={helpText("sel.swatchInk")}
-                            accessibilityState={{
-                              selected: selectedObject.color === col,
-                            }}
-                            style={[
-                              styles.colorSwatch,
-                              { backgroundColor: col, borderColor: c.border },
-                              selectedObject.color === col &&
-                                styles.colorSwatchActive,
-                            ]}
-                            onPress={help.press("sel.swatchInk", () => {
-                              const store = useEditorStore.getState();
-                              store.snapshot();
-                              updateObject(selectedObject.id, {
-                                color: col,
-                              } as never);
-                            })}
-                          />
-                        ))}
-                      </View>
-                    )}
-
-                    {/* Background tool */}
-                    {tool === "background" && (
-                      <View
-                        style={[
-                          styles.colorStrip,
-                          {
-                            borderColor: c.border,
-                            backgroundColor: c.surfaceAlt,
-                          },
-                        ]}
-                      >
-                        {paperSwatches.map((col) => (
-                          <Pressable
-                            key={col}
-                            accessibilityRole="button"
-                            accessibilityLabel={helpText("sel.swatchPaper")}
-                            style={[
-                              styles.colorSwatch,
-                              { backgroundColor: col, borderColor: c.border },
-                            ]}
-                            onPress={help.press("sel.swatchPaper", () =>
-                              setBgColor(col),
-                            )}
-                          />
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                </ScrollView>
+                    <Icon name="fitText" size={16} />
+                  </IconButton>
+                )}
+                {canSplitSelected && (
+                  <IconButton
+                    onPress={splitSelected}
+                    accessibilityLabel={t.editor.hints.split}
+                    hint={t.editor.hints.split}
+                  >
+                    <Icon name="split" size={16} />
+                  </IconButton>
+                )}
+                {partSiblings.length > 1 && (
+                  <IconButton
+                    onPress={rejoinSelected}
+                    accessibilityLabel={t.editor.hints.rejoin}
+                    hint={t.editor.hints.rejoin}
+                  >
+                    <Icon name="rejoin" size={16} />
+                  </IconButton>
+                )}
+                <IconButton
+                  onPress={duplicateSelected}
+                  accessibilityLabel={t.editor.hints.duplicate}
+                  hint={shortcuts.hint(t.editor.hints.duplicate, "duplicate")}
+                >
+                  <Icon name="duplicate" size={16} />
+                </IconButton>
+                <IconButton
+                  accessibilityLabel={t.editor.hints.bringToFront}
+                  hint={shortcuts.hint(
+                    t.editor.hints.bringToFront,
+                    "bringToFront",
+                  )}
+                  onPress={() => bringToFront([selectedIds[0]])}
+                >
+                  <Icon name="layerUp" size={16} />
+                </IconButton>
+                <IconButton
+                  accessibilityLabel={t.editor.hints.sendToBack}
+                  hint={shortcuts.hint(t.editor.hints.sendToBack, "sendToBack")}
+                  onPress={() => sendToBack([selectedIds[0]])}
+                >
+                  <Icon name="layerDown" size={16} />
+                </IconButton>
+                <IconButton
+                  onPress={deleteSelected}
+                  accessibilityLabel={t.editor.hints.delete}
+                  hint={shortcuts.hint(t.editor.hints.delete, "delete")}
+                >
+                  <Icon name="trash" size={16} color={c.danger} />
+                </IconButton>
+                {selectedIds.length > 1 && (
+                  <>
+                    <IconButton
+                      onPress={() => alignSelected("left")}
+                      accessibilityLabel={t.editor.hints.alignLeft}
+                      hint={t.editor.hints.alignLeft}
+                    >
+                      <Icon name="alignLeft" size={16} />
+                    </IconButton>
+                    <IconButton
+                      onPress={() => alignSelected("centerH")}
+                      accessibilityLabel={t.editor.hints.alignCenterH}
+                      hint={t.editor.hints.alignCenterH}
+                    >
+                      <Icon name="alignCenterH" size={16} />
+                    </IconButton>
+                    <IconButton
+                      onPress={() => alignSelected("right")}
+                      accessibilityLabel={t.editor.hints.alignRight}
+                      hint={t.editor.hints.alignRight}
+                    >
+                      <Icon name="alignRight" size={16} />
+                    </IconButton>
+                    <IconButton
+                      onPress={() => alignSelected("top")}
+                      accessibilityLabel={t.editor.hints.alignTop}
+                      hint={t.editor.hints.alignTop}
+                    >
+                      <Icon name="alignTop" size={16} />
+                    </IconButton>
+                    <IconButton
+                      onPress={() => alignSelected("middleV")}
+                      accessibilityLabel={t.editor.hints.alignMiddleV}
+                      hint={t.editor.hints.alignMiddleV}
+                    >
+                      <Icon name="alignMiddleV" size={16} />
+                    </IconButton>
+                    <IconButton
+                      onPress={() => alignSelected("bottom")}
+                      accessibilityLabel={t.editor.hints.alignBottom}
+                      hint={t.editor.hints.alignBottom}
+                    >
+                      <Icon name="alignBottom" size={16} />
+                    </IconButton>
+                  </>
+                )}
+                <IconButton
+                  onPress={() => alignSelected("canvasCenterH")}
+                  accessibilityLabel={t.editor.hints.centerH}
+                  hint={t.editor.hints.centerH}
+                >
+                  <Icon name="centerH" size={16} />
+                </IconButton>
+                <IconButton
+                  onPress={() => alignSelected("canvasCenterV")}
+                  accessibilityLabel={t.editor.hints.centerV}
+                  hint={t.editor.hints.centerV}
+                >
+                  <Icon name="centerV" size={16} />
+                </IconButton>
               </View>
             )}
-          </View>
+
+            {/* Parts strip — the pieces of a split word, in reading order */}
+            {partSiblings.length > 1 && (
+              <Reveal style={styles.partsStrip}>
+                <IconButton
+                  onPress={() => stepPart(-1)}
+                  accessibilityLabel={t.editor.hints.partPrev}
+                  hint={t.editor.hints.partPrev}
+                >
+                  <DirectionIcon isRTL={!isRTL} size={16} />
+                </IconButton>
+                <View style={styles.partsTrack}>
+                  {partSiblings.map((part, index) => (
+                    <PartTile
+                      key={part.id}
+                      label={formatPartLabel(
+                        index,
+                        partSiblings.length,
+                        language,
+                      )}
+                      text={part.text}
+                      fontKey={part.fontKey}
+                      index={index}
+                      active={index === activePartIndex}
+                      onPress={() => select(part.id)}
+                    />
+                  ))}
+                </View>
+                <IconButton
+                  onPress={() => stepPart(1)}
+                  accessibilityLabel={t.editor.hints.partNext}
+                  hint={t.editor.hints.partNext}
+                >
+                  <DirectionIcon isRTL={isRTL} size={16} />
+                </IconButton>
+              </Reveal>
+            )}
+
+            {/* Style navigator — cycles the presentation presets on the selection */}
+            {selectedText && (
+              <Reveal style={styles.styleNav}>
+                <View style={styles.styleNavInner}>
+                  <IconButton
+                    onPress={() => cyclePresentation(-1)}
+                    accessibilityLabel={t.editor.hints.stylePrev}
+                    hint={t.editor.hints.stylePrev}
+                  >
+                    <DirectionIcon isRTL={!isRTL} size={16} />
+                  </IconButton>
+                  <Pressable
+                    onPress={() => setStyleSheetOpen(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.editor.style}
+                    style={styles.styleNameWrap}
+                  >
+                    <Text
+                      style={[
+                        styles.styleName,
+                        { color: c.muted, fontFamily: fonts.ui },
+                      ]}
+                    >
+                      {t.editor.style}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.styleValue,
+                        { color: c.accentText, fontFamily: fonts.ui },
+                      ]}
+                    >
+                      {language === "ar"
+                        ? activePresentation.labelAr
+                        : activePresentation.labelEn}
+                    </Text>
+                  </Pressable>
+                  <IconButton
+                    onPress={() => cyclePresentation(1)}
+                    accessibilityLabel={t.editor.hints.styleNext}
+                    hint={t.editor.hints.styleNext}
+                  >
+                    <DirectionIcon isRTL={isRTL} size={16} />
+                  </IconButton>
+                </View>
+              </Reveal>
+            )}
+
+            {/* Why a split was refused */}
+            {!!splitNotice && (
+              <Reveal
+                style={[
+                  styles.notice,
+                  { backgroundColor: c.dangerBg, borderColor: c.border },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.noticeText,
+                    { color: c.danger, fontFamily: fonts.ui },
+                  ]}
+                >
+                  {splitNotice}
+                </Text>
+              </Reveal>
+            )}
+
+            {/* Colour picker for the 'color' tool — in the rail, so switching
+              tools cannot resize the canvas either. */}
+            {tool === "color" && selectedObject && (
+              <View
+                style={[
+                  styles.colorStrip,
+                  { borderColor: c.border, backgroundColor: c.surfaceAlt },
+                ]}
+              >
+                {inkSwatches.map((col) => (
+                  <Pressable
+                    key={col}
+                    style={[
+                      styles.colorSwatch,
+                      { backgroundColor: col, borderColor: c.border },
+                      selectedObject.color === col && styles.colorSwatchActive,
+                    ]}
+                    onPress={() => {
+                      const store = useEditorStore.getState();
+                      store.snapshot();
+                      updateObject(selectedObject.id, { color: col } as never);
+                    }}
+                  />
+                ))}
+              </View>
+            )}
+
+            {/* Background tool */}
+            {tool === "background" && (
+              <View
+                style={[
+                  styles.colorStrip,
+                  { borderColor: c.border, backgroundColor: c.surfaceAlt },
+                ]}
+              >
+                {paperSwatches.map((col) => (
+                  <Pressable
+                    key={col}
+                    style={[
+                      styles.colorSwatch,
+                      { backgroundColor: col, borderColor: c.border },
+                    ]}
+                    onPress={() => setBgColor(col)}
+                  />
+                ))}
+              </View>
+            )}
+          </ScrollView>
         </View>
 
         {/* Tool rail */}
@@ -1390,53 +1248,51 @@ export function EditorScreen() {
           <View style={[styles.barInner, styles.toolRailInner]}>
             <ToolBtn
               label={t.editor.select}
-              hint={shortcuts.hint(helpRoleText("tool.select"), "toolSelect")}
+              hint={shortcuts.hint(t.editor.select, "toolSelect")}
               active={tool === "select" && !multiSelectMode}
-              onPress={help.press("tool.select", () => selectTool("select"))}
+              onPress={() => selectTool("select")}
               icon="pen"
             />
             <ToolBtn
               label={t.editor.hints.multiSelect}
               hint={shortcuts.hint(
-                helpRoleText("tool.multiSelect"),
+                t.editor.hints.multiSelect,
                 "toolMultiSelect",
               )}
               active={tool === "select" && multiSelectMode}
-              onPress={help.press("tool.multiSelect", () => {
+              onPress={() => {
                 selectTool("select");
                 setMultiSelectMode(!multiSelectMode);
-              })}
+              }}
               icon="multiSelect"
             />
             <ToolBtn
               label={t.editor.text}
-              hint={shortcuts.hint(helpRoleText("tool.text"), "toolText")}
+              hint={shortcuts.hint(t.editor.text, "toolText")}
               active={tool === "text"}
-              onPress={help.press("tool.text", () => {
+              onPress={() => {
                 setMultiSelectMode(false);
                 selectTool("text");
                 openTextSheet();
-              })}
+              }}
               icon="type"
             />
             <ToolBtn
               label={t.editor.colors}
-              hint={helpRoleText("tool.colors")}
               active={tool === "color"}
-              onPress={help.press("tool.colors", () => {
+              onPress={() => {
                 setMultiSelectMode(false);
                 selectTool("color");
-              })}
+              }}
               icon="palette"
             />
             <ToolBtn
               label={t.editor.background}
-              hint={helpRoleText("tool.background")}
               active={tool === "background"}
-              onPress={help.press("tool.background", () => {
+              onPress={() => {
                 setMultiSelectMode(false);
                 selectTool("background");
-              })}
+              }}
               icon="image"
             />
           </View>
@@ -1467,7 +1323,6 @@ export function EditorScreen() {
               value={draftText}
               onChange={setDraftText}
               placeholder={t.editor.enterText}
-              accessibilityLabel={helpText("panel.textInput")}
             />
             <FontSizeGauge
               value={draftFontSize}
@@ -1482,16 +1337,12 @@ export function EditorScreen() {
                   key={f.key}
                   label={language === "ar" ? f.labelAr : f.labelEn}
                   variant={draftFont === f.key ? "primary" : "secondary"}
-                  onPress={help.press("panel.font", () => setDraftFont(f.key))}
+                  onPress={() => setDraftFont(f.key)}
                   style={styles.fontBtn}
                 />
               ))}
             </View>
-            <Button
-              label={t.common.done}
-              onPress={help.press("panel.done", saveTextObject)}
-              fullWidth
-            />
+            <Button label={t.common.done} onPress={saveTextObject} fullWidth />
           </View>
         </Sheet>
 
@@ -1516,9 +1367,7 @@ export function EditorScreen() {
                         accessibilityLabel={label}
                         variant={active ? "primary" : "secondary"}
                         selected={active}
-                        onPress={help.press("panel.preset", () =>
-                          applyPresentation(preset.key),
-                        )}
+                        onPress={() => applyPresentation(preset.key)}
                         style={styles.presetBtn}
                       />
                     );
@@ -1539,18 +1388,14 @@ export function EditorScreen() {
                 <NumberStepper
                   label={t.editor.lineHeight}
                   display={String(Math.round(selectedText.lineHeight))}
-                  onPrev={help.press("panel.lineHeight", () =>
-                    stepLineHeight(-1),
-                  )}
-                  onNext={help.press("panel.lineHeight", () =>
-                    stepLineHeight(1),
-                  )}
+                  onPrev={() => stepLineHeight(-1)}
+                  onNext={() => stepLineHeight(1)}
                 />
                 <NumberStepper
                   label={t.editor.opacity}
                   display={`${Math.round(selectedText.opacity * 100)}%`}
-                  onPrev={help.press("panel.opacity", () => stepOpacity(-0.1))}
-                  onNext={help.press("panel.opacity", () => stepOpacity(0.1))}
+                  onPrev={() => stepOpacity(-0.1)}
+                  onNext={() => stepOpacity(0.1)}
                   prevDisabled={selectedText.opacity <= MIN_OPACITY}
                   nextDisabled={selectedText.opacity >= MAX_OPACITY}
                 />
@@ -1572,9 +1417,9 @@ export function EditorScreen() {
                           selectedText.align === value ? "primary" : "secondary"
                         }
                         selected={selectedText.align === value}
-                        onPress={help.press("panel.align", () =>
-                          patchStyle({ align: value as TextAlign }),
-                        )}
+                        onPress={() =>
+                          patchStyle({ align: value as TextAlign })
+                        }
                         style={styles.alignBtn}
                       />
                     ))}
@@ -1583,9 +1428,7 @@ export function EditorScreen() {
 
                 <Button
                   label={t.common.done}
-                  onPress={help.press("panel.done", () =>
-                    setStyleSheetOpen(false),
-                  )}
+                  onPress={() => setStyleSheetOpen(false)}
                   fullWidth
                 />
               </>
@@ -1611,19 +1454,19 @@ export function EditorScreen() {
           <View style={styles.sheetBody}>
             <Button
               label={t.editor.exportShareImage}
-              onPress={help.press("export.image", exportImage)}
+              onPress={exportImage}
               fullWidth
               variant={exporting === "image" ? "secondary" : "primary"}
             />
             <Button
               label={t.editor.exportSvgAction}
-              onPress={help.press("export.svg", exportSvg)}
+              onPress={exportSvg}
               fullWidth
               variant="secondary"
             />
             <Button
               label={t.editor.exportProjectFile}
-              onPress={help.press("export.project", exportFile)}
+              onPress={exportFile}
               fullWidth
               variant="secondary"
             />
@@ -1641,70 +1484,6 @@ export function EditorScreen() {
             )}
           </View>
         </Sheet>
-
-        {/*
-         * The selection's overflow — whatever the rail had no room for, plus
-         * the actions that only ever live here. Labelled buttons rather than
-         * the rail's glyphs, because this is where someone arrives *because*
-         * the icons needed naming.
-         *
-         * Learn mode turns the buttons into a read-only reference list and the
-         * bottom presentation into the centred one. Both follow from the same
-         * fact: a reference row is taller than a button and there can be
-         * thirteen of them, so the body has to scroll — and `Sheet` only arms
-         * its drag-to-dismiss pan on the bottom presentation, which would fight
-         * that scroller. It is the trade `HelpSheet` makes, for the same reason.
-         * The title comes from the help table because the sheet is the `⋯`'s
-         * sheet in both modes.
-         */}
-        <Sheet
-          visible={actionSheetOpen}
-          onClose={() => setActionSheetOpen(false)}
-          title={helpText("sel.more")}
-          presentation={help.active ? "modal" : "bottom"}
-        >
-          {help.active ? (
-            <ScrollView
-              style={styles.sheetScroll}
-              contentContainerStyle={styles.sheetBody}
-              showsVerticalScrollIndicator={false}
-            >
-              <Text
-                style={[
-                  styles.sheetNote,
-                  { fontFamily: fonts.ui, color: c.muted },
-                ]}
-              >
-                {t.editor.learnPaused}
-              </Text>
-              <SelectionOverflowActions
-                actions={overflowActions}
-                isRTL={isRTL}
-                learn
-              />
-            </ScrollView>
-          ) : (
-            <View style={styles.sheetBody}>
-              <SelectionOverflowActions
-                actions={overflowActions}
-                isRTL={isRTL}
-              />
-            </View>
-          )}
-        </Sheet>
-
-        {/* Help sheet — the complete tool and shortcut reference */}
-        <HelpSheet
-          visible={helpSheetOpen}
-          onClose={() => setHelpSheetOpen(false)}
-          chord={shortcuts.chord}
-          onStartLearn={() => {
-            setHelpSheetOpen(false);
-            if (!help.active) {
-              help.toggle();
-            }
-          }}
-        />
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -1818,13 +1597,10 @@ function TextInputStub({
   value,
   onChange,
   placeholder,
-  accessibilityLabel,
 }: {
   value: string;
   onChange: (s: string) => void;
   placeholder: string;
-  /** Named by the help table, like every other editor control. */
-  accessibilityLabel?: string;
 }) {
   const { colors: c } = useTheme();
   const { language } = useT();
@@ -1839,7 +1615,6 @@ function TextInputStub({
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        accessibilityLabel={accessibilityLabel}
         placeholderTextColor="#9A968C"
         style={{
           color: c.ink,
@@ -1879,6 +1654,31 @@ const styles = StyleSheet.create({
   partIndex: {
     fontSize: typeScale.micro.size,
     lineHeight: typeScale.micro.lineHeight,
+  },
+  styleNav: { paddingHorizontal: spacing.xs },
+  styleNavInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  /**
+   * Intrinsic width, not `flex: 1`: the rail sizes its sections to their
+   * content, and a flexible child in an intrinsically-sized row has nothing to
+   * take its width from.
+   */
+  styleNameWrap: {
+    minWidth: 96,
+    alignItems: "center",
+    paddingVertical: spacing.xxs,
+  },
+  styleName: {
+    fontSize: typeScale.caption.size,
+    lineHeight: typeScale.caption.lineHeight,
+  },
+  styleValue: {
+    fontSize: typeScale.body.size,
+    lineHeight: typeScale.body.lineHeight,
+    fontWeight: "600",
   },
   notice: {
     paddingHorizontal: spacing.md,
@@ -1929,35 +1729,29 @@ const styles = StyleSheet.create({
    */
   contextRail: {
     height: CONTEXT_RAIL_HEIGHT,
-    paddingTop: CONTEXT_RAIL_TOP_GAP,
     borderTopWidth: 1,
   },
-  /**
-   * The rail's row: the selection's actions, then whatever the current tool or
-   * the selection's structure adds beside them. Capped and centred like every
-   * other chrome bar (DESIGN.md §5).
-   *
-   * Deliberately **not** `overflow: "hidden"`: a tooltip bubble is a child of
-   * its own button (`ui/tooltip.tsx`), so clipping the row would swallow every
-   * tooltip the rail opens. The action count is derived from this width
-   * instead, which is why nothing here may depend on clipping to look right.
-   */
-  railInner: {
+  contextScroll: {
     width: "100%",
     maxWidth: layout.maxToolbar,
     alignSelf: "center",
+  },
+  contextTrack: {
+    flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: spacing.md,
     paddingHorizontal: spacing.md,
   },
   /**
-   * The context zone takes whatever the actions leave. It keeps its own
-   * scroller because a split word can hold more parts than a phone is wide —
-   * and unlike actions, parts are content, so scrolling them is honest.
+   * The section scrolls horizontally instead of wrapping: the selection alone
+   * can hold twenty controls, and a wrapped row would grow taller than the
+   * reserved slot and shove the canvas.
    */
-  railContextZone: { flex: 1, minWidth: 0 },
-  railContextTrack: { alignItems: "center" },
-  railContextRow: { alignItems: "center", gap: spacing.md },
+  selectionActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
   selectionCount: { fontSize: typeScale.caption.size, color: "#77736B" },
   toolRail: {
     paddingVertical: spacing.sm,
@@ -1971,12 +1765,6 @@ const styles = StyleSheet.create({
   toolLabel: { fontSize: typeScale.caption.size },
   toolAction: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   sheetBody: { gap: spacing.md },
-  /** The learn-mode sheet body scrolls; the acting one never needs to. */
-  sheetScroll: { flexShrink: 1 },
-  sheetNote: {
-    fontSize: typeScale.small.size,
-    lineHeight: typeScale.small.lineHeight,
-  },
   fontRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
   fontBtn: { minWidth: 84 },
   colorStrip: {

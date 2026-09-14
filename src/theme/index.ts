@@ -21,14 +21,21 @@ export type { PresentationPatch, PresentationPreset } from "./presentations";
 export {
   breakpoint,
   colors,
+  elevationStyle,
   layout,
   motion,
   palettes,
   radius,
+  shadows,
   spacing,
   springDampingRatios,
   springs,
   tagType,
   typeScale,
 } from "./tokens";
-export type { ColorScheme, MidadPalette, TypeVariant } from "./tokens";
+export type {
+  ColorScheme,
+  MidadPalette,
+  ShadowSpec,
+  TypeVariant,
+} from "./tokens";

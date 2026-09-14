@@ -16,13 +16,6 @@
       "group": "test"
     },
     {
-      "label": "Check help coverage",
-      "type": "shell",
-      "command": "node scripts/check-help.mjs",
-      "problemMatcher": [],
-      "group": "test"
-    },
-    {
       "label": "Typecheck",
       "type": "shell",
       "command": "npx tsc --noEmit",

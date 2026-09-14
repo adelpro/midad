@@ -121,7 +121,6 @@ const EXPECTED_IDS = [
   "toolMultiSelect",
   "toolText",
   "toggleGrid",
-  "openHelp",
 ];
 
 const bound = new Set(SHORTCUT_BINDINGS.map((b) => b.id));
