@@ -4,16 +4,35 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Documentation
 
-- [`docs/editor-selection.md`](docs/editor-selection.md) — how the editor's
-  Select tool, multi-select, and background image flow behave.
+[`docs/`](docs/) holds one behavior contract per editor subsystem. Each records
+what the code cannot tell you on its own — the invariants, the traps, and the
+trade-offs that were decided once. When a document and the code disagree, fix the
+code.
+
+| Document                                                              | Covers                                           |
+| --------------------------------------------------------------------- | ------------------------------------------------ |
+| [`editor-selection.md`](docs/editor-selection.md)                     | Select tool, multi-select, background image flow |
+| [`editor-state-and-history.md`](docs/editor-state-and-history.md)     | Store slices, undo/redo, `sizedObjects`, z-order |
+| [`editor-coordinates.md`](docs/editor-coordinates.md)                 | The four frames, fit-to-view, selection chrome   |
+| [`editor-render-contract.md`](docs/editor-render-contract.md)         | Canvas ↔ PNG ↔ SVG agreement                     |
+| [`editor-text-engine.md`](docs/editor-text-engine.md)                 | Arabic shaping, auto width, paragraph lifetime   |
+| [`editor-split-and-rejoin.md`](docs/editor-split-and-rejoin.md)       | The cluster split/rejoin algorithm               |
+| [`editor-gestures.md`](docs/editor-gestures.md)                       | Tap/pan/pinch/rotate, resize, release settle     |
+| [`editor-selection-bar.md`](docs/editor-selection-bar.md)             | The action rail, width budget, pins              |
+| [`editor-keyboard.md`](docs/editor-keyboard.md)                       | Binding table, matcher, chord text               |
+| [`editor-help-and-learn-mode.md`](docs/editor-help-and-learn-mode.md) | Help catalog, learn mode                         |
+
+Also:
+
 - [`DESIGN.md`](DESIGN.md) — the midad visual language (single source of truth).
+- [`CHANGELOG.md`](CHANGELOG.md) — what changed, release by release.
 
 ## Get started
 
 1. Install dependencies
 
    ```bash
-   npm install
+   yarn install
    ```
 
 2. Start the app
@@ -30,16 +49,6 @@ In the output, you'll find options to open the app in a
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
 ### Other setup steps
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 
 import { useEditorStore } from "@/editor/store";
@@ -20,31 +20,33 @@ export function useAutoSave() {
   const saving = useRef(false);
   const pending = useRef(false);
 
-  const flush = async () => {
-    if (!enabled || !dirty.current || !latest.current) {
+  const flush = useCallback(async () => {
+    if (!enabled) {
       return;
     }
     if (saving.current) {
       pending.current = true;
       return;
     }
-    saving.current = true;
-    dirty.current = false;
-    try {
-      await saveProject({
-        ...latest.current,
-        updatedAt: new Date().toISOString(),
-      });
-    } catch {
-      dirty.current = true;
-    } finally {
-      saving.current = false;
-      if (pending.current) {
-        pending.current = false;
-        void flush();
+    do {
+      if (!dirty.current || !latest.current) {
+        break;
       }
-    }
-  };
+      saving.current = true;
+      dirty.current = false;
+      pending.current = false;
+      try {
+        await saveProject({
+          ...latest.current,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch {
+        dirty.current = true;
+      } finally {
+        saving.current = false;
+      }
+    } while (pending.current);
+  }, [enabled]);
 
   useEffect(() => {
     latest.current = useEditorStore.getState().project;
@@ -71,7 +73,7 @@ export function useAutoSave() {
         clearTimeout(timer.current);
       }
     };
-  }, [enabled]);
+  }, [enabled, flush]);
 
   useEffect(() => {
     if (!enabled) {
@@ -107,5 +109,5 @@ export function useAutoSave() {
       clearInterval(interval);
       subscription.remove();
     };
-  }, [enabled, intervalMs]);
+  }, [enabled, intervalMs, flush]);
 }

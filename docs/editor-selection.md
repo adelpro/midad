@@ -96,3 +96,17 @@ disagree. Now:
 | `setMultiSelectMode`, `select`, gesture scratch    | `src/editor/store.ts`                     |
 | Web Shift/Cmd/Ctrl tracking                        | `src/editor/modifier-keys.ts` / `.web.ts` |
 | Hit-testing + grab tolerance                       | `src/editor/hit-test.ts`                  |
+
+## 8. Related documents
+
+This document owns the **selection semantics** — the two state axes, the press
+race, and the background flow. The other contracts link back here rather than
+restating them:
+
+| Document                                                     | Relationship                                                                          |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| [`editor-gestures.md`](editor-gestures.md)                   | §2 covers the `beginDrag` decision table that calls `select` and `setMultiSelectMode` |
+| [`editor-state-and-history.md`](editor-state-and-history.md) | §7 documents the `gs` scratch fields named here                                       |
+| [`editor-selection-bar.md`](editor-selection-bar.md)         | The rail's action set, width budget and pins                                          |
+| [`editor-coordinates.md`](editor-coordinates.md)             | §7 covers the handle geometry the tap path shares                                     |
+| [`editor-keyboard.md`](editor-keyboard.md)                   | §9 covers the Shift/Cmd/Ctrl flag the multi-select path reads                         |
