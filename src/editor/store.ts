@@ -32,6 +32,20 @@ export interface DragOrigin {
 }
 
 /**
+ * One undo step: the objects *and* the selection as they were before the
+ * mutation.
+ *
+ * The selection belongs to the step. A history that only remembers objects
+ * strands the user at both ends of it: undoing a delete used to bring the
+ * objects back with nothing selected, and undoing an insert used to leave
+ * `selectedIds` pointing at an id the restored document does not contain.
+ */
+interface HistoryEntry {
+  objects: DesignObject[];
+  selectedIds: string[];
+}
+
+/**
  * Non-reactive gesture-interaction scratch state. Lives in the store (not
  * refs) so gesture handlers stay React-Compiler-safe; nothing subscribes to
  * this slice, so mutations never trigger renders.
@@ -47,6 +61,14 @@ interface GestureScratch {
    * does not toggle it a second time.
    */
   selectionHandledOnDown: boolean;
+  /**
+   * Whether pointer-down resolved the selection *additively* — multi-select
+   * mode, or Shift/Cmd/Ctrl on a platform that has them.
+   *
+   * Recorded here rather than re-read by the trailing tap, so the two halves of
+   * a single press cannot disagree about what the press meant.
+   */
+  additiveSelect: boolean;
   transformTargetId: string | null;
   scaleOrigin: number;
   rotationOrigin: number;
@@ -93,6 +115,7 @@ interface GestureScratch {
 const EMPTY_SCRATCH: GestureScratch = {
   dragOrigins: [],
   selectionHandledOnDown: false,
+  additiveSelect: false,
   transformTargetId: null,
   scaleOrigin: 1,
   rotationOrigin: 0,
@@ -126,13 +149,13 @@ interface EditorState {
   sizedObjects: SizedObject[];
   viewport: Viewport;
   gs: GestureScratch;
-  past: DesignObject[][];
-  future: DesignObject[][];
+  past: HistoryEntry[];
+  future: HistoryEntry[];
 
   loadProject: (project: MidadProject) => void;
   select: (id: string | null, additive?: boolean) => void;
   clearSelection: () => void;
-  setMultiSelectMode: (enabled: boolean) => void;
+  setMultiSelectMode: (enabled: boolean, keepSelection?: boolean) => void;
   setSizedObjects: (objects: SizedObject[]) => void;
   setViewport: (v: Viewport) => void;
   setGs: (patch: Partial<GestureScratch>) => void;
@@ -191,6 +214,18 @@ function clone(objects: DesignObject[]): DesignObject[] {
   return objects.map((o) => ({ ...o, transform: { ...o.transform } }));
 }
 
+/**
+ * A history entry's selection, narrowed to the ids its own objects still hold.
+ *
+ * Undoing an insert restores a document that never contained the inserted
+ * object, so its id must not come back as a selection the canvas cannot draw
+ * handles around.
+ */
+function restorableSelection(entry: HistoryEntry): string[] {
+  const ids = new Set(entry.objects.map((o) => o.id));
+  return entry.selectedIds.filter((id) => ids.has(id));
+}
+
 export const useEditorStore = create<EditorState>((set, get) => ({
   project: null,
   selectedIds: [],
@@ -236,12 +271,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   clearSelection: () => set({ selectedIds: [] }),
 
-  setMultiSelectMode: (enabled) =>
+  setMultiSelectMode: (enabled, keepSelection = false) =>
     set((s) => ({
       multiSelectMode: enabled,
       // Collapsing to a single id when the mode is switched off keeps the
-      // single-object UI (handles, transform buttons) meaningful.
-      selectedIds: enabled ? s.selectedIds : s.selectedIds.slice(0, 1),
+      // single-object UI (handles, transform buttons) meaningful. The *last*
+      // id is the one the user touched most recently, so it is the one they
+      // expect the handles to land on. `keepSelection` (the Select button and
+      // the multi-select toggle) exits the mode without collapsing the group.
+      selectedIds: enabled
+        ? s.selectedIds
+        : keepSelection
+          ? s.selectedIds
+          : s.selectedIds.slice(-1),
     })),
 
   setSizedObjects: (sizedObjects) =>
@@ -513,7 +555,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const now = Date.now();
     const continuesBurst =
       now - s0.gs.nudgeBurstAt <= NUDGE_COALESCE_MS &&
-      s0.gs.nudgeBurstAnchor === (s0.past[s0.past.length - 1] ?? null);
+      s0.gs.nudgeBurstAnchor === (s0.past[s0.past.length - 1]?.objects ?? null);
     if (!continuesBurst) {
       s0.snapshot();
     }
@@ -521,7 +563,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       gs: {
         ...s.gs,
         nudgeBurstAt: now,
-        nudgeBurstAnchor: s.past[s.past.length - 1] ?? null,
+        nudgeBurstAnchor: s.past[s.past.length - 1]?.objects ?? null,
       },
       // One set() for the whole move, so a single undo reverts all of it.
       project: s.project
@@ -549,19 +591,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!s0.project || s0.project.objects.length === 0) {
       return;
     }
-    set({ selectedIds: s0.project.objects.map((o) => o.id) });
+    // Select-all *is* a multi-selection, so it has to switch the mode on:
+    // otherwise the count badge and the align actions appear while the very
+    // next tap replaces the whole selection instead of adding to it.
+    set({
+      selectedIds: s0.project.objects.map((o) => o.id),
+      multiSelectMode: true,
+    });
   },
 
   snapshot: () => {
     set((s) => {
       const current = s.project?.objects ?? [];
       const last = s.past[s.past.length - 1];
-      // Avoid pushing an identical snapshot for no-op snapshots.
-      if (last && JSON.stringify(last) === JSON.stringify(current)) {
+      // Avoid pushing an identical snapshot for no-op snapshots. Comparing the
+      // objects alone is what makes this safe: an identical entry already *is*
+      // the pre-mutation state, so skipping it costs the undo nothing.
+      if (last && JSON.stringify(last.objects) === JSON.stringify(current)) {
         return {};
       }
       return {
-        past: [...s.past, clone(current)].slice(-MAX_HISTORY),
+        past: [
+          ...s.past,
+          { objects: clone(current), selectedIds: [...s.selectedIds] },
+        ].slice(-MAX_HISTORY),
         future: [],
       };
     });
@@ -576,8 +629,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const current = s.project!.objects;
       return {
         past: s.past.slice(0, -1),
-        future: [...s.future, clone(current)].slice(-MAX_HISTORY),
-        project: { ...s.project!, objects: clone(prev) },
+        future: [
+          ...s.future,
+          { objects: clone(current), selectedIds: [...s.selectedIds] },
+        ].slice(-MAX_HISTORY),
+        project: { ...s.project!, objects: clone(prev.objects) },
+        // The selection comes back with the objects, so an undone delete is
+        // undone completely.
+        selectedIds: restorableSelection(prev),
       };
     });
   },
@@ -591,8 +650,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const current = s.project!.objects;
       return {
         future: s.future.slice(0, -1),
-        past: [...s.past, clone(current)].slice(-MAX_HISTORY),
-        project: { ...s.project!, objects: clone(next) },
+        past: [
+          ...s.past,
+          { objects: clone(current), selectedIds: [...s.selectedIds] },
+        ].slice(-MAX_HISTORY),
+        project: { ...s.project!, objects: clone(next.objects) },
+        selectedIds: restorableSelection(next),
       };
     });
   },

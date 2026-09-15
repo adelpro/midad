@@ -143,7 +143,7 @@ export const HELP_ENTRIES = [
     label: { ar: "وضع التعلّم", en: "Learn mode" },
     roleAr: "تشغيل وضع التعلّم: المس أي عنصر لتعرف وظيفته.",
     roleEn: "Turn on Learn mode: tap any control to read what it does.",
-    icon: "help",
+    icon: "sparkle",
     // No shortcutId, deliberately. The chord opens the help sheet, not the
     // mode, so advertising it on this button would promise the wrong thing.
   },
@@ -182,16 +182,16 @@ export const HELP_ENTRIES = [
     key: "tool.colors",
     group: "tools",
     label: { editor: "colors" },
-    roleAr: "تلوين النص المحدّد بحبر آخر. حدّد عنصرًا أولًا.",
-    roleEn: "Recolour the selected text. Select an object first.",
+    roleAr: "تلوين النص المحدّد بحبر آخر. المس عنصرًا آخر لتحويل الحبر إليه.",
+    roleEn: "Recolour the selected text. Tap another object to switch to it.",
     icon: "palette",
   },
   {
     key: "tool.background",
     group: "tools",
     label: { editor: "background" },
-    roleAr: "اختيار لون الورق خلف التصميم.",
-    roleEn: "Choose the paper colour behind your design.",
+    roleAr: "اختيار لون الورق خلف التصميم، أو صورة من المعرض.",
+    roleEn: "Choose the paper colour behind your design, or an image.",
     icon: "image",
   },
 
@@ -473,9 +473,9 @@ export const HELP_ENTRIES = [
     key: "canvas.tap",
     group: "canvas",
     label: { ar: "اللمس", en: "Tap" },
-    roleAr: "المس عنصرًا لتحديده.",
-    roleEn: "Tap an object to select it.",
-    icon: "handTap",
+    roleAr: "المس عنصرًا لتحديده، في أي أداة.",
+    roleEn: "Tap an object to select it, in any tool.",
+    icon: "edit",
   },
   {
     key: "canvas.drag",
@@ -541,7 +541,7 @@ export const HELP_ENTRIES = [
   {
     key: "panel.fontSizeUp",
     group: "panels",
-    label: { hint: "fontSizeIncrease" },
+    label: { ar: "خطوة أكبر", en: "One step larger" },
     roleAr: "خطوة أكبر.",
     roleEn: "One step larger.",
     icon: "plus",
@@ -549,7 +549,7 @@ export const HELP_ENTRIES = [
   {
     key: "panel.fontSizeDown",
     group: "panels",
-    label: { hint: "fontSizeDecrease" },
+    label: { ar: "خطوة أصغر", en: "One step smaller" },
     roleAr: "خطوة أصغر.",
     roleEn: "One step smaller.",
     icon: "minus",
@@ -627,8 +627,7 @@ export const HELP_ENTRIES = [
     label: { editor: "helpTitle" },
     roleAr: "فتح هذه القائمة: كل الأدوات والاختصارات.",
     roleEn: "Open this list: every tool and its shortcut.",
-    icon: "keyboard",
-    shortcutId: "openHelp",
+    icon: "type",
   },
   {
     key: "key.selectAll",

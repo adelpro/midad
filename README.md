@@ -2,6 +2,12 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Documentation
+
+- [`docs/editor-selection.md`](docs/editor-selection.md) — how the editor's
+  Select tool, multi-select, and background image flow behave.
+- [`DESIGN.md`](DESIGN.md) — the midad visual language (single source of truth).
+
 ## Get started
 
 1. Install dependencies

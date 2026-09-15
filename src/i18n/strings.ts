@@ -160,6 +160,15 @@ export interface Translation {
     alignLeft: string;
     alignCenter: string;
     alignRight: string;
+    // Help sheet and learn mode.
+    helpTitle: string;
+    helpIntro: string;
+    learnHint: string;
+    helpAllTools: string;
+    learnPaused: string;
+    // Text preview in the text sheet.
+    preview: string;
+    previewSample: string;
     hints: {
       back: string;
       undo: string;
@@ -346,6 +355,13 @@ export const strings: Record<Language, Translation> = {
       alignLeft: "يسار",
       alignCenter: "وسط",
       alignRight: "يمين",
+      helpTitle: "المساعدة",
+      helpIntro: "المس أي عنصر لتعرف وظيفته.",
+      learnHint: "وضع التعلّم",
+      helpAllTools: "كل الأدوات",
+      learnPaused: "وضع التعلّم متوقف مؤقتًا.",
+      preview: "معاينة",
+      previewSample: "عيّنة",
       hints: {
         back: "رجوع",
         undo: "تراجع",
@@ -534,6 +550,13 @@ export const strings: Record<Language, Translation> = {
       alignLeft: "Left",
       alignCenter: "Center",
       alignRight: "Right",
+      helpTitle: "Help",
+      helpIntro: "Tap any control to read what it does.",
+      learnHint: "Learn mode",
+      helpAllTools: "All tools",
+      learnPaused: "Learn mode is paused.",
+      preview: "Preview",
+      previewSample: "Sample",
       hints: {
         back: "Back",
         undo: "Undo",

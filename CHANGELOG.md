@@ -119,6 +119,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Taps select on the canvas in every tool, not only Select.** The tap result
+  was gated on the active tool while the pointer-down path was disabled with it,
+  so in the Background, Colours, Text and Insert tools a tap did nothing at all —
+  neither selecting nor clearing. Picking a background is the one flow that
+  _leaves_ its tool selected, so the canvas read as dead immediately after
+  choosing an image. A tap now resolves the selection whatever tool is active;
+  dragging, resizing and rotating stay Select-only. The Colours and Background
+  help roles were updated to match.
+- **A tap and a drag now accept the same press.** The pointer-down path took a
+  grab up to 8 local units outside an object's box while the tap hit-test used
+  the bare box, so a tap just inside the visible edge could clear the selection
+  where a 2px drag would have grabbed it. Both share `OBJECT_HIT_PAD`.
+- **A stale selection flag can no longer swallow a tap.** `beginDrag` returned
+  early without clearing `gs.selectionHandledOnDown` — a flag that only the
+  trailing tap consumes, so a drag leaves it set. In a tool where the canvas is
+  selectable but not draggable, that tap is now the one that selects rather than
+  being spent on the stale flag.
 - **Learn mode can explain the selection bar's "more tools" again.** The `⋯`
   control was bound through the same learn-mode binder as every other action, so
   while learning a tap explained _it_ instead of opening the sheet — leaving the

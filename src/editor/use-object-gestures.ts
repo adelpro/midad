@@ -6,12 +6,17 @@ import {
   isCornerHandle,
   isHorizontalHandle,
   isRotateHandle,
+  OBJECT_HIT_PAD,
   resizeHandles,
   rotateHandle,
   toLocalPoint,
   type ResizeHandle,
   type SizedObject,
 } from "@/editor/hit-test";
+import {
+  isAdditiveSelectionModifier,
+  useModifierKeys,
+} from "@/editor/modifier-keys";
 import { useEditorStore, type DragOrigin } from "@/editor/store";
 import { hapticTick } from "@/haptics";
 import type { DesignObject, ObjectTransform } from "@/storage/project-schema";
@@ -316,19 +321,37 @@ function settleRotation(
  * pointer-down decides the selection and, when it lands on something selected,
  * starts a drag of the whole selection:
  *
- * - multi-select on, pointer on an unselected object → add it, do not drag it
- *   (an imprecise tap must not nudge the object);
- * - pointer on an already-selected object → drag every selected object;
- * - multi-select off → replace the selection and drag it.
+ * - additive on (multi-select tool, or Shift/Cmd/Ctrl on web), pointer on an
+ *   unselected object → add it, do not drag it (an imprecise tap must not
+ *   nudge the object);
+ * - pointer on an already-selected object → drag every selected object; a
+ *   quick tap (no drag) toggles it off via the tap handler — that is the
+ *   multi-select deselect idiom;
+ * - additive off → replace the selection and drag it.
  *
  * `selectionHandledOnDown` records that the selection already changed here, so
- * the trailing tap does not toggle it a second time.
+ * the trailing tap does not toggle it a second time. `additiveSelect` records
+ * what the press meant, so the trailing tap cannot disagree with this half.
  */
 function beginDrag(viewX: number, viewY: number, enabled: boolean) {
   cancelRotationSettle();
   const store = useEditorStore.getState();
+  // Additive = the multi-select tool, or a selection modifier (Shift/Cmd/Ctrl
+  // on web). Recorded in the scratch so the trailing tap reads the SAME value
+  // the pointer-down used — the two halves of one press cannot disagree.
+  const additive = store.multiSelectMode || isAdditiveSelectionModifier();
   if (!enabled) {
-    store.setGs({ resizeTargetId: null, resizeHandle: null, dragOrigins: [] });
+    // Reset the flag here as well: only the trailing tap consumes it, and a tap
+    // is not guaranteed to follow (a real drag swallows it). Left set, it would
+    // swallow the next tap in a tool where the canvas is selectable but not
+    // draggable.
+    store.setGs({
+      resizeTargetId: null,
+      resizeHandle: null,
+      dragOrigins: [],
+      selectionHandledOnDown: false,
+      additiveSelect: additive,
+    });
     return;
   }
   const p = toDesign(viewX, viewY);
@@ -363,19 +386,20 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
       lastSnapAngle: null,
       dragOrigins: [],
       selectionHandledOnDown: false,
+      additiveSelect: additive,
     });
     store.snapshot();
     return;
   }
 
   const sorted = [...store.sizedObjects].sort((a, b) => b.zIndex - a.zIndex);
-  // The pad is applied in the object's local units, so the grab tolerance
-  // matches the box the user can actually see.
+  // The shared tolerance is applied in the object's local units, so the grab
+  // matches the box the user can actually see — and matches the tap hit-test.
   const hit = sorted.find((o) => {
     const local = toLocal(o.transform, p);
     return (
-      Math.abs(local.x) <= o.box.width / 2 + 8 &&
-      Math.abs(local.y) <= o.box.height / 2 + 8
+      Math.abs(local.x) <= o.box.width / 2 + OBJECT_HIT_PAD &&
+      Math.abs(local.y) <= o.box.height / 2 + OBJECT_HIT_PAD
     );
   });
   if (!hit) {
@@ -384,6 +408,7 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
       resizeTargetId: null,
       resizeHandle: null,
       selectionHandledOnDown: false,
+      additiveSelect: additive,
     });
     if (store.selectedIds.length > 0) {
       store.select(null);
@@ -394,13 +419,14 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
 
   const alreadySelected = store.selectedIds.includes(hit.id);
 
-  if (store.multiSelectMode && !alreadySelected) {
+  if (additive && !alreadySelected) {
     store.select(hit.id, true);
     store.setGs({
       dragOrigins: [],
       resizeTargetId: null,
       resizeHandle: null,
       selectionHandledOnDown: true,
+      additiveSelect: additive,
     });
     return;
   }
@@ -423,6 +449,7 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
     resizeTargetId: null,
     resizeHandle: null,
     selectionHandledOnDown: !alreadySelected,
+    additiveSelect: additive,
   });
   store.snapshot();
 }
@@ -706,6 +733,9 @@ export function useObjectGestures(selectEnabled = true): ObjectGestures {
     null,
   );
   const reduceMotion = useReducedMotion();
+  // Tracks Shift/Cmd/Ctrl on web so `beginDrag` can read the modifier at
+  // pointer-down; a no-op on native (touch has no selection modifier).
+  useModifierKeys();
 
   useEffect(() => {
     tapRelay = setTapPoint;

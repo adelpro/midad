@@ -28,6 +28,17 @@ export const SELECTION_HANDLE_PAD = 4;
 /** Gap (design units) between the box top edge and the rotate grip. */
 export const ROTATE_HANDLE_GAP = 26;
 
+/**
+ * Grab tolerance (object-local units) around an object's box: a press this far
+ * outside the drawn edge is still accepted, so a thin text line or a small
+ * shape stays easy to grab.
+ *
+ * It lives here so the tap hit-test and the pointer-down drag path cannot
+ * disagree about where an object starts. Local units, not design units, so the
+ * tolerance is measured against the box the user actually sees.
+ */
+export const OBJECT_HIT_PAD = 8;
+
 /** Smallest object scale used when converting design units into local units. */
 const MIN_OBJECT_SCALE = 0.05;
 
@@ -161,19 +172,23 @@ export function toLocalPoint(
  * mapped into each object's frame before testing. Comparing the box against the
  * raw design-space point would ignore the object's scale and rotation, making
  * scaled or rotated objects selectable only near their centre.
+ *
+ * `pad` is the grab tolerance in those same local units (`OBJECT_HIT_PAD` by
+ * default) — the tap path and the drag path must accept the same press.
  */
 export function hitTest(
   objects: SizedObject[],
   x: number,
   y: number,
+  pad = OBJECT_HIT_PAD,
 ): string | null {
   // Iterate front-to-back (highest z first).
   const sorted = [...objects].sort((a, b) => b.zIndex - a.zIndex);
   for (const o of sorted) {
     const local = toLocalPoint(o.transform, x, y);
     if (
-      Math.abs(local.x) <= o.box.width / 2 &&
-      Math.abs(local.y) <= o.box.height / 2
+      Math.abs(local.x) <= o.box.width / 2 + pad &&
+      Math.abs(local.y) <= o.box.height / 2 + pad
     ) {
       return o.id;
     }
