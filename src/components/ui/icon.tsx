@@ -38,6 +38,7 @@ import {
   PenNib,
   Plus,
   PushPin,
+  Question,
   Scissors,
   SelectionPlus,
   Shapes,
@@ -102,6 +103,7 @@ export type IconName =
   | "pin"
   | "language"
   | "gallery"
+  | "help"
   | "multiSelect"
   | "alignLeft"
   | "alignCenterH"
@@ -153,6 +155,7 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   pin: PushPin,
   language: Translate,
   gallery: SquaresFour,
+  help: Question,
   multiSelect: SelectionPlus,
   alignLeft: AlignLeft,
   alignCenterH: AlignCenterHorizontal,

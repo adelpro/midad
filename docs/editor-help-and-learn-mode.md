@@ -236,30 +236,25 @@ the catalog entries that own them, not by opening them.
 `FontSizeGauge`'s internal stepper is **not interceptable** (it is a gesture on a
 gauge, not a bound press), so its three entries are reference-only too.
 
-## 11. Known gap: the explanation overlays are not rendered
+## 11. The explanation overlays
 
 **`HelpSheet` (`help-sheet.tsx`) and `LearnOverlay` (`learn-overlay.tsx`) are
-exported from `help/index.ts` but have zero call sites.** Neither appears anywhere
-in the render tree.
+live.** `EditorScreen` mounts both:
 
-The consequence is concrete: `LearnMode.activeKey` is set by `press()` and
-**consumed by nothing**. `LearnOverlay` accepts `activeKey` as a prop and is the
-only reader — and it is never mounted.
+- the `?` button in the top bar opens `HelpSheet`, bound through
+  `help.press("topBar.help", …)` so that in learn mode it explains itself
+  instead of opening;
+- `HelpSheet`'s "Learn mode" button calls `help.toggle()` and closes the sheet;
+- `LearnOverlay` is mounted inside the canvas wrapper whenever `help.active` is
+  true, reading `help.activeKey` for the banner;
+- the overlay's "All tools" button and the `?` chord both leave learn mode
+  (`help.exit()`) before opening the sheet, so the sheet's "Learn mode" button
+  always turns the mode on, never off;
+- object gestures are gated on `!help.active`, so the canvas is inert while
+  learning — there is nothing to grab when every press is an explanation.
 
-So, in the current tree, learn mode's _effective_ behaviour is:
-
-- every annotated press is replaced by a haptic tick and an invisible state write,
-- the `⋯` sheet opens as a reference list,
-- **no explanation is ever displayed.**
-
-`HelpCard` and `HelpRow` **are** live — through `selection-actions.tsx`, which uses
-them for the learn-mode overflow list. `useHelpMode` is live in `EditorScreen`
-(`help.press` at the action sources, `help.active` passed as `learn` to the
-overflow sheet).
-
-Read this as a documented gap, not a feature description. Wiring the overlay back
-in (or deleting the two modules) is a separate decision — do not describe learn
-mode as "showing an explanation on tap" until one of them is done.
+`HelpCard` and `HelpRow` are live through `selection-actions.tsx` (the learn-mode
+overflow list) and through `HelpSheet`'s group cards.
 
 ## 12. Code map
 
@@ -270,11 +265,11 @@ mode as "showing an explanation on tap" until one of them is done.
 | `helpEntry`, `helpLabel`, `helpRole`, `helpGroupEntries`, `helpGroupLabel` | `src/editor/help/catalog.ts`        |
 | `useHelpMode`, `HelpMode.press`                                            | `src/editor/help/use-help-mode.ts`  |
 | `HelpRow`, `HelpCard` (live, shared with the overflow list)                | `src/editor/help/help-list.tsx`     |
-| `HelpSheet` — **unused**                                                   | `src/editor/help/help-sheet.tsx`    |
-| `LearnOverlay` — **unused**                                                | `src/editor/help/learn-overlay.tsx` |
-| Barrel + the exports that make the two above look live                     | `src/editor/help/index.ts`          |
-| Learn-mode overflow reference list, `disclosure`                           | `src/editor/selection-actions.tsx`  |
-| `help.press` wiring, `learn={help.active}`                                 | `src/editor/EditorScreen.tsx`       |
+| `HelpSheet` (mounted by `EditorScreen`)                                | `src/editor/help/help-sheet.tsx`    |
+| `LearnOverlay` (mounted by `EditorScreen`)                             | `src/editor/help/learn-overlay.tsx` |
+| Barrel + the exports                                                   | `src/editor/help/index.ts`          |
+| Learn-mode overflow reference list, `disclosure`                       | `src/editor/selection-actions.tsx`  |
+| `help.press` wiring, `learn={help.active}`, `?` button, both overlays  | `src/editor/EditorScreen.tsx`       |
 | `sel.*` copy the selection bar borrows                                     | `src/editor/help/catalog.ts`        |
 | `t.editor.hints.*` strings                                                 | `src/i18n/strings.ts`               |
 | `hintEnabled`, hint suppression, `hintPlacement`                           | `src/components/ui/icon-button.tsx` |

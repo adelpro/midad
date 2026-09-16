@@ -34,7 +34,8 @@ export type ShortcutId =
   | "toolSelect"
   | "toolMultiSelect"
   | "toolText"
-  | "toggleGrid";
+  | "toggleGrid"
+  | "openHelp";
 
 /** Nudge distance in design units. Shift moves ten times as far. */
 export const NUDGE_STEP = 1;
@@ -117,6 +118,10 @@ export const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   { id: "toolMultiSelect", code: "KeyM" },
   { id: "toolText", code: "KeyT" },
   { id: "toggleGrid", code: "KeyG" },
+
+  // Shift+/ is the question mark on every layout — "?" on Latin, "؟" on
+  // Arabic — so it is bound by physical key rather than by character.
+  { id: "openHelp", code: "Slash", shift: true },
 ];
 
 /** The slice of `KeyboardEvent` the matcher reads. Keeps this module testable. */
@@ -223,6 +228,9 @@ function codeLabel(code: string): string {
   }
   if (code === "BracketRight") {
     return "]";
+  }
+  if (code === "Slash") {
+    return "?";
   }
   return code;
 }

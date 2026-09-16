@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Help system fully wired.** A `?` button in the editor's top bar opens the
+  full help reference (every tool, gesture and shortcut, in Arabic and English),
+  and **Learn mode** is reachable from it: tap any control to read what it does
+  instead of acting, with an explanation banner and a gesture legend floating
+  over the canvas. On web, `Shift+/` (`?`) opens the reference from the
+  keyboard too.
 - **The intro shows once, and can be replayed from Settings.** Onboarding is a
   real route now (`/onboarding`) behind a device-local flag: the first launch
   lands on it, every launch after goes straight to the gallery, and a new

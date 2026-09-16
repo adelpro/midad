@@ -121,6 +121,7 @@ const EXPECTED_IDS = [
   "toolMultiSelect",
   "toolText",
   "toggleGrid",
+  "openHelp",
 ];
 
 const bound = new Set(SHORTCUT_BINDINGS.map((b) => b.id));
@@ -249,6 +250,11 @@ eq(
 );
 eq("T opens text", idOf({ code: "KeyT", key: "t" }), "toolText");
 eq("G toggles the grid", idOf({ code: "KeyG", key: "g" }), "toggleGrid");
+eq(
+  "Shift+/ opens help",
+  idOf({ code: "Slash", key: "?", shiftKey: true }),
+  "openHelp",
+);
 
 // ---------------------------------------------------------------------------
 // Non-matches: the layer must stay inert for anything it does not own.

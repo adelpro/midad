@@ -147,6 +147,15 @@ export const HELP_ENTRIES = [
     // No shortcutId, deliberately. The chord opens the help sheet, not the
     // mode, so advertising it on this button would promise the wrong thing.
   },
+  {
+    key: "topBar.help",
+    group: "topBar",
+    label: { editor: "helpTitle" },
+    roleAr: "فتح هذه القائمة: كل الأدوات والاختصارات.",
+    roleEn: "Open this list: every tool and its shortcut.",
+    icon: "help",
+    shortcutId: "openHelp",
+  },
 
   // ---------------------------------------------------------------------------
   // Tool rail
@@ -630,14 +639,6 @@ export const HELP_ENTRIES = [
   // Keyboard-only actions — reachable from no button, so the sheet is the only
   // place they can be discovered.
   // ---------------------------------------------------------------------------
-  {
-    key: "key.openHelp",
-    group: "keyboard",
-    label: { editor: "helpTitle" },
-    roleAr: "فتح هذه القائمة: كل الأدوات والاختصارات.",
-    roleEn: "Open this list: every tool and its shortcut.",
-    icon: "type",
-  },
   {
     key: "key.selectAll",
     group: "keyboard",

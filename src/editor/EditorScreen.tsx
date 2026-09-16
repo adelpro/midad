@@ -31,7 +31,7 @@ import {
   collectUsedFamilies,
   projectToSvg,
 } from "@/editor/export/svg";
-import { useHelpMode } from "@/editor/help";
+import { HelpSheet, LearnOverlay, useHelpMode } from "@/editor/help";
 import { InsertSheet, type ShapeKey } from "@/editor/insert-sheet";
 import { renderProjectToPng } from "@/editor/render/offscreen";
 import {
@@ -209,6 +209,8 @@ export function EditorScreen() {
   const [styleSheetOpen, setStyleSheetOpen] = useState(false);
   /** The selection bar's `⋯` overflow sheet. */
   const [moreOpen, setMoreOpen] = useState(false);
+  /** The help reference sheet. */
+  const [helpOpen, setHelpOpen] = useState(false);
   /** Transient explanation shown when a split is refused. */
   const [splitNotice, setSplitNotice] = useState<string | null>(null);
 
@@ -242,8 +244,11 @@ export function EditorScreen() {
   }, [id, loadProject]);
 
   // Only dragging is tool-gated; a tap resolves the selection in every tool
-  // (see `handleTapResult`).
-  const { gestures, tapPoint } = useObjectGestures(tool === "select");
+  // (see `handleTapResult`). Learn mode turns the canvas inert too — there is
+  // nothing to grab while every press is an explanation.
+  const { gestures, tapPoint } = useObjectGestures(
+    tool === "select" && !help.active,
+  );
 
   // Loaded once for offscreen rendering (thumbnails, exports).
   const skiaFonts = useParagraphFonts();
@@ -863,7 +868,11 @@ export function EditorScreen() {
    */
   const shortcuts = useKeyboardShortcuts({
     enabled:
-      !textSheetOpen && !styleSheetOpen && !insertSheetOpen && !exportOpen,
+      !textSheetOpen &&
+      !styleSheetOpen &&
+      !insertSheetOpen &&
+      !exportOpen &&
+      !helpOpen,
     handlers: {
       delete: deleteSelected,
       undo,
@@ -920,6 +929,13 @@ export function EditorScreen() {
         openTextSheet();
       },
       toggleGrid: () => setGrid(!gridEnabled),
+      // The sheet is the same surface the `?` button opens, so the chord
+      // leaves learn mode first — the sheet's "Learn mode" button always turns
+      // the mode on, never off.
+      openHelp: () => {
+        help.exit();
+        setHelpOpen(true);
+      },
     },
   });
 
@@ -1136,6 +1152,13 @@ export function EditorScreen() {
               >
                 <Icon name="export" size={18} />
               </IconButton>
+              <IconButton
+                onPress={help.press("topBar.help", () => setHelpOpen(true))}
+                accessibilityLabel={t.editor.helpTitle}
+                hint={shortcuts.hint(t.editor.helpTitle, "openHelp")}
+              >
+                <Icon name="help" size={18} />
+              </IconButton>
             </View>
           </View>
         </View>
@@ -1157,6 +1180,16 @@ export function EditorScreen() {
               />
             </View>
           </GestureDetector>
+          {help.active && (
+            <LearnOverlay
+              activeKey={help.activeKey}
+              onExit={help.exit}
+              onOpenHelp={() => {
+                help.exit();
+                setHelpOpen(true);
+              }}
+            />
+          )}
         </View>
 
         {/*
@@ -1596,6 +1629,17 @@ export function EditorScreen() {
             />
           </View>
         </Sheet>
+
+        {/* Help reference — the full catalog, plus the Learn mode entry point */}
+        <HelpSheet
+          visible={helpOpen}
+          onClose={() => setHelpOpen(false)}
+          chord={shortcuts.chord}
+          onStartLearn={() => {
+            setHelpOpen(false);
+            help.toggle();
+          }}
+        />
 
         {/* Export sheet */}
         <Sheet
