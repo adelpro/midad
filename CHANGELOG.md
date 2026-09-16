@@ -92,6 +92,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The editor's font-size slider is the platform's slider now.** It is built on
+  `@expo/ui`'s universal `Slider` — SwiftUI on iOS, Material 3 on Android, a real
+  `<input type="range">` on web — so thumb physics, keyboard stepping (arrows,
+  Home/End) and assistive-technology support come from the platform that renders
+  it. The wrapper keeps the two things the platform does not: the geometric
+  (`scale="log"`) track, expressed as a position↔value mapping, and the
+  "one gesture, one undo step" bracket, now derived by treating the first change
+  as the session opening and a short quiet gap as the settle. Two web gaps are
+  corrected in a web-only stylesheet: the library styles everything but the box,
+  leaving the input at the browser's ~129px default and 22px tall (under the 44pt
+  target DESIGN.md §8 asks for), and it paints progress with a physical
+  `to right` gradient, which under `dir="rtl"` fills the wrong side of a mirrored
+  range input.
 - **Web shows no tooltips.** The hint bubble is native-only now: the same label
   is one tap away in learn mode, which is how the editor names its icon-only
   chrome everywhere else. A control that claims its own long-press — the
