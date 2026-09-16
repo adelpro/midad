@@ -22,7 +22,12 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useTheme } from "@/hooks/use-theme";
+import { useT } from "@/i18n";
+import { rowStyle } from "@/i18n/rtl";
 import { elevationStyle, radius, shadows, spacing, springs } from "@/theme";
+
+import { Icon } from "./icon";
+import { IconButton } from "./icon-button";
 
 export interface SheetProps extends PropsWithChildren {
   visible: boolean;
@@ -30,6 +35,14 @@ export interface SheetProps extends PropsWithChildren {
   title?: string;
   /** Present content in a centered modal instead of bottom sheet. */
   presentation?: "bottom" | "modal";
+  /**
+   * Render a close (X) button in the header, next to the title.
+   *
+   * Modal sheets have no drag-to-dismiss, so an explicit close affordance is
+   * the only visible way out besides the backdrop. Bottom sheets already have
+   * the drag, so this is opt-in rather than automatic.
+   */
+  closeButton?: boolean;
 }
 
 /** Fraction of the panel that must be dragged away before release dismisses. */
@@ -63,8 +76,10 @@ export function Sheet({
   title,
   children,
   presentation = "bottom",
+  closeButton,
 }: SheetProps) {
   const { colors: c } = useTheme();
+  const { t, isRTL } = useT();
   const reduceMotion = useReducedMotion();
   const isBottom = presentation === "bottom";
 
@@ -193,7 +208,24 @@ export function Sheet({
             <View
               style={[styles.handle, { backgroundColor: c.borderStrong }]}
             />
-            {title ? (
+            {closeButton ? (
+              <View style={[styles.headerRow, rowStyle(isRTL)]}>
+                {title ? (
+                  <Text
+                    style={[styles.title, styles.titleInRow, { color: c.ink }]}
+                  >
+                    {title}
+                  </Text>
+                ) : null}
+                <IconButton
+                  onPress={onClose}
+                  accessibilityLabel={t.common.close}
+                  size={32}
+                >
+                  <Icon name="close" size={18} />
+                </IconButton>
+              </View>
+            ) : title ? (
               <Text style={[styles.title, { color: c.ink }]}>{title}</Text>
             ) : null}
             {children}
@@ -242,6 +274,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 17,
     fontWeight: "600",
+    marginBottom: spacing.lg,
+  },
+  titleInRow: {
+    marginBottom: 0,
+  },
+  headerRow: {
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
     marginBottom: spacing.lg,
   },
 });

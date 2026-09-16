@@ -51,6 +51,7 @@ export function HelpSheet({
       onClose={onClose}
       title={t.editor.helpTitle}
       presentation="modal"
+      closeButton
     >
       <ScrollView
         style={styles.scroll}
