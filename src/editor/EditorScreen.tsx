@@ -1404,7 +1404,7 @@ export function EditorScreen() {
                 selectTool("insert");
                 setInsertSheetOpen(true);
               }}
-              icon="sparkle"
+              icon="shapes"
             />
             <ToolBtn
               label={t.editor.colors}
@@ -1716,7 +1716,7 @@ function ToolBtn({
   hint?: string;
   active: boolean;
   onPress: () => void;
-  icon: "pen" | "type" | "sparkle" | "palette" | "image" | "multiSelect";
+  icon: "pen" | "type" | "sparkle" | "shapes" | "palette" | "image" | "multiSelect";
 }) {
   const { colors: c } = useTheme();
   const { language } = useT();

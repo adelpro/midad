@@ -194,6 +194,14 @@ export const HELP_ENTRIES = [
     roleEn: "Choose the paper colour behind your design, or an image.",
     icon: "image",
   },
+  {
+    key: "tool.glyphs",
+    group: "tools",
+    label: { editor: "glyphs" },
+    roleAr: "فتح مكتبة الزخارف والأشكال لإضافتها إلى التصميم.",
+    roleEn: "Open the glyphs and shapes library to add ornaments to your design.",
+    icon: "shapes",
+  },
 
   // ---------------------------------------------------------------------------
   // Selection bar

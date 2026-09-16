@@ -40,6 +40,7 @@ import {
   PushPin,
   Scissors,
   SelectionPlus,
+  Shapes,
   ShareNetwork,
   Sparkle,
   Square,
@@ -70,6 +71,7 @@ export type IconName =
   | "check"
   | "type"
   | "sparkle"
+  | "shapes"
   | "square"
   | "palette"
   | "image"
@@ -120,6 +122,7 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   check: Check,
   type: TextAa,
   sparkle: Sparkle,
+  shapes: Shapes,
   square: Square,
   palette: PaintBrush,
   image: Image,
