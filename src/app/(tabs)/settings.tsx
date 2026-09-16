@@ -1,7 +1,7 @@
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button, Toggle } from "@/components/ui";
@@ -83,7 +83,10 @@ export default function SettingsScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
+        // Web keeps the scrollbar: it is the only cue that Settings continues
+        // below the fold on a laptop. Native hides it — iOS/Android draw their
+        // own transient indicator, so the gutter would only cost width.
+        showsVerticalScrollIndicator={Platform.OS !== "web"}
       >
         <Text
           style={[styles.title, { fontFamily: fonts.uiBold, color: c.ink }]}
