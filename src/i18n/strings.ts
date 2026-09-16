@@ -96,6 +96,9 @@ export interface Translation {
     autoSaveEvery30s: string;
     autoSaveEvery1m: string;
     autoSaveEvery5m: string;
+    onboardingSection: string;
+    onboardingReplay: string;
+    onboardingReplayHint: string;
   };
   editor: {
     newProject: string;
@@ -295,6 +298,9 @@ export const strings: Record<Language, Translation> = {
       autoSaveEvery30s: "30 ثانية",
       autoSaveEvery1m: "دقيقة",
       autoSaveEvery5m: "5 دقائق",
+      onboardingSection: "الجولة التعريفية",
+      onboardingReplay: "إظهار الجولة مرة أخرى",
+      onboardingReplayHint: "أعِد مشاهدة شاشات التعريف.",
     },
     editor: {
       newProject: "لوحة جديدة",
@@ -490,6 +496,9 @@ export const strings: Record<Language, Translation> = {
       autoSaveEvery30s: "30s",
       autoSaveEvery1m: "1 min",
       autoSaveEvery5m: "5 min",
+      onboardingSection: "Intro",
+      onboardingReplay: "Show the intro again",
+      onboardingReplayHint: "Replay the introduction screens.",
     },
     editor: {
       newProject: "New artwork",

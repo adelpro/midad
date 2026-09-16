@@ -1,6 +1,7 @@
 import Constants from "expo-constants";
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button, Toggle } from "@/components/ui";
@@ -61,6 +62,7 @@ export default function SettingsScreen() {
     setAutoSaveEnabled,
     setAutoSaveInterval,
   } = useSettings();
+  const router = useRouter();
   const [languageJustChanged, setLanguageJustChanged] = useState(false);
 
   const changeLanguage = (next: "ar" | "en") => {
@@ -78,7 +80,11 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.paper }]}>
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
         <Text
           style={[styles.title, { fontFamily: fonts.uiBold, color: c.ink }]}
         >
@@ -220,6 +226,36 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        <SectionLabel>{t.settings.onboardingSection}</SectionLabel>
+        <View
+          style={[
+            styles.row,
+            { backgroundColor: c.surface, borderColor: c.border },
+          ]}
+        >
+          <Text
+            style={[styles.rowLabel, { fontFamily: fonts.ui, color: c.ink }]}
+          >
+            {t.settings.onboardingReplayHint}
+          </Text>
+          {/* Pushes the intro on top of the tabs. It pops back to this screen on
+              Start/Skip because it is opened with `?from=settings` — and the
+              completed flag is left set, so it never returns on its own. */}
+          <View style={styles.choiceRow}>
+            <Button
+              label={t.settings.onboardingReplay}
+              variant="secondary"
+              onPress={() =>
+                router.push({
+                  pathname: "/onboarding",
+                  params: { from: "settings" },
+                })
+              }
+              style={styles.choiceBtn}
+            />
+          </View>
+        </View>
+
         <SectionLabel>{t.settings.aboutSection}</SectionLabel>
         <View style={styles.group}>
           <View
@@ -265,13 +301,16 @@ export default function SettingsScreen() {
             </Text>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: {
+    flex: 1,
+  },
+  scroll: {
     flex: 1,
   },
   container: {

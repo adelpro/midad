@@ -54,12 +54,25 @@ interface SettingsState {
    * the intended trade.
    */
   selectionBarActions: SelectionActionId[] | null;
+  /**
+   * Whether the intro has been completed (or skipped) at least once on this
+   * device — `false` on a fresh install, so the first launch lands on the
+   * onboarding route.
+   *
+   * Re-opening it from Settings deliberately does NOT clear this: the intro is
+   * a replay, not a reset, so it never returns on its own.
+   *
+   * Device-local like `selectionBarActions` — how this device introduces the
+   * app, not part of the design, so it stays out of the project document.
+   */
+  hasCompletedOnboarding: boolean;
   setLanguage: (lang: Language) => void;
   setDefaultCanvas: (index: number) => void;
   setTheme: (theme: ThemePreference) => void;
   setAutoSaveEnabled: (enabled: boolean) => void;
   setAutoSaveInterval: (ms: number) => void;
   setSelectionBarActions: (ids: SelectionActionId[] | null) => void;
+  setHasCompletedOnboarding: (completed: boolean) => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -71,6 +84,7 @@ export const useSettings = create<SettingsState>()(
       autoSaveEnabled: true,
       autoSaveIntervalMs: AUTO_SAVE_INTERVAL_DEFAULT_MS,
       selectionBarActions: null,
+      hasCompletedOnboarding: false,
       setLanguage: (language) => set({ language }),
       setDefaultCanvas: (defaultCanvasIndex) => set({ defaultCanvasIndex }),
       setTheme: (theme) => set({ theme }),
@@ -78,6 +92,8 @@ export const useSettings = create<SettingsState>()(
       setAutoSaveInterval: (autoSaveIntervalMs) => set({ autoSaveIntervalMs }),
       setSelectionBarActions: (selectionBarActions) =>
         set({ selectionBarActions }),
+      setHasCompletedOnboarding: (hasCompletedOnboarding) =>
+        set({ hasCompletedOnboarding }),
     }),
     {
       name: "midad:settings",

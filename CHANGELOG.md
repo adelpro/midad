@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The intro shows once, and can be replayed from Settings.** Onboarding is a
+  real route now (`/onboarding`) behind a device-local flag: the first launch
+  lands on it, every launch after goes straight to the gallery, and a new
+  **Intro** section in Settings re-opens it on demand. A replay leaves the flag
+  set, so the intro never returns on its own, and the splash now waits for the
+  settings store to rehydrate — otherwise the launch gate would decide against
+  defaults and flash the intro at a returning user on every cold start.
 - **Selection overflow sheet** — the actions that do not fit the selection bar,
   as square tiles carrying each action's glyph, its name and a pin, plus a
   permanent `⋯` control at the end of the bar and a `Selection bar → More` entry
