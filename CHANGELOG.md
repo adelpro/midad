@@ -126,6 +126,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Settings toggle held together in Arabic on web.** It is now `@expo/ui`'s
+  universal switch — SwiftUI on iOS, Material 3 on Android, a DOM-backed switch
+  on web — because react-native-web positioned RN's `Switch` thumb with a
+  physical offset beside a logical one, so under `dir="rtl"` the on-state knob
+  slid out of its track, and it read `activeThumbColor` rather than `thumbColor`
+  for the on state, which painted the knob its own default teal.
 - **Taps select on the canvas in every tool, not only Select.** The tap result
   was gated on the active tool while the pointer-down path was disabled with it,
   so in the Background, Colours, Text and Insert tools a tap did nothing at all —
