@@ -199,7 +199,8 @@ export const HELP_ENTRIES = [
     group: "tools",
     label: { editor: "glyphs" },
     roleAr: "فتح مكتبة الزخارف والأشكال لإضافتها إلى التصميم.",
-    roleEn: "Open the glyphs and shapes library to add ornaments to your design.",
+    roleEn:
+      "Open the glyphs and shapes library to add ornaments to your design.",
     icon: "shapes",
   },
 

@@ -1716,7 +1716,14 @@ function ToolBtn({
   hint?: string;
   active: boolean;
   onPress: () => void;
-  icon: "pen" | "type" | "sparkle" | "shapes" | "palette" | "image" | "multiSelect";
+  icon:
+    | "pen"
+    | "type"
+    | "sparkle"
+    | "shapes"
+    | "palette"
+    | "image"
+    | "multiSelect";
 }) {
   const { colors: c } = useTheme();
   const { language } = useT();
