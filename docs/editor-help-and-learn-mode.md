@@ -265,11 +265,11 @@ overflow list) and through `HelpSheet`'s group cards.
 | `helpEntry`, `helpLabel`, `helpRole`, `helpGroupEntries`, `helpGroupLabel` | `src/editor/help/catalog.ts`        |
 | `useHelpMode`, `HelpMode.press`                                            | `src/editor/help/use-help-mode.ts`  |
 | `HelpRow`, `HelpCard` (live, shared with the overflow list)                | `src/editor/help/help-list.tsx`     |
-| `HelpSheet` (mounted by `EditorScreen`)                                | `src/editor/help/help-sheet.tsx`    |
-| `LearnOverlay` (mounted by `EditorScreen`)                             | `src/editor/help/learn-overlay.tsx` |
-| Barrel + the exports                                                   | `src/editor/help/index.ts`          |
-| Learn-mode overflow reference list, `disclosure`                       | `src/editor/selection-actions.tsx`  |
-| `help.press` wiring, `learn={help.active}`, `?` button, both overlays  | `src/editor/EditorScreen.tsx`       |
+| `HelpSheet` (mounted by `EditorScreen`)                                    | `src/editor/help/help-sheet.tsx`    |
+| `LearnOverlay` (mounted by `EditorScreen`)                                 | `src/editor/help/learn-overlay.tsx` |
+| Barrel + the exports                                                       | `src/editor/help/index.ts`          |
+| Learn-mode overflow reference list, `disclosure`                           | `src/editor/selection-actions.tsx`  |
+| `help.press` wiring, `learn={help.active}`, `?` button, both overlays      | `src/editor/EditorScreen.tsx`       |
 | `sel.*` copy the selection bar borrows                                     | `src/editor/help/catalog.ts`        |
 | `t.editor.hints.*` strings                                                 | `src/i18n/strings.ts`               |
 | `hintEnabled`, hint suppression, `hintPlacement`                           | `src/components/ui/icon-button.tsx` |
