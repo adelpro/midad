@@ -86,7 +86,9 @@ export default function SettingsScreen() {
         // Web keeps the scrollbar: it is the only cue that Settings continues
         // below the fold on a laptop. Native hides it — iOS/Android draw their
         // own transient indicator, so the gutter would only cost width.
-        showsVerticalScrollIndicator={Platform.OS !== "web"}
+        // NB: on web react-native-web turns `false` into `scrollbar-width:
+        // none`, so the condition has to be `=== "web"`, not `!== "web"`.
+        showsVerticalScrollIndicator={Platform.OS === "web"}
       >
         <Text
           style={[styles.title, { fontFamily: fonts.uiBold, color: c.ink }]}
