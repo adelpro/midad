@@ -1,8 +1,9 @@
 # Editor Groups
 
 > How several objects become one element in the midad editor: the membership
-> field, the invariant the whole feature rests on, and what a group deliberately
-> does not do. This is the behavior contract; when code and this document
+> field and the invariant the whole feature rests on. This is the behavior
+> contract for **membership**; the states, the box, the handles and the chip are
+> [`editor-collections.md`](editor-collections.md). When code and this document
 > disagree, fix the code.
 
 ---
@@ -10,13 +11,18 @@
 ## 1. What a group is
 
 A group is a set of objects the editor treats as **one element**. Tapping any
-member selects them all; they then move, nudge, duplicate, restack, delete and
-restyle together, and the selection bar, the count badge and the align actions
-all treat them as a single thing.
+member selects them all; they then move, nudge, duplicate, restack, delete,
+restyle, scale and rotate together, and the selection bar, the chip and the align
+actions all treat them as a single thing.
 
 The feature exists because the editor already knew how to move several objects at
 once (the multi-selection group drag) — what it lacked was a way to make that
 grouping _persist_, so it survives a tap on empty space, a save, and a reload.
+
+A **split word is a group too**: `splitObjectIntoParts` stamps a `groupId` on the
+parts, and their `part` ref keeps the provenance rejoin needs. The two features are
+one concept with two kinds — see [`editor-collections.md`](editor-collections.md)
+§1.
 
 ## 2. The model: one field, no container
 
@@ -50,26 +56,30 @@ The costs of that choice, stated plainly:
 an older file simply has no groups, and a newer file read by an older build keeps
 the key on round-trip without understanding it.
 
-## 3. The invariant: a selection is always whole groups
+## 3. The invariant: a selection is whole groups
 
-**`selectedIds` is always a union of whole groups.** A group can never be
-half-selected.
+**`selectedIds` is a union of whole groups — except that at most one group may be
+_entered_, in which case exactly one of its members is selected.** A group can
+never be half-selected.
 
 Everything else in this document is a consequence of that one rule. It is what
 lets `updateDrag`, `nudgeSelected`, `removeObjects`, `duplicateObjects`,
 `alignSelected` and the style edits act on "the selection" and be correct about
-groups without knowing about them.
+groups without knowing about them. The single entered exception is what lets a
+split word go on being edited letter by letter
+([`editor-collections.md`](editor-collections.md) §2).
 
 It is enforced in `src/editor/groups.ts` and applied at every write:
 
-| Write                                       | What keeps it whole                                                                   |
-| ------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `select(id, additive)`                      | `expandToGroups([id])`; the additive toggle removes the whole group the tap landed on |
-| `setMultiSelectMode(false)`                 | collapses to `expandToGroups([lastId])`, never to a single member                     |
-| `removeObjects`                             | re-expands what survives                                                              |
-| `splitObjectIntoParts` / `mergeObjectParts` | re-expands from the resulting object                                                  |
-| `duplicateObjects`                          | re-expands the clones                                                                 |
-| `restorableSelection` (undo/redo)           | filters to the entry's own objects, then re-expands                                   |
+| Write                                       | What keeps it whole                                                                                                                       |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `select(id, additive)`                      | `expandToGroups([id])`; the additive toggle removes the whole group the tap landed on; inside an entered group it moves the focus instead |
+| `enterMember(id)` / `exitCollection()`      | the two explicit doors into and out of the entered state                                                                                  |
+| `setMultiSelectMode(false)`                 | collapses to `expandToGroups([lastId])`, never to a single member                                                                         |
+| `removeObjects`                             | re-expands what survives                                                                                                                  |
+| `splitObjectIntoParts` / `mergeObjectParts` | re-expands from the resulting object                                                                                                      |
+| `duplicateObjects`                          | re-expands the clones                                                                                                                     |
+| `restorableSelection` (undo/redo)           | filters to the entry's own objects, then re-expands                                                                                       |
 
 `expandToGroups` puts the **touched id first** and its group's other members
 after it in document order. That matters because `selectedIds[0]` is the primary
@@ -82,8 +92,10 @@ the rest of the group follows it.
 | Interaction                                           | Behaviour                                                                                       |
 | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | Tap a member                                          | Selects the whole group                                                                         |
+| Tap an already-selected member again                  | Enters it, so one member can be edited on its own (`editor-collections.md` §2)                  |
 | Tap empty space                                       | Clears the selection                                                                            |
 | Drag a member                                         | Moves the whole group (the existing multi-selection drag, from per-object captured origins)     |
+| Drag a handle                                         | Scales the whole group about the opposite edge; the grip rotates it about its centre            |
 | Arrow keys                                            | Move the whole group, one coalesced history entry per burst                                     |
 | Delete                                                | Deletes the whole group                                                                         |
 | Duplicate                                             | Copies the group as a **new group** (fresh id, so the copy and the original move independently) |
@@ -91,7 +103,7 @@ the rest of the group follows it.
 | Ink swatch                                            | Recolours every member (`color` is the one style field all three object types carry)            |
 | Style presets, font size, leading, opacity, alignment | Applied to every selected **text** object, each resolved against its own properties             |
 | Align / centre                                        | Moves each **element** as a whole (§5)                                                          |
-| Count badge                                           | Counts elements, not objects — a group of three reads as `1`                                    |
+| Chip                                                  | Counts the group's members — `مجموعة · 3` — and offers the way back out while entered           |
 
 Style edits deliberately stop at text objects for text-only fields: writing
 `fontKey` onto an ornament would be inert at best and a type error at worst. Ink
@@ -117,28 +129,22 @@ group, or one lone object (`selectionUnits`).
 A lone object is a one-object unit, which is why a plain multi-selection aligns
 exactly as it always has.
 
-The count badge and the rail's `isMulti` both count units, so a group of three
-offers the same actions a single object does. That is the point of a group: it
-behaves as one element. Align is the one family that needs at least two elements
-to say anything, so it disappears for a lone group.
+The chip and the rail's `isMulti` both count elements, so a group of three offers
+the same actions a single object does. That is the point of a group: it behaves as
+one element. Align is the one family that needs at least two elements to say
+anything, so it disappears for a lone group.
 
 ## 6. What a group does not do
 
-- **No resize or rotate.** Handles remain single-object (`selectedIds.length ===
-1`), and pinch/two-finger rotate stays inert for any multi-selection, because a
-  group has no unambiguous pivot. A group is scaled the way any multi-selection
-  is: with the rail's `scaleUp`/`scaleDown`, which apply one transform to every
-  member.
-- **No "enter group".** A tap always resolves to the whole group. Editing one
-  member means ungrouping, editing, and grouping again — one invariant instead of
-  a mode with its own escape hatch.
 - **No nesting.** `canGroup` refuses a selection that already contains a grouped
   object: one owner per object keeps membership a single field with no parent
   chain to walk. Group a subset by ungrouping first.
 - **No marquee/lasso.** `hitTest` still resolves a point to one object id; the
   group is applied afterwards, in `select`.
-- **No group chrome.** A group selection draws the same dashed box a
-  multi-selection always did (`GroupSelectionOverlay`), with no handles.
+
+The rest of what a group deliberately leaves out — no stored frame, no pinch, and
+what a press inside the box on empty space does — belongs to the collection UI and
+is listed in [`editor-collections.md`](editor-collections.md) §7.
 
 ## 7. Availability
 
@@ -179,10 +185,10 @@ and their membership:
 | `mergeObjectParts`     | Re-joining a word that was itself the whole group leaves the merged object alone |
 | `splitObjectIntoParts` | The source is replaced by its parts, which inherit its membership                |
 
-`splitObjectIntoParts` and `mergeObjectParts` also **inherit** membership: the
-parts of a grouped word stay in the group, and a merged word inherits the
-membership its parts shared. Splitting or re-joining a member must not silently
-dissolve the group around it.
+`splitObjectIntoParts` and `mergeObjectParts` also **carry membership across**: the
+parts of a grouped word stay in the group (or get a fresh one of their own when the
+word stood alone), and a merged word inherits the membership its parts shared.
+Splitting or re-joining a member must not silently dissolve the group around it.
 
 `duplicateObjects` goes the other way: every clone that had a `groupId` gets a
 **fresh** one, shared by the whole copy. Sharing the source's id would make the

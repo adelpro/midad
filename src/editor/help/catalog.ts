@@ -461,22 +461,31 @@ export const HELP_ENTRIES = [
     key: "sel.partPrev",
     group: "selection",
     label: { hint: "partPrev" },
-    roleAr: "الانتقال إلى الحرف السابق في الكلمة المقسّمة.",
-    roleEn: "Move to the previous letter of the split word.",
+    roleAr: "الانتقال إلى العنصر السابق في المجموعة المحدّدة.",
+    roleEn: "Move to the previous member of the selected collection.",
   },
   {
     key: "sel.partNext",
     group: "selection",
     label: { hint: "partNext" },
-    roleAr: "الانتقال إلى الحرف التالي في الكلمة المقسّمة.",
-    roleEn: "Move to the next letter of the split word.",
+    roleAr: "الانتقال إلى العنصر التالي في المجموعة المحدّدة.",
+    roleEn: "Move to the next member of the selected collection.",
   },
   {
-    key: "sel.partTile",
+    key: "sel.memberTile",
     group: "selection",
-    label: { ar: "حرف", en: "Letter" },
-    roleAr: "الانتقال مباشرة إلى هذا الحرف في الكلمة المقسّمة.",
-    roleEn: "Jump straight to this letter of the split word.",
+    label: { ar: "عنصر في المجموعة", en: "Member tile" },
+    roleAr: "الانتقال مباشرة إلى هذا العنصر داخل المجموعة.",
+    roleEn: "Jump straight to this member inside the collection.",
+  },
+  {
+    key: "sel.collectionChip",
+    group: "selection",
+    label: { ar: "شارة المجموعة", en: "Collection chip" },
+    roleAr:
+      "تعرض عدد عناصر التحديد، وعند الدخول إلى المجموعة تعرض العنصر الحالي. لمسها يعيدك إلى المجموعة كاملة.",
+    roleEn:
+      "Shows how many elements the selection holds — or, inside a collection, which member you are on. Tapping it goes back to the whole collection.",
   },
   {
     key: "sel.swatchInk",
@@ -528,6 +537,31 @@ export const HELP_ENTRIES = [
     label: { ar: "المقابض", en: "Handles" },
     roleAr: "اسحب مقبض زاوية لتغيير الحجم، أو مقبض ضلع للتمديد.",
     roleEn: "Drag a corner handle to resize, or an edge handle to stretch.",
+  },
+  {
+    key: "canvas.collectionHandles",
+    group: "canvas",
+    label: { ar: "مقابض المجموعة", en: "Collection handles" },
+    roleAr:
+      "حين يكون التحديد أكثر من عنصر، تحيط به مقابض واحدة: سحبها يحيط المجموعة كاملة بالطرف المقابل دون تغيير ترتيبها الداخلي.",
+    roleEn:
+      "With more than one element selected, one set of handles wraps them all: dragging one scales the whole collection about the opposite edge, keeping the arrangement intact.",
+  },
+  {
+    key: "canvas.collectionEnter",
+    group: "canvas",
+    label: { ar: "الدخول إلى مجموعة", en: "Enter a collection" },
+    roleAr: "المس عنصرًا داخل مجموعة محدّدة للدخول إليه وتحريره وحده.",
+    roleEn:
+      "Tap a member of a collection that is already selected to step inside and edit it on its own.",
+  },
+  {
+    key: "canvas.collectionExit",
+    group: "canvas",
+    label: { ar: "الخروج من مجموعة", en: "Leave a collection" },
+    roleAr: "المس خارج المجموعة للخروج منها وتحديدها كاملة.",
+    roleEn:
+      "Tap outside the collection to leave it and select the whole of it.",
   },
   {
     key: "canvas.rotate",

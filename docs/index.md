@@ -22,27 +22,29 @@ the file to open first. Every path below is copied from a code map in this folde
 
 ## 2. Start here — by task
 
-| Task                                                | Contract                                                            | Open first                                                         |
-| --------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Change what a drag, pinch or rotate does            | [`editor-gestures.md`](editor-gestures.md) §2                       | `src/editor/use-object-gestures.ts`                                |
-| Change hit-testing, grab tolerance or handle shapes | [`editor-coordinates.md`](editor-coordinates.md) §7                 | `src/editor/hit-test.ts`                                           |
-| Change fit-to-view or the viewport                  | [`editor-coordinates.md`](editor-coordinates.md) §3                 | `src/editor/EditorCanvas.tsx`                                      |
-| Make an edit undoable — or deliberately not         | [`editor-state-and-history.md`](editor-state-and-history.md) §2     | `src/editor/store.ts`                                              |
-| Add a shape or a glyph                              | [`editor-render-contract.md`](editor-render-contract.md) §5         | `src/editor/skia/shape-geometry.ts`                                |
-| Keep canvas, PNG and SVG agreeing                   | [`editor-render-contract.md`](editor-render-contract.md) §2         | `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts`       |
-| Change Arabic shaping or text measurement           | [`editor-text-engine.md`](editor-text-engine.md) §1                 | `src/editor/skia/text.ts`                                          |
-| Change how a word splits or rejoins                 | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §2       | `src/editor/text/clusters.ts`                                      |
-| Make several objects act as one element             | [`editor-groups.md`](editor-groups.md) §3                           | `src/editor/groups.ts`, `src/editor/store.ts`                      |
-| Change how a press selects                          | [`editor-selection.md`](editor-selection.md) §2                     | `src/editor/use-object-gestures.ts`, `src/editor/EditorScreen.tsx` |
-| Add or reorder a selection-bar action               | [`editor-selection-bar.md`](editor-selection-bar.md) §2             | `src/editor/selection-actions.tsx`                                 |
-| Add a keyboard binding                              | [`editor-keyboard.md`](editor-keyboard.md) §3                       | `src/editor/shortcuts.ts`                                          |
-| Change a label, role, tooltip or help entry         | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §2 | `src/editor/help/catalog.ts`                                       |
+| Task                                                    | Contract                                                            | Open first                                                         |
+| ------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Change what a drag, pinch or rotate does                | [`editor-gestures.md`](editor-gestures.md) §2                       | `src/editor/use-object-gestures.ts`                                |
+| Change hit-testing, grab tolerance or handle shapes     | [`editor-coordinates.md`](editor-coordinates.md) §7                 | `src/editor/hit-test.ts`                                           |
+| Change fit-to-view or the viewport                      | [`editor-coordinates.md`](editor-coordinates.md) §3                 | `src/editor/EditorCanvas.tsx`                                      |
+| Make an edit undoable — or deliberately not             | [`editor-state-and-history.md`](editor-state-and-history.md) §2     | `src/editor/store.ts`                                              |
+| Add a shape or a glyph                                  | [`editor-render-contract.md`](editor-render-contract.md) §5         | `src/editor/skia/shape-geometry.ts`                                |
+| Keep canvas, PNG and SVG agreeing                       | [`editor-render-contract.md`](editor-render-contract.md) §2         | `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts`       |
+| Change Arabic shaping or text measurement               | [`editor-text-engine.md`](editor-text-engine.md) §1                 | `src/editor/skia/text.ts`                                          |
+| Change how a word splits or rejoins                     | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §2       | `src/editor/text/clusters.ts`                                      |
+| Make several objects act as one element                 | [`editor-groups.md`](editor-groups.md) §3                           | `src/editor/groups.ts`, `src/editor/store.ts`                      |
+| Change the selection box, its handles or the count chip | [`editor-collections.md`](editor-collections.md) §3                 | `src/editor/groups.ts`, `src/editor/EditorCanvas.tsx`              |
+| Change how a press selects                              | [`editor-selection.md`](editor-selection.md) §2                     | `src/editor/use-object-gestures.ts`, `src/editor/EditorScreen.tsx` |
+| Add or reorder a selection-bar action                   | [`editor-selection-bar.md`](editor-selection-bar.md) §2             | `src/editor/selection-actions.tsx`                                 |
+| Add a keyboard binding                                  | [`editor-keyboard.md`](editor-keyboard.md) §3                       | `src/editor/shortcuts.ts`                                          |
+| Change a label, role, tooltip or help entry             | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §2 | `src/editor/help/catalog.ts`                                       |
 
 ## 3. The contracts
 
 | Document                                                         | Owns                                           | Entry point                                                                                 | Check                 |
 | ---------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------- |
 | [`editor-coordinates.md`](editor-coordinates.md)                 | Four frames, fit-to-view, handle geometry      | `src/editor/hit-test.ts`, `src/editor/EditorCanvas.tsx`                                     | —                     |
+| [`editor-collections.md`](editor-collections.md)                 | The two states, the frame, the chip, the strip | `src/editor/groups.ts`, `src/editor/collection-chip.tsx`                                    | `check-groups.mjs`    |
 | [`editor-gestures.md`](editor-gestures.md)                       | Tap/pan/pinch/rotate, resize, release settle   | `src/editor/use-object-gestures.ts`                                                         | —                     |
 | [`editor-groups.md`](editor-groups.md)                           | Group membership, the whole-groups invariant   | `src/editor/groups.ts`, `src/editor/store.ts`                                               | `check-groups.mjs`    |
 | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) | Help catalog, tooltips, learn mode             | `src/editor/help/catalog.ts`, `src/editor/help/use-help-mode.ts`                            | `check-help.mjs`      |
@@ -59,12 +61,12 @@ the file to open first. Every path below is copied from a code map in this folde
 There is no test runner. Four contracts own a standalone script that is the real
 specification for their tables; run the one that covers what you touched.
 
-| Script                        | Guards                                           | Owner                                                               |
-| ----------------------------- | ------------------------------------------------ | ------------------------------------------------------------------- |
-| `scripts/check-clusters.mjs`  | Segmentation types + split/round-trip            | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §9       |
-| `scripts/check-groups.mjs`    | Expansion, units, predicates, singleton dissolve | [`editor-groups.md`](editor-groups.md) §3                           |
-| `scripts/check-shortcuts.mjs` | Binding table, matcher, chord text               | [`editor-keyboard.md`](editor-keyboard.md) §10                      |
-| `scripts/check-help.mjs`      | Catalog ↔ `strings.ts` ↔ `shortcuts.ts`          | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §5 |
+| Script                        | Guards                                                       | Owner                                                               |
+| ----------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `scripts/check-clusters.mjs`  | Segmentation types + split/round-trip                        | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §9       |
+| `scripts/check-groups.mjs`    | Expansion, units, predicates, the frame, the transform maths | [`editor-collections.md`](editor-collections.md) §3                 |
+| `scripts/check-shortcuts.mjs` | Binding table, matcher, chord text                           | [`editor-keyboard.md`](editor-keyboard.md) §10                      |
+| `scripts/check-help.mjs`      | Catalog ↔ `strings.ts` ↔ `shortcuts.ts`                      | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §5 |
 
 Repo-wide, and cheaper than any of them: `npx tsc --noEmit` and `npx eslint src`.
 

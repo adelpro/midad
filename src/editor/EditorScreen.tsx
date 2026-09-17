@@ -26,22 +26,41 @@ import {
   Sheet,
 } from "@/components/ui";
 import { EditorCanvasHost } from "@/editor/EditorCanvasHost";
+import { CollectionChip } from "@/editor/collection-chip";
 import {
   collectSvgFontFaces,
   collectUsedFamilies,
   projectToSvg,
 } from "@/editor/export/svg";
-import { canGroup, canUngroup, unitCount } from "@/editor/groups";
-import { HelpSheet, LearnOverlay, useHelpMode } from "@/editor/help";
+import {
+  canGroup,
+  canUngroup,
+  collectionMembers,
+  flipCollection,
+  memberOrigins,
+  OBJECT_SCALE_BOUNDS,
+  rotateCollection,
+  scaleCollection,
+  selectionCollection,
+  selectionFrame,
+  unitCount,
+} from "@/editor/groups";
+import {
+  helpEntry,
+  helpRole,
+  HelpSheet,
+  LearnOverlay,
+  useHelpMode,
+} from "@/editor/help";
 import { InsertSheet, type ShapeKey } from "@/editor/insert-sheet";
 import { renderProjectToPng } from "@/editor/render/offscreen";
 import {
-  SelectionOverflowActions,
-  SelectionRailActions,
   defaultSelectionBar,
   overflowActionIds,
   railActionIds,
   resolveSelectionActions,
+  SelectionOverflowActions,
+  SelectionRailActions,
   visibleActionCount,
   type SelectionActionId,
   type SelectionActionSources,
@@ -73,7 +92,12 @@ import { hapticDelete, hapticSuccess, hapticTick } from "@/haptics";
 import { usePressFeedback } from "@/hooks/use-press-feedback";
 import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
-import { formatPartLabel, formatSelectedCount } from "@/i18n/strings";
+import {
+  formatCollectionGroup,
+  formatMemberLabel,
+  formatPartLabel,
+  formatSelectedCount,
+} from "@/i18n/strings";
 import { pickBackgroundImage } from "@/storage/background-image";
 import { shareFile, shareImage } from "@/storage/export";
 import type {
@@ -87,7 +111,7 @@ import {
   saveProject,
 } from "@/storage/projects";
 import { useSettings } from "@/storage/settings";
-import { THUMB_MAX_WIDTH_PX, saveThumb } from "@/storage/thumbs";
+import { saveThumb, THUMB_MAX_WIDTH_PX } from "@/storage/thumbs";
 import {
   calligraphyFonts,
   fontRoles,
@@ -123,6 +147,32 @@ function currentSelection(): DesignObject[] {
   return (
     store.project?.objects.filter((o) => store.selectedIds.includes(o.id)) ?? []
   );
+}
+
+/**
+ * Complete a collection patch against the live object, so `updateObjects` gets a
+ * full `Partial<DesignObject>`.
+ *
+ * A collection patch names only the fields it moves; the object's own transform
+ * supplies the rest — its flips, and whichever of scale or rotation the operation
+ * did not touch.
+ */
+function withTransform(
+  objects: readonly DesignObject[],
+  patches: readonly { id: string; transform: Partial<ObjectTransform> }[],
+): { id: string; patch: Partial<DesignObject> }[] {
+  const full: { id: string; patch: Partial<DesignObject> }[] = [];
+  for (const patch of patches) {
+    const obj = objects.find((o) => o.id === patch.id);
+    if (!obj) {
+      continue;
+    }
+    full.push({
+      id: patch.id,
+      patch: { transform: { ...obj.transform, ...patch.transform } },
+    });
+  }
+  return full;
 }
 
 /** Font-size bounds for the size gauge (design units). */
@@ -203,6 +253,9 @@ export function EditorScreen() {
   const sendToBack = useEditorStore((s) => s.sendToBack);
   const groupSelected = useEditorStore((s) => s.groupSelected);
   const ungroupSelected = useEditorStore((s) => s.ungroupSelected);
+  const enterMember = useEditorStore((s) => s.enterMember);
+  const exitCollection = useEditorStore((s) => s.exitCollection);
+  const sizedObjects = useEditorStore((s) => s.sizedObjects);
 
   const [tool, setTool] = useState<ActiveTool>("select");
   /**
@@ -232,12 +285,10 @@ export function EditorScreen() {
   const [splitNotice, setSplitNotice] = useState<string | null>(null);
 
   // Measured widths for the selection rail's truncation budget (see
-  // `visibleActionCount`): the row, the context zone's content, and the
-  // multi-select count badge. Zero until the first layout pass, which the
-  // width maths treats as "everything fits".
+  // `visibleActionCount`): the row and the context zone's content. Zero until the
+  // first layout pass, which the width maths treats as "everything fits".
   const [railWidth, setRailWidth] = useState(0);
   const [contextWidth, setContextWidth] = useState(0);
-  const [countWidth, setCountWidth] = useState(0);
 
   useAutoSave();
 
@@ -246,6 +297,8 @@ export function EditorScreen() {
   const selectionBarActions = useSettings((s) => s.selectionBarActions);
   const setSelectionBarActions = useSettings((s) => s.setSelectionBarActions);
   const help = useHelpMode();
+  /** The learn-mode binder, held in a variable so the chip's memo can key on it. */
+  const helpPress = help.press;
 
   // Load the project once.
   useEffect(() => {
@@ -281,6 +334,17 @@ export function EditorScreen() {
       const store = useEditorStore.getState();
       if (store.gs.selectionHandledOnDown) {
         store.setGs({ selectionHandledOnDown: false });
+      } else if (
+        objId !== null &&
+        !store.gs.additiveSelect &&
+        // A member of the collection that is *already* selected, tapped rather
+        // than dragged (a drag swallows the tap): the second tap steps inside.
+        store.selectedIds.length > 1 &&
+        store.selectedIds.includes(objId) &&
+        store.project?.objects.find((o) => o.id === objId)?.groupId !==
+          undefined
+      ) {
+        store.enterMember(objId);
       } else {
         // The additive flag was recorded at pointer-down (`beginDrag`), so the
         // tap-up half of the press agrees with it — the multi-select tool or a
@@ -304,10 +368,15 @@ export function EditorScreen() {
   );
 
   /**
-   * The split group the selection belongs to. Parts are ordinary objects in the
-   * flat list; `part.rootId` is what ties them back to the word they came from.
+   * The split word the selection belongs to, if any: `part.rootId` is what ties a
+   * part back to the word it was cut from.
+   *
+   * Kept apart from the collection members below on purpose. Rejoin is about
+   * *provenance* — it has to go on working for a word that was later ungrouped —
+   * while the member strip and the frame are about *membership*. One lookup could
+   * not serve both without breaking one of them.
    */
-  const partSiblings = useMemo(() => {
+  const rejoinParts = useMemo(() => {
     const rootId = selectedText?.part?.rootId;
     if (!rootId) {
       return [];
@@ -320,10 +389,20 @@ export function EditorScreen() {
       .sort((a, b) => (a.part?.index ?? 0) - (b.part?.index ?? 0));
   }, [project, selectedText]);
 
-  /** Position of the selected object within its split group (-1 when absent). */
-  const activePartIndex = partSiblings.findIndex(
-    (p) => p.id === selectedIds[0],
+  /**
+   * The members of the collection the selection is in, in reading order — a split
+   * word's letters, or a group's objects.
+   *
+   * Empty for a lone object, which is what keeps the member strip off the rail
+   * until there is more than one member to navigate.
+   */
+  const members = useMemo(
+    () => collectionMembers(selectedIds, project?.objects ?? []),
+    [selectedIds, project],
   );
+
+  /** Position of the primary selection within the member strip (-1 when absent). */
+  const activeMemberIndex = members.findIndex((m) => m.id === selectedIds[0]);
 
   /**
    * Whether the selection can be broken into parts. Deliberately a cheap
@@ -404,23 +483,23 @@ export function EditorScreen() {
   }, [liveText, skiaFonts, splitFailureMessage, t]);
 
   const rejoinSelected = useCallback(() => {
-    if (partSiblings.length === 0) {
+    if (rejoinParts.length === 0) {
       return;
     }
-    const text = mergePartTexts(partSiblings);
+    const text = mergePartTexts(rejoinParts);
     if (text === null) {
       // Incomplete group — refuse rather than silently drop a part.
       setSplitNotice(t.editor.splitFailed);
       return;
     }
-    const first = partSiblings[0];
+    const first = rejoinParts[0];
     // The parts may have drifted apart, so the merged object is centred on the
     // group's centroid: the word reappears where its pieces were, instead of
     // jumping to whichever part happened to sort first.
-    const centre = partSiblings.reduce(
+    const centre = rejoinParts.reduce(
       (acc, p) => ({
-        x: acc.x + p.transform.x / partSiblings.length,
-        y: acc.y + p.transform.y / partSiblings.length,
+        x: acc.x + p.transform.x / rejoinParts.length,
+        y: acc.y + p.transform.y / rejoinParts.length,
       }),
       { x: 0, y: 0 },
     );
@@ -444,25 +523,26 @@ export function EditorScreen() {
     setSplitNotice(null);
     useEditorStore.getState().mergeObjectParts(
       merged,
-      partSiblings.map((p) => p.id),
+      rejoinParts.map((p) => p.id),
     );
-  }, [partSiblings, t]);
+  }, [rejoinParts, t]);
 
-  /** Selects the neighbouring part of the active split group. */
-  const stepPart = useCallback(
+  /** Moves the focus to the neighbouring member of the selected collection. */
+  const stepMember = useCallback(
     (direction: 1 | -1) => {
-      if (partSiblings.length < 2) {
+      if (members.length < 2) {
         return;
       }
-      const current = partSiblings.findIndex(
-        (p) => p.id === useEditorStore.getState().selectedIds[0],
+      const current = members.findIndex(
+        (m) => m.id === useEditorStore.getState().selectedIds[0],
       );
       const from = current < 0 ? 0 : current;
-      const next =
-        (from + direction + partSiblings.length) % partSiblings.length;
-      select(partSiblings[next].id);
+      const next = (from + direction + members.length) % members.length;
+      // Entering the neighbour, not selecting it: a plain `select` would grow
+      // back to the whole collection and the strip would stop stepping.
+      enterMember(members[next].id);
     },
-    [partSiblings, select],
+    [members, enterMember],
   );
 
   /**
@@ -550,8 +630,8 @@ export function EditorScreen() {
    * text object.
    *
    * A group is one element, so a style change lands on all of it — the same rule
-   * `transformSelected` already follows for the transform buttons. One snapshot
-   * covers the whole selection, so a single undo reverts all of it.
+   * `scaleSelection` and its siblings follow for the transform buttons. One
+   * snapshot covers the whole selection, so a single undo reverts all of it.
    */
   const patchStyle = useCallback((patch: Partial<CalligraphyTextObject>) => {
     const store = useEditorStore.getState();
@@ -643,20 +723,155 @@ export function EditorScreen() {
     [liveText, patchSelectedAll],
   );
 
-  /** Applies a discrete transform to the selection with a history snapshot. */
-  const transformSelected = useCallback((patch: Partial<ObjectTransform>) => {
-    const store = useEditorStore.getState();
-    const objects = store.project?.objects.filter((o) =>
-      store.selectedIds.includes(o.id),
-    );
-    if (!objects?.length) {
-      return;
-    }
-    store.snapshot();
-    for (const obj of objects) {
-      store.updateObject(obj.id, { transform: { ...obj.transform, ...patch } });
-    }
-  }, []);
+  /**
+   * The frame the selection's handles are drawn on, with its measured members.
+   *
+   * The same rule the canvas draws and the gesture layer grabs (`groups.ts`), so a
+   * rail button acts on exactly the box the user can see.
+   */
+  const selectionTarget = useCallback(
+    () =>
+      selectionFrame(
+        useEditorStore.getState().selectedIds,
+        useEditorStore.getState().sizedObjects,
+      ),
+    [],
+  );
+
+  /**
+   * Scales the selection.
+   *
+   * One object keeps the classic behaviour — its own scale, clamped. A whole
+   * selection scales as a *frame*: every member's offset from the centre is
+   * multiplied by the factor as well as its own scale, so the arrangement stays
+   * similar instead of each member growing in place.
+   */
+  const scaleSelection = useCallback(
+    (factor: number) => {
+      const store = useEditorStore.getState();
+      const objects = currentSelection();
+      if (objects.length === 0) {
+        return;
+      }
+      store.snapshot();
+      if (objects.length === 1) {
+        const obj = objects[0];
+        store.updateObject(obj.id, {
+          transform: {
+            ...obj.transform,
+            scale: clamp(
+              obj.transform.scale * factor,
+              OBJECT_SCALE_BOUNDS.min,
+              OBJECT_SCALE_BOUNDS.max,
+            ),
+          },
+        });
+        return;
+      }
+      const target = selectionTarget();
+      if (!target) {
+        return;
+      }
+      store.updateObjects(
+        withTransform(
+          objects,
+          scaleCollection(
+            memberOrigins(target.members),
+            factor,
+            { x: target.frame.x, y: target.frame.y },
+            OBJECT_SCALE_BOUNDS,
+          ),
+        ),
+      );
+    },
+    [selectionTarget],
+  );
+
+  /**
+   * Rotates the selection.
+   *
+   * One object turns in place. A whole selection *orbits* its frame centre as
+   * well, which is the difference between turning a composition and spinning
+   * every piece of it on the spot.
+   */
+  const rotateSelection = useCallback(
+    (delta: number) => {
+      const store = useEditorStore.getState();
+      const objects = currentSelection();
+      if (objects.length === 0) {
+        return;
+      }
+      store.snapshot();
+      if (objects.length === 1) {
+        const obj = objects[0];
+        store.updateObject(obj.id, {
+          transform: {
+            ...obj.transform,
+            rotation: obj.transform.rotation + delta,
+          },
+        });
+        return;
+      }
+      const target = selectionTarget();
+      if (!target) {
+        return;
+      }
+      store.updateObjects(
+        withTransform(
+          objects,
+          rotateCollection(memberOrigins(target.members), delta, {
+            x: target.frame.x,
+            y: target.frame.y,
+          }),
+        ),
+      );
+    },
+    [selectionTarget],
+  );
+
+  /**
+   * Mirrors the selection.
+   *
+   * A whole selection mirrors about its frame centre: the offsets reflect *and*
+   * every member turns to face the other way, because that is what a mirror is.
+   * Flipping the members in place would leave the arrangement exactly where it was
+   * and only turn each letter backwards.
+   */
+  const flipSelection = useCallback(
+    (axis: "h" | "v") => {
+      const store = useEditorStore.getState();
+      const objects = currentSelection();
+      if (objects.length === 0) {
+        return;
+      }
+      store.snapshot();
+      if (objects.length === 1) {
+        const obj = objects[0];
+        store.updateObject(obj.id, {
+          transform: {
+            ...obj.transform,
+            flipH: axis === "h" ? !obj.transform.flipH : obj.transform.flipH,
+            flipV: axis === "v" ? !obj.transform.flipV : obj.transform.flipV,
+          },
+        });
+        return;
+      }
+      const target = selectionTarget();
+      if (!target) {
+        return;
+      }
+      store.updateObjects(
+        withTransform(
+          objects,
+          flipCollection(memberOrigins(target.members), axis, {
+            x: target.frame.x,
+            y: target.frame.y,
+          }),
+        ),
+      );
+    },
+    [selectionTarget],
+  );
 
   /**
    * Drops a manual wrap width so the selected text hugs its content again
@@ -960,24 +1175,12 @@ export function EditorScreen() {
       nudgeRight: (context) => nudgeSelected(nudgeStep(context), 0),
       nudgeUp: (context) => nudgeSelected(0, -nudgeStep(context)),
       nudgeDown: (context) => nudgeSelected(0, nudgeStep(context)),
-      // Flip and rotation mirror the selection-bar buttons exactly, including
-      // reading their angles from the primary selection.
-      flipH: () =>
-        transformSelected({
-          flipH: !(selectedObject?.transform.flipH ?? false),
-        }),
-      flipV: () =>
-        transformSelected({
-          flipV: !(selectedObject?.transform.flipV ?? false),
-        }),
-      rotateCcw: () =>
-        transformSelected({
-          rotation: (selectedObject?.transform.rotation ?? 0) - 90,
-        }),
-      rotateCw: () =>
-        transformSelected({
-          rotation: (selectedObject?.transform.rotation ?? 0) + 90,
-        }),
+      // Flip and rotation mirror the selection-bar buttons exactly: one object
+      // turns or mirrors in place, a whole selection turns about its frame centre.
+      flipH: () => flipSelection("h"),
+      flipV: () => flipSelection("v"),
+      rotateCcw: () => rotateSelection(-90),
+      rotateCw: () => rotateSelection(90),
       bringToFront: () => {
         if (selectedIds.length > 0) {
           bringToFront(selectedIds);
@@ -1039,7 +1242,7 @@ export function EditorScreen() {
     () => ({
       isText: !!selectedText,
       canSplit: canSplitSelected,
-      canRejoin: partSiblings.length > 1,
+      canRejoin: rejoinParts.length > 1,
       isMulti: elementCount > 1,
       canGroup: canGroup(selectedIds, project?.objects ?? []),
       canUngroup: canUngroup(selectedIds, project?.objects ?? []),
@@ -1047,12 +1250,66 @@ export function EditorScreen() {
     [
       selectedText,
       canSplitSelected,
-      partSiblings.length,
+      rejoinParts.length,
       selectedIds,
       elementCount,
       project,
     ],
   );
+
+  /**
+   * The chip above the selection: how many elements it is, or — while a
+   * collection is entered — which member is being edited, with the way back out.
+   *
+   * It replaced the count badge that used to head the selection rail. A label
+   * about the selection belongs on the selection, and the rail's width is for
+   * actions — the badge was also charged against their budget, twice over.
+   */
+  const chip = useMemo(() => {
+    const selection = selectionFrame(selectedIds, sizedObjects);
+    if (!selection) {
+      return null;
+    }
+    const role = helpRole(helpEntry("sel.collectionChip"), language);
+    if (selection.state === "entered") {
+      const index = selection.members.findIndex((m) => m.id === selectedIds[0]);
+      const total = selection.members.length;
+      return {
+        frame: selection.frame,
+        mode: "entered" as const,
+        // Position only: the member strip names the member, and a chip pinned to
+        // the canvas is a label rather than a sentence.
+        text: `${index + 1}/${total}`,
+        label:
+          selectedText?.part !== undefined
+            ? formatPartLabel(index, total, language)
+            : formatMemberLabel(index, total, language),
+        hint: role,
+        onPress: helpPress("sel.collectionChip", exitCollection),
+      };
+    }
+    const text =
+      selectionCollection(selectedIds, project?.objects ?? []) !== null
+        ? formatCollectionGroup(selection.members.length, language)
+        : formatSelectedCount(selection.members.length, language);
+    return {
+      frame: selection.frame,
+      mode: "whole" as const,
+      text,
+      label: text,
+      hint: role,
+      // Nothing to go back to: a whole selection already is the whole thing.
+      onPress: undefined,
+    };
+  }, [
+    selectedIds,
+    sizedObjects,
+    project,
+    language,
+    selectedText,
+    exitCollection,
+    helpPress,
+  ]);
 
   /** What each selection command does. A `Record`, so a new id cannot be left unhandled. */
   const run = useMemo<Record<SelectionCommandId, () => void>>(
@@ -1060,26 +1317,11 @@ export function EditorScreen() {
       styleOpen: () => setStyleSheetOpen(true),
       stylePrev: () => cyclePresentation(-1),
       styleNext: () => cyclePresentation(1),
-      scaleUp: () =>
-        transformSelected({
-          scale: (selectedObject?.transform.scale ?? 1) * 1.1,
-        }),
-      scaleDown: () =>
-        transformSelected({
-          scale: (selectedObject?.transform.scale ?? 1) * 0.9,
-        }),
-      rotateCcw: () =>
-        transformSelected({
-          rotation: (selectedObject?.transform.rotation ?? 0) - 90,
-        }),
-      rotateCw: () =>
-        transformSelected({
-          rotation: (selectedObject?.transform.rotation ?? 0) + 90,
-        }),
-      flipH: () =>
-        transformSelected({
-          flipH: !(selectedObject?.transform.flipH ?? false),
-        }),
+      scaleUp: () => scaleSelection(1.1),
+      scaleDown: () => scaleSelection(0.9),
+      rotateCcw: () => rotateSelection(-90),
+      rotateCw: () => rotateSelection(90),
+      flipH: () => flipSelection("h"),
       fitText: fitTextToContent,
       split: splitSelected,
       rejoin: rejoinSelected,
@@ -1111,9 +1353,10 @@ export function EditorScreen() {
       more: () => setMoreOpen(true),
     }),
     [
-      selectedObject,
       selectedIds,
-      transformSelected,
+      scaleSelection,
+      rotateSelection,
+      flipSelection,
       fitTextToContent,
       splitSelected,
       rejoinSelected,
@@ -1158,7 +1401,6 @@ export function EditorScreen() {
   const visibleCount = visibleActionCount({
     railWidth,
     contextWidth,
-    countWidth,
     available: railIds.length,
   });
   const railActions = resolveSelectionActions(railIds, sources);
@@ -1283,6 +1525,16 @@ export function EditorScreen() {
               />
             </View>
           </GestureDetector>
+          {chip && (
+            <CollectionChip
+              frame={chip.frame}
+              mode={chip.mode}
+              text={chip.text}
+              accessibilityLabel={chip.label}
+              accessibilityHint={chip.hint}
+              onPress={chip.onPress}
+            />
+          )}
           {help.active && (
             <LearnOverlay
               activeKey={help.activeKey}
@@ -1320,14 +1572,6 @@ export function EditorScreen() {
             {/* Selection rail — truncates to what fits; the rest live in `⋯` */}
             {selectedIds.length > 0 && (
               <View style={styles.selectionRail}>
-                {selectedIds.length > 1 && (
-                  <Text
-                    onLayout={(e) => setCountWidth(e.nativeEvent.layout.width)}
-                    style={styles.selectionCount}
-                  >
-                    {formatSelectedCount(elementCount, language)}
-                  </Text>
-                )}
                 <SelectionRailActions
                   actions={railActions}
                   visibleCount={visibleCount}
@@ -1345,35 +1589,37 @@ export function EditorScreen() {
               contentContainerStyle={styles.contextTrack}
               onContentSizeChange={(w) => setContextWidth(w)}
             >
-              {/* Parts strip — the pieces of a split word, in reading order */}
-              {partSiblings.length > 1 && (
-                <Reveal style={styles.partsStrip}>
+              {/* Member strip — the pieces of the selected collection, in reading
+                  order: a split word's letters, or a group's objects. */}
+              {members.length > 1 && (
+                <Reveal style={styles.memberStrip}>
                   <IconButton
-                    onPress={() => stepPart(-1)}
+                    onPress={help.press("sel.partPrev", () => stepMember(-1))}
                     accessibilityLabel={t.editor.hints.partPrev}
                     hint={t.editor.hints.partPrev}
                   >
                     <DirectionIcon isRTL={!isRTL} size={16} />
                   </IconButton>
-                  <View style={styles.partsTrack}>
-                    {partSiblings.map((part, index) => (
-                      <PartTile
-                        key={part.id}
-                        label={formatPartLabel(
-                          index,
-                          partSiblings.length,
-                          language,
-                        )}
-                        text={part.text}
-                        fontKey={part.fontKey}
+                  <View style={styles.memberTrack}>
+                    {members.map((member, index) => (
+                      <MemberTile
+                        key={member.id}
+                        label={
+                          member.type === "text" && member.part !== undefined
+                            ? formatPartLabel(index, members.length, language)
+                            : formatMemberLabel(index, members.length, language)
+                        }
+                        member={member}
                         index={index}
-                        active={index === activePartIndex}
-                        onPress={() => select(part.id)}
+                        active={index === activeMemberIndex}
+                        onPress={help.press("sel.memberTile", () =>
+                          enterMember(member.id),
+                        )}
                       />
                     ))}
                   </View>
                   <IconButton
-                    onPress={() => stepPart(1)}
+                    onPress={help.press("sel.partNext", () => stepMember(1))}
                     accessibilityLabel={t.editor.hints.partNext}
                     hint={t.editor.hints.partNext}
                   >
@@ -1783,22 +2029,24 @@ export function EditorScreen() {
 }
 
 /**
- * One part tile in the parts strip.
+ * One member tile in the member strip.
  *
- * Split out of the screen because it owns press feedback — hooks cannot be
- * called from inside the parent's `map`.
+ * A text member shows its own glyph in its own font — a faithful preview, which
+ * is what makes a split word navigable letter by letter. Anything else shows its
+ * kind's glyph instead, because a 44dp tile cannot show an ornament honestly.
+ *
+ * Split out of the screen because it owns press feedback — hooks cannot be called
+ * from inside the parent's `map`.
  */
-function PartTile({
+function MemberTile({
   label,
-  text,
-  fontKey,
+  member,
   index,
   active,
   onPress,
 }: {
   label: string;
-  text: string;
-  fontKey: string;
+  member: DesignObject;
   index: number;
   active: boolean;
   onPress: () => void;
@@ -1820,7 +2068,7 @@ function PartTile({
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       style={[
-        styles.partTile,
+        styles.memberTile,
         {
           borderColor: active ? c.accent : c.border,
           backgroundColor: active ? c.accentSoft : c.surfaceAlt,
@@ -1828,16 +2076,27 @@ function PartTile({
         animStyle,
       ]}
     >
-      {/* Rendered with the part's own font, so the tile shows the glyph exactly
-          as the canvas does. */}
+      {member.type === "text" ? (
+        // The member's own font, so the tile shows the glyph exactly as the
+        // canvas does.
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.memberGlyph,
+            { color: c.ink, fontFamily: member.fontKey },
+          ]}
+        >
+          {member.text}
+        </Text>
+      ) : (
+        <Icon
+          name={member.type === "shape" ? "shapes" : "sparkle"}
+          size={20}
+          color={c.ink}
+        />
+      )}
       <Text
-        numberOfLines={1}
-        style={[styles.partGlyph, { color: c.ink, fontFamily: fontKey }]}
-      >
-        {text}
-      </Text>
-      <Text
-        style={[styles.partIndex, { color: c.muted, fontFamily: fonts.ui }]}
+        style={[styles.memberIndex, { color: c.muted, fontFamily: fonts.ui }]}
       >
         {index + 1}
       </Text>
@@ -1930,17 +2189,17 @@ function TextInputStub({
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  partsStrip: {
+  memberStrip: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
   },
-  partsTrack: {
+  memberTrack: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
   },
-  partTile: {
+  memberTile: {
     minWidth: 48,
     height: 44,
     borderRadius: radius.lg,
@@ -1950,8 +2209,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     gap: spacing.xxs,
   },
-  partGlyph: { fontSize: 20, lineHeight: 26 },
-  partIndex: {
+  memberGlyph: { fontSize: 20, lineHeight: 26 },
+  memberIndex: {
     fontSize: typeScale.micro.size,
     lineHeight: typeScale.micro.lineHeight,
   },
@@ -2048,7 +2307,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.md,
   },
-  selectionCount: { fontSize: typeScale.caption.size, color: "#77736B" },
   toolRail: {
     paddingVertical: spacing.sm,
     borderTopWidth: 1,

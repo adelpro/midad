@@ -147,6 +147,13 @@ export interface Translation {
     saved: string;
     saveFailed: string;
     selectedCount: string;
+    /**
+     * The chip above a whole collection, e.g. "Group · 3" / "مجموعة · 3".
+     *
+     * A format rather than a label: the number is the point, and the word only
+     * says what is being counted.
+     */
+    collectionGroup: string;
     // Splitting a word into independently editable parts.
     split: string;
     rejoin: string;
@@ -207,6 +214,11 @@ export interface Translation {
       partPrev: string;
       partNext: string;
       partLabel: string;
+      /**
+       * A member of a plain collection, e.g. "Element 2 of 3". A split word
+       * keeps `partLabel`, because "part" is what its members are.
+       */
+      memberLabel: string;
     };
   };
 }
@@ -349,6 +361,7 @@ export const strings: Record<Language, Translation> = {
       saved: "تم الحفظ",
       saveFailed: "تعذّر الحفظ",
       selectedCount: "المحدد: {n}",
+      collectionGroup: "مجموعة · {n}",
       split: "تقسيم",
       rejoin: "دمج",
       parts: "الأجزاء",
@@ -402,9 +415,10 @@ export const strings: Record<Language, Translation> = {
         ungroup: "فكّ تجميع العناصر",
         stylePrev: "النمط السابق",
         styleNext: "النمط التالي",
-        partPrev: "الجزء السابق",
-        partNext: "الجزء التالي",
+        partPrev: "العنصر السابق",
+        partNext: "العنصر التالي",
         partLabel: "الجزء {n} من {total}",
+        memberLabel: "العنصر {n} من {total}",
       },
     },
   },
@@ -549,6 +563,7 @@ export const strings: Record<Language, Translation> = {
       saved: "Saved",
       saveFailed: "Save failed",
       selectedCount: "Selected: {n}",
+      collectionGroup: "Group · {n}",
       split: "Split",
       rejoin: "Rejoin",
       parts: "Parts",
@@ -602,9 +617,10 @@ export const strings: Record<Language, Translation> = {
         ungroup: "Ungroup the elements",
         stylePrev: "Previous style",
         styleNext: "Next style",
-        partPrev: "Previous part",
-        partNext: "Next part",
+        partPrev: "Previous element",
+        partNext: "Next element",
         partLabel: "Part {n} of {total}",
+        memberLabel: "Element {n} of {total}",
       },
     },
   },
@@ -672,12 +688,36 @@ export function formatGalleryCount(n: number, language: Language): string {
   return template.replace("{n}", digits);
 }
 
-/** Selected-objects badge copy, e.g. "Selected: 3" / "المحدد: 3". */
+/** Selected-objects copy, e.g. "Selected: 3" / "المحدد: 3". */
 export function formatSelectedCount(n: number, language: Language): string {
   return strings[language].editor.selectedCount.replace(
     "{n}",
     n.toLocaleString("en-US"),
   );
+}
+
+/** The chip over a whole collection, e.g. "Group · 3" / "مجموعة · 3". */
+export function formatCollectionGroup(n: number, language: Language): string {
+  return strings[language].editor.collectionGroup.replace(
+    "{n}",
+    n.toLocaleString("en-US"),
+  );
+}
+
+/**
+ * Member badge copy for a plain collection, e.g. "Element 2 of 3".
+ *
+ * A split word uses `formatPartLabel` instead: its members are letters, and
+ * "part" is what the split feature calls them.
+ */
+export function formatMemberLabel(
+  index: number,
+  total: number,
+  language: Language,
+): string {
+  return strings[language].editor.hints.memberLabel
+    .replace("{n}", (index + 1).toLocaleString("en-US"))
+    .replace("{total}", total.toLocaleString("en-US"));
 }
 
 /** Part badge copy in the parts strip, e.g. "Part 2 of 3" / "الجزء 2 من 3". */

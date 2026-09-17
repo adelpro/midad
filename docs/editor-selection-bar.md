@@ -152,23 +152,35 @@ The computation:
 
 ```
 usable        = railWidth − 2 × RAIL_PADDING
-countCharge   = countWidth > 0 ? countWidth + RAIL_GAP : 0
-zoneCeiling   = max(0, min((usable − countCharge) × CONTEXT_ZONE_MAX_SHARE,
-                           usable − countCharge − RAIL_MIN_CLUSTER − RAIL_GAP))
+zoneCeiling   = max(0, min(usable × CONTEXT_ZONE_MAX_SHARE,
+                           usable − RAIL_MIN_CLUSTER − RAIL_GAP))
 zoneCharge    = contextWidth > 0 ? min(contextWidth, zoneCeiling) + RAIL_GAP : 0
-room          = usable − countCharge − zoneCharge
+room          = usable − zoneCharge
 fit           = floor((room − RAIL_BUTTON_SIZE) / (RAIL_BUTTON_SIZE + RAIL_GAP))
 ```
 
 `fit` falls out of `(visible + 1) × button + visible × gap ≤ room` — the visible
 actions **plus `⋯`** have to fit, which is why one button is subtracted up front.
 
-### Why both siblings are measured from their _content_
+### The count badge left this budget
+
+The multi-selection count used to sit at the head of the row as a `<Text>`, charged
+as `countCharge = countWidth + RAIL_GAP` against `usable` — and again inside the
+zone's ceiling, so it cost the actions twice over. It is now a chip on the canvas
+(`editor-collections.md` §5), which is both where a label about the selection
+belongs and the reason `visibleActionCount` no longer takes a `countWidth`. The
+row gained roughly one button, and the zone's ceiling rose with it.
+
+The move also removed a latent bug: nothing ever reset `countWidth` when the badge
+unmounted, so a stale width went on being charged until the badge happened to
+re-layout.
+
+### Why the remaining sibling is measured from its _content_
 
 Each sibling is sized to whatever the actions leave over, so **measuring the
 laid-out box would be circular**. `contextWidth` comes from
-`onContentSizeChange` on the parts strip's own scroller and `countWidth` from an
-`onLayout` on the badge — never from a box the action count influences.
+`onContentSizeChange` on the context zone's own scroller — never from a box the
+action count influences.
 
 **A width of `0` means the sibling is not rendered, so it is charged nothing —
 including no gap.**
@@ -182,7 +194,7 @@ row**, so the bar rendered nothing but `⋯` — the parts strip had _replaced_ 
 selection bar instead of sitting beside it.
 
 The zone is therefore charged at most `CONTEXT_ZONE_MAX_SHARE` of the usable
-width, and the actions keep the rest. The strip scrolls harder instead; parts and
+width, and the actions keep the rest. The strip scrolls harder instead; members and
 swatches are content, so that is the honest degradation (DESIGN.md §5).
 
 `RAIL_MIN_BUTTONS = 2` guarantees the head action and `⋯` always fit. `⋯` is the
@@ -353,19 +365,20 @@ mirrors with direction via `styles.pinLeft` / `styles.pinRight`.
 
 ## 12. Code map
 
-| Concern                                                                   | File                                |
-| ------------------------------------------------------------------------- | ----------------------------------- |
-| `SelectionActionId`, `RAIL_SLOTS`, `OVERFLOW_ACTIONS`, `SHEET_ORDER`      | `src/editor/selection-actions.tsx`  |
-| `SelectionShape`, `isAvailable`                                           | `src/editor/selection-actions.tsx`  |
-| `railActionIds`, `overflowActionIds`, `SLOT_INDEX_OF`                     | `src/editor/selection-actions.tsx`  |
-| `visibleActionCount` and the geometry constants                           | `src/editor/selection-actions.tsx`  |
-| `resolveSelectionActions`, `SelectionAction`, `SelectionPin`              | `src/editor/selection-actions.tsx`  |
-| `SelectionRailActions`, `SelectionActionTile`, `SelectionOverflowActions` | `src/editor/selection-actions.tsx`  |
-| `STEP_DIRECTION`, `DirectionIcon` usage                                   | `src/editor/selection-actions.tsx`  |
-| `bar`, `togglePin`, `railIds`, `visibleCount`, measurement callbacks      | `src/editor/EditorScreen.tsx`       |
-| `contextRail` slot, `CONTEXT_RAIL_HEIGHT`                                 | `src/editor/EditorScreen.tsx`       |
-| `selectionBarActions`, `setSelectionBarActions`                           | `src/storage/settings.ts`           |
-| `sel.*` labels, roles, icons and chords                                   | `src/editor/help/catalog.ts`        |
-| Hint suppression under `onLongPress`                                      | `src/components/ui/icon-button.tsx` |
-| `spacing`, `radius`, `typeScale` tokens                                   | `src/theme/tokens.ts`               |
-| The rail's layout rule                                                    | `DESIGN.md` §5                      |
+| Concern                                                                   | File                                                            |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `SelectionActionId`, `RAIL_SLOTS`, `OVERFLOW_ACTIONS`, `SHEET_ORDER`      | `src/editor/selection-actions.tsx`                              |
+| `SelectionShape`, `isAvailable`                                           | `src/editor/selection-actions.tsx`                              |
+| `railActionIds`, `overflowActionIds`, `SLOT_INDEX_OF`                     | `src/editor/selection-actions.tsx`                              |
+| `visibleActionCount` and the geometry constants                           | `src/editor/selection-actions.tsx`                              |
+| `resolveSelectionActions`, `SelectionAction`, `SelectionPin`              | `src/editor/selection-actions.tsx`                              |
+| `SelectionRailActions`, `SelectionActionTile`, `SelectionOverflowActions` | `src/editor/selection-actions.tsx`                              |
+| `STEP_DIRECTION`, `DirectionIcon` usage                                   | `src/editor/selection-actions.tsx`                              |
+| The chip, the member strip, the context zone's contents                   | `src/editor/collection-chip.tsx`, `src/editor/EditorScreen.tsx` |
+| `bar`, `togglePin`, `railIds`, `visibleCount`, measurement callbacks      | `src/editor/EditorScreen.tsx`                                   |
+| `contextRail` slot, `CONTEXT_RAIL_HEIGHT`                                 | `src/editor/EditorScreen.tsx`                                   |
+| `selectionBarActions`, `setSelectionBarActions`                           | `src/storage/settings.ts`                                       |
+| `sel.*` labels, roles, icons and chords                                   | `src/editor/help/catalog.ts`                                    |
+| Hint suppression under `onLongPress`                                      | `src/components/ui/icon-button.tsx`                             |
+| `spacing`, `radius`, `typeScale` tokens                                   | `src/theme/tokens.ts`                                           |
+| The rail's layout rule                                                    | `DESIGN.md` §5                                                  |

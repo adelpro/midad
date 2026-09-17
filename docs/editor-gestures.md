@@ -87,6 +87,12 @@ The interaction between the two halves of a press (`selectionHandledOnDown`,
 explanation. The short version: `additiveSelect` is recorded at pointer-down and
 read at tap-up so the two halves cannot disagree.
 
+**A handle grab sets `selectionHandledOnDown` too**, even though the selection did
+not change. The press is fully handled there, and a tap that did not move is still
+a tap on the handle: left unset, the trailing tap would fall through to the canvas
+hit-test, which reads a point _outside_ the box — often far outside every member,
+for a collection's frame edge — and clear the whole selection.
+
 Note the `enabled === false` branch also **resets `selectionHandledOnDown` to
 `false`**. Only the trailing tap consumes that flag and a tap is not guaranteed to
 follow (a real drag swallows it); left set, it would swallow the next tap in a
@@ -114,12 +120,21 @@ regardless of object size — the same conversion that places them. See
 recorded, and a resize handle only displaces it if strictly closer — so the grip
 can never shadow a resize handle.
 
+**A whole selection is tested the same way, against its frame.** `hitFrameHandle`
+runs the same `pickHandle` over `selectionFrame(selectedIds, sizedObjects)` — the
+frame the overlay draws and the chip is anchored to — so there is one handle
+geometry and one box, not three. The frame carries no scale of its own (its
+half-extents are already visual), which is why its radii are not divided by
+anything: the chrome and the touch target are both in design units. See
+[`editor-collections.md`](editor-collections.md) §3.
+
 ## 4. Dragging
 
 `updateDrag` bails when disabled, then:
 
 1. **A handle drag owns the object** — if `gs.resizeTargetId` is set, delegate to
-   `updateResize` and return.
+   `updateResize` and return. A collection drag has no object id, so it is marked
+   by `gs.collectionOrigins` instead, and `updateResize` dispatches on that.
 2. **A pinch/rotate owns the object** — if `gs.transformTargetId` is set, return.
    The pan must not also move it, or a relative writer and an absolute writer
    would fight over the same transform.
@@ -133,6 +148,24 @@ can never shadow a resize handle.
 `updateResize` works from the **gesture's start state** (`gs.resizeOrigin*`), so a
 resize is absolute and accumulates no rounding drift. Rotation is the deliberate
 exception — it accumulates wrapped steps so it can travel past 180°.
+
+### Collection handles
+
+When the press lands on a whole selection's frame, the same start-state bundle
+holds the _frame_ (centre, rotation, and a box with no scale of its own) and
+`gs.collectionOrigins` holds every member's transform as captured at pointer-down.
+`updateCollectionResize` then writes all of them at once through `updateObjects`:
+
+| Handle        | Write                                                                                                             |
+| ------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Corner / edge | `scaleCollection` about the **opposite edge**, which is the design-space position of the anchor `anchorFor` names |
+| Rotate grip   | `rotateCollection` about the frame **centre**, adding the delta to the running `gs.collectionDelta`               |
+
+The rotation snaps on the **frame's** angle (so a collection lands on the same 45°
+multiples an object does) and settles through `settleCollectionRotation`, the same
+critically damped spring running on the collection's delta instead of one object's
+rotation. Pinch and two-finger rotate stay inert for any multi-selection: a
+collection has no pivot two fingers could agree on.
 
 Pointer travel is measured in the object's local frame:
 

@@ -34,7 +34,7 @@ interface HelpEntry {
 }
 ```
 
-The table holds **71 entries across 6 groups** at the time of writing — the check
+The table holds **78 entries across 6 groups** at the time of writing — the check
 script prints the live count.
 
 ### The label union
@@ -229,9 +229,16 @@ what the reference list fixes.
 
 ## 10. What learn mode does not reach
 
-Every other sheet opener — `styleOpen`, export, text — **is** intercepted, so
-those sheets stay reference-only in learn mode: their contents are explained by
-the catalog entries that own them, not by opening them.
+A sheet opener **is** intercepted when it is a selection-bar action (`styleOpen`),
+so the style sheet stays reference-only in learn mode: its contents are explained
+by the catalog entries that own them, not by opening them.
+
+The export and text sheets are **not** intercepted — their buttons call their
+setter directly, so a tap opens the sheet even while learning. Their entries are
+reference-only in the reference list, which is the same place the members of a
+collection are explained: the member strip's tiles and its prev/next arrows _are_
+bound (`help.press`), so a tap explains them instead of stepping, but the strip as
+a whole is listed rather than opened.
 
 `FontSizeGauge`'s internal stepper is **not interceptable** (it is a gesture on a
 gauge, not a bound press), so its three entries are reference-only too.

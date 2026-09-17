@@ -473,32 +473,27 @@ export function visibleActionCount(args: {
   railWidth: number;
   /** The context zone's intrinsic width, or `0` when there is no zone. */
   contextWidth: number;
-  /** The multi-select count badge's width, or `0` when nothing is multi-selected. */
-  countWidth: number;
   available: number;
 }): number {
-  const { railWidth, contextWidth, countWidth, available } = args;
+  const { railWidth, contextWidth, available } = args;
   if (railWidth <= 0 || available <= 0) {
     // Unmeasured: assume everything fits, and let the next layout pass correct
     // the row. One frame of spill beats a rail that renders empty first.
     return available;
   }
   const usable = railWidth - 2 * RAIL_PADDING;
-  // The count badge is not negotiable: it is small, and it says how many
-  // objects the actions beside it are about to apply to.
-  const countCharge = countWidth > 0 ? countWidth + RAIL_GAP : 0;
   // What the zone may claim: at most its share, and never so much that the
   // cluster loses its head, its `⋯`, or the gap that separates the two.
   const zoneCeiling = Math.max(
     0,
     Math.min(
-      (usable - countCharge) * CONTEXT_ZONE_MAX_SHARE,
-      usable - countCharge - RAIL_MIN_CLUSTER - RAIL_GAP,
+      usable * CONTEXT_ZONE_MAX_SHARE,
+      usable - RAIL_MIN_CLUSTER - RAIL_GAP,
     ),
   );
   const zoneCharge =
     contextWidth > 0 ? Math.min(contextWidth, zoneCeiling) + RAIL_GAP : 0;
-  const room = usable - countCharge - zoneCharge;
+  const room = usable - zoneCharge;
   // The visible actions *and* the `⋯` have to fit:
   //   (visible + 1) * button + visible * gap <= room
   const fit = Math.floor(

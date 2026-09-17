@@ -13,14 +13,14 @@ import {
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 
+import { selectionFrame, type CollectionFrame } from "@/editor/groups";
 import {
-  groupAabb,
+  frameBox,
   hitTest,
   resizeHandles,
   rotateHandle,
   safeObjectScale,
   selectionPad,
-  type Aabb,
   type SizedObject,
 } from "@/editor/hit-test";
 import { GlyphRenderer } from "@/editor/skia/glyph-shape";
@@ -129,6 +129,7 @@ export function EditorCanvas({
     () =>
       project.objects.map((obj) => ({
         id: obj.id,
+        groupId: obj.groupId,
         transform: obj.transform,
         zIndex: obj.zIndex,
         box: objectBox(obj, layouts),
@@ -159,8 +160,14 @@ export function EditorCanvas({
   }, [view, project.canvas.width, project.canvas.height]);
 
   useEffect(() => {
-    useEditorStore.getState().setViewport({ scale, offsetX, offsetY });
-  }, [scale, offsetX, offsetY]);
+    useEditorStore.getState().setViewport({
+      scale,
+      offsetX,
+      offsetY,
+      w: view?.w ?? 0,
+      h: view?.h ?? 0,
+    });
+  }, [scale, offsetX, offsetY, view]);
 
   // Latest values for the tap effect below. `sized` gets a new identity on
   // every drag frame and `onTapResult` on most screen renders; keying the
@@ -184,11 +191,16 @@ export function EditorCanvas({
     }
   }, [tapPoint]);
 
-  const groupBox = useMemo(
-    () =>
-      selectedIds.length > 1
-        ? groupAabb(sized.filter((o) => selectedIds.includes(o.id)))
-        : null,
+  /**
+   * The box around the selection, and what kind of box it is.
+   *
+   * One rule, shared with the gesture layer and the chip (`groups.ts`): a whole
+   * selection is a box with handles, an entered member shows its collection's box
+   * as context, and a lone object has no box of its own at all. What is drawn,
+   * what is labelled and what can be grabbed are therefore the same box.
+   */
+  const selection = useMemo(
+    () => selectionFrame(selectedIds, sized),
     [selectedIds, sized],
   );
 
@@ -245,7 +257,13 @@ export function EditorCanvas({
               }
             />
           ))}
-          {groupBox && <GroupSelectionOverlay box={groupBox} scale={scale} />}
+          {selection && (
+            <CollectionOverlay
+              frame={selection.frame}
+              scale={scale}
+              handles={selection.state === "whole"}
+            />
+          )}
         </Group>
       </Canvas>
     </View>
@@ -337,26 +355,95 @@ const ObjectLayer = memo(function ObjectLayer({
   );
 });
 
-const GroupSelectionOverlay = memo(function GroupSelectionOverlay({
-  box,
+/**
+ * The box, handles and rotate grip around a whole selection.
+ *
+ * Drawn as a *sibling* of the objects, inside the fit group, because a collection
+ * has no transform of its own to nest the chrome inside — which is also why every
+ * length below divides by the view scale alone, unlike `SelectionOverlay`, which
+ * lives inside one object's transform and has to divide out that object's scale
+ * too.
+ *
+ * `handles: false` is the entered state: the frame stays as context for what the
+ * selected member belongs to, and the member's own chrome carries the handles.
+ */
+const CollectionOverlay = memo(function CollectionOverlay({
+  frame,
   scale,
+  handles,
 }: {
-  box: Aabb;
+  frame: CollectionFrame;
   scale: number;
+  handles: boolean;
 }) {
+  const box = frameBox(frame);
+  const pad = selectionPad(1);
+  const hw = box.width / 2 + pad;
+  const hh = box.height / 2 + pad;
   const border = 1.5 / scale;
+  const handleR = 4 / scale;
+  const gripR = 5 / scale;
+  const positions = resizeHandles(box, 1);
+  const grip = rotateHandle(box, 1);
   return (
-    <Rect
-      x={box.left}
-      y={box.top}
-      width={box.right - box.left}
-      height={box.bottom - box.top}
-      color="transparent"
-      style="stroke"
-      strokeWidth={border}
+    <Group
+      transform={[
+        { translateX: frame.x },
+        { translateY: frame.y },
+        { rotate: (frame.rotation * Math.PI) / 180 },
+      ]}
+      origin={vec(0, 0)}
     >
-      <DashPathEffect intervals={[6 / scale, 5 / scale]} />
-    </Rect>
+      <Rect
+        x={-hw}
+        y={-hh}
+        width={box.width + pad * 2}
+        height={box.height + pad * 2}
+        color="transparent"
+        style="stroke"
+        strokeWidth={border}
+      >
+        <DashPathEffect intervals={[6 / scale, 5 / scale]} />
+      </Rect>
+      {handles &&
+        positions.map((p) => (
+          <Circle
+            key={p.handle}
+            c={vec(p.x, p.y)}
+            r={handleR}
+            color="#111111"
+            style="stroke"
+            strokeWidth={2 / scale}
+          />
+        ))}
+      {handles &&
+        positions.map((p) => (
+          <Circle
+            key={`c${p.handle}`}
+            c={vec(p.x, p.y)}
+            r={handleR}
+            color="#FFFFFF"
+          />
+        ))}
+      {handles && (
+        <>
+          <Line
+            p1={vec(0, -hh)}
+            p2={vec(grip.x, grip.y)}
+            color="#111111"
+            strokeWidth={border}
+          />
+          <Circle
+            c={vec(grip.x, grip.y)}
+            r={gripR}
+            color="#111111"
+            style="stroke"
+            strokeWidth={2 / scale}
+          />
+          <Circle c={vec(grip.x, grip.y)} r={gripR} color="#FFFFFF" />
+        </>
+      )}
+    </Group>
   );
 });
 

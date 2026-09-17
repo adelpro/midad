@@ -105,7 +105,7 @@ const LANGUAGES = ["ar", "en"];
  * control, so no entry can claim it. Listed rather than pattern-matched so
  * adding a real label key later cannot slip past unnoticed.
  */
-const NON_LABEL_HINTS = ["partLabel"];
+const NON_LABEL_HINTS = ["partLabel", "memberLabel"];
 
 // ---------------------------------------------------------------------------
 // Shape.

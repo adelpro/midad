@@ -5,11 +5,13 @@ import {
   canGroup,
   canUngroup,
   dissolveSingletonGroups,
+  enteredCollection,
   expandToGroups,
   newGroupId,
   remapGroupIds,
   sameIds,
   selectionUnits,
+  type MemberOrigin,
 } from "@/editor/groups";
 import type { ResizeHandle, SizedObject } from "@/editor/hit-test";
 import { NUDGE_COALESCE_MS } from "@/editor/shortcuts";
@@ -32,6 +34,15 @@ interface Viewport {
   /** Centering offsets in view px. */
   offsetX: number;
   offsetY: number;
+  /**
+   * The canvas box in view px.
+   *
+   * Published alongside the transform so an overlay that lives *outside* the
+   * Skia tree — the collection chip — can place itself from a design-space point
+   * without measuring the canvas a second time.
+   */
+  w: number;
+  h: number;
 }
 
 /** An object's center as captured when a drag started. */
@@ -82,6 +93,22 @@ interface GestureScratch {
   transformTargetId: string | null;
   scaleOrigin: number;
   rotationOrigin: number;
+  /**
+   * The collection a handle drag is transforming: every member's transform as
+   * captured at pointer-down, in the order the drag writes them.
+   *
+   * Empty for a single-object drag, which is what tells `updateResize` which of
+   * the two maths to run — a collection has no object id to key on. The frame
+   * the drag is measured in lives in the `resizeOrigin*` fields below, which fit
+   * it exactly: centre, rotation, and a box with no scale of its own.
+   */
+  collectionOrigins: MemberOrigin[];
+  /**
+   * Degrees the collection has turned so far, relative to `collectionOrigins`.
+   * The release settle animates from here to the snapped angle, so it needs the
+   * running total rather than the last pointer angle.
+   */
+  collectionDelta: number;
   /** Object being resized via a handle drag. */
   resizeTargetId: string | null;
   resizeHandle: ResizeHandle | null;
@@ -129,6 +156,8 @@ const EMPTY_SCRATCH: GestureScratch = {
   transformTargetId: null,
   scaleOrigin: 1,
   rotationOrigin: 0,
+  collectionOrigins: [],
+  collectionDelta: 0,
   resizeTargetId: null,
   resizeHandle: null,
   resizeOriginX: 0,
@@ -164,6 +193,23 @@ interface EditorState {
 
   loadProject: (project: MidadProject) => void;
   select: (id: string | null, additive?: boolean) => void;
+  /**
+   * Selects one member of a collection on its own — the *entered* state.
+   *
+   * Inert for an object that belongs to no collection: there is nothing to enter,
+   * and selecting it alone would be an ordinary `select`. Used by the member
+   * strip's tiles and by the second-tap-on-a-member idiom.
+   */
+  enterMember: (id: string) => void;
+  /**
+   * Leaves an entered collection, selecting the whole of it. Inert when the
+   * selection is not entered — there is nothing to come back out of.
+   *
+   * The counterpart to `enterMember`, and the only way back: a plain `select` on a
+   * member while inside keeps you inside, which is what makes stepping between
+   * letters work.
+   */
+  exitCollection: () => void;
   clearSelection: () => void;
   setMultiSelectMode: (enabled: boolean, keepSelection?: boolean) => void;
   setSizedObjects: (objects: SizedObject[]) => void;
@@ -258,7 +304,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedIds: [],
   multiSelectMode: false,
   sizedObjects: [],
-  viewport: { scale: 1, offsetX: 0, offsetY: 0 },
+  viewport: { scale: 1, offsetX: 0, offsetY: 0, w: 0, h: 0 },
   gs: EMPTY_SCRATCH,
   past: [],
   future: [],
@@ -275,8 +321,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }),
 
   select: (id, additive = false) => {
-    // Group membership is resolved here, in the one place every selection write
-    // funnels through, so a group can never end up half-selected (see
+    // Collection membership is resolved here, in the one place every selection
+    // write funnels through, so a collection can never end up half-selected (see
     // `groups.ts` for the invariant).
     const objects = get().project?.objects ?? [];
     set((s) => {
@@ -285,11 +331,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // (and re-render every selection subscriber) for nothing.
         return s.selectedIds.length === 0 ? s : { selectedIds: [] };
       }
-      // The element the press resolved to: the object, plus its group.
-      const element = expandToGroups([id], objects);
       if (additive) {
+        // The element the press resolved to: the object, plus its collection.
+        const element = expandToGroups([id], objects);
         // The toggle idiom works on the element, not the object: tapping a
-        // member of an already-selected group takes the whole group out.
+        // member of an already-selected collection takes the whole collection
+        // out.
         if (s.selectedIds.includes(id)) {
           const drop = new Set(element);
           const next = s.selectedIds.filter((x) => !drop.has(x));
@@ -298,11 +345,48 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const next = expandToGroups([...s.selectedIds, id], objects);
         return sameIds(next, s.selectedIds) ? s : { selectedIds: next };
       }
+      // Inside an entered collection, a press on one of its members moves the
+      // focus within it rather than collapsing back to the whole thing. This is
+      // the one hole in the whole-collections invariant, and it is what keeps a
+      // split word editable letter by letter.
+      const entered = enteredCollection(s.selectedIds, objects);
+      if (
+        entered !== null &&
+        objects.find((o) => o.id === id)?.groupId === entered
+      ) {
+        return s.selectedIds.length === 1 && s.selectedIds[0] === id
+          ? s
+          : { selectedIds: [id] };
+      }
+      // The element the press resolved to: the object, plus its collection.
+      const element = expandToGroups([id], objects);
       // Same element already selected — bail for the same reason.
       if (sameIds(element, s.selectedIds)) {
         return s;
       }
       return { selectedIds: element };
+    });
+  },
+
+  enterMember: (id) => {
+    const objects = get().project?.objects ?? [];
+    if (objects.find((o) => o.id === id)?.groupId === undefined) {
+      return;
+    }
+    set((s) =>
+      s.selectedIds.length === 1 && s.selectedIds[0] === id
+        ? s
+        : { selectedIds: [id] },
+    );
+  },
+
+  exitCollection: () => {
+    const objects = get().project?.objects ?? [];
+    set((s) => {
+      if (enteredCollection(s.selectedIds, objects) === null) {
+        return s;
+      }
+      return { selectedIds: expandToGroups(s.selectedIds, objects) };
     });
   },
 
@@ -341,6 +425,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           const n = sizedObjects[i];
           return (
             o.id === n.id &&
+            o.groupId === n.groupId &&
             o.transform === n.transform &&
             o.box.width === n.box.width &&
             o.box.height === n.box.height
@@ -357,7 +442,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (
       v.scale === viewport.scale &&
       v.offsetX === viewport.offsetX &&
-      v.offsetY === viewport.offsetY
+      v.offsetY === viewport.offsetY &&
+      v.w === viewport.w &&
+      v.h === viewport.h
     ) {
       return;
     }
@@ -499,12 +586,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     // z-index, so array order (which a stable sort preserves) is their paint
     // order — the word still reads left-to-right in the same place.
     //
-    // They also inherit the source's group: splitting a grouped object replaces
-    // one member with several, and the group must survive that.
-    const stamped =
-      source.groupId === undefined
-        ? parts
-        : parts.map((p) => ({ ...p, groupId: source.groupId }));
+    // They also become a collection of their own: a split word is one element the
+    // user can move, scale and rotate whole, and step back into letter by letter.
+    // A word that was already grouped keeps its collection, so splitting a member
+    // of a group never tears the group apart.
+    const groupId = source.groupId ?? newGroupId();
+    const stamped = parts.map((p) => ({ ...p, groupId }));
     const next = [
       ...dissolveSingletonGroups([
         ...objects.slice(0, at),
@@ -515,7 +602,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     s0.snapshot();
     set((s) => ({
       project: s.project ? { ...s.project, objects: next } : s.project,
-      selectedIds: expandToGroups([stamped[0].id], next),
+      // Entered on the first letter, not on the whole collection: splitting still
+      // drops the user straight into editing letter by letter, which is the whole
+      // point of the operation.
+      selectedIds: [stamped[0].id],
     }));
   },
 

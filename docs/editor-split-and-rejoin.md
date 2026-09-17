@@ -171,11 +171,20 @@ and calls `mergeObjectParts` so the whole rejoin is one undoable step.
 Both directions are **single undoable steps** that snapshot once:
 
 - `splitObjectIntoParts(sourceId, parts)` — the parts take over the source's slot
-  in the objects array, and the **first part** becomes the selection. The editor's
-  handles, transform bar and Style navigator all act on one object at a time, so a
-  multi-part selection would leave them meaningless.
+  in the objects array and are stamped with a `groupId` (the source's own when it
+  was grouped, a fresh one otherwise), so the word becomes a **collection**: one
+  element the user can move, scale and rotate whole, and step back into letter by
+  letter. The selection lands **entered** on the first part, so splitting still
+  drops the user straight into editing letter by letter.
 - `mergeObjectParts(merged, partIds)` — removes the parts, inserts the merged
-  object at the first removed part's index, and selects it.
+  object at the first removed part's index, and selects it. The merged object
+  inherits the membership its parts shared.
+
+The two features stay independent where it matters: **rejoin is keyed on
+`part.rootId`**, not on membership, so ungrouping a word does not destroy the
+ability to rejoin it, and the member strip (membership) and the rejoin action
+(provenance) derive from different lookups. See
+[`editor-collections.md`](editor-collections.md) §1 and §6.
 
 ## 9. The executable spec
 

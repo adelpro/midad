@@ -140,10 +140,19 @@ Two pad helpers convert the design-unit constants into the local frame:
 Keeping `selectionPad` shared is what stops the rotate grip from crowding — and
 swallowing — the resize handles on a scaled-down object.
 
-**Chrome drawn in the outer group divides by `scale` only.** `GroupSelectionOverlay`
+**Chrome drawn in the outer group divides by `scale` only.** `CollectionOverlay`
 (`1.5 / scale`) and `GridOverlay` (`1 / scale`) are siblings of the objects, not
 children of an object's transform, so the object scale never applies to them.
 Getting this backwards is the usual cause of chrome that grows with an object.
+
+**The collection frame is the reason the collection chrome sits in the outer
+group.** A collection has no transform of its own to nest inside, so its box is
+_derived_ (`groups.ts` `collectionFrame`) and expressed in design units, with the
+member scales already folded into its half-extents. That is what makes it behave
+exactly like chrome drawn in the outer group: no object scale to divide out, one
+`1 / scale` conversion for every length. Its orientation comes from the members'
+shared rotation, or 0 when they disagree
+([`editor-collections.md`](editor-collections.md) §3).
 
 ## 7. Handle geometry
 

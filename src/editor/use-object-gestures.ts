@@ -3,6 +3,15 @@ import { Gesture, type ComposedGesture } from "react-native-gesture-handler";
 import { runOnJS, useReducedMotion } from "react-native-reanimated";
 
 import {
+  memberOrigins,
+  OBJECT_SCALE_BOUNDS,
+  rotateCollection,
+  scaleCollection,
+  selectionFrame,
+} from "@/editor/groups";
+import {
+  frameBox,
+  frameTransform,
   isCornerHandle,
   isHorizontalHandle,
   isRotateHandle,
@@ -11,6 +20,7 @@ import {
   rotateHandle,
   toLocalPoint,
   type ResizeHandle,
+  type SelectionFrame,
   type SizedObject,
 } from "@/editor/hit-test";
 import {
@@ -28,9 +38,6 @@ const ROTATE_HIT_PAD = HANDLE_HIT_PAD + 8;
 /** Bounds for a horizontal (wrap-width) resize, in local design units. */
 const MIN_WRAP_WIDTH = 24;
 const MAX_WRAP_WIDTH = 20000;
-/** Bounds for a uniform scale resize. */
-const MIN_SCALE = 0.05;
-const MAX_SCALE = 20;
 /** Rotation snap: magnet window around each 45° multiple, in degrees. */
 const SNAP_INCREMENT_DEG = 45;
 const SNAP_WINDOW_DEG = 4;
@@ -173,18 +180,18 @@ function resizeFactor(
  * and `rotateHandle` apply to place the handles. The closest target wins, so
  * the rotation grip can never shadow a resize handle.
  */
-function hitHandle(
-  obj: SizedObject,
+function pickHandle(
+  t: Frame,
+  box: { width: number; height: number },
+  objectScale: number,
   p: { x: number; y: number },
 ): ResizeHandle | null {
-  const t = obj.transform;
   const local = toLocal(t, p);
-  const objectScale = Math.max(0.05, Math.abs(t.scale) || 1);
 
   let best: ResizeHandle | null = null;
   let bestDist = Infinity;
 
-  const grip = rotateHandle(obj.box, objectScale);
+  const grip = rotateHandle(box, objectScale);
   const gripDist = Math.hypot(local.x - grip.x, local.y - grip.y);
   if (gripDist <= ROTATE_HIT_PAD / objectScale) {
     best = "rotate";
@@ -192,7 +199,7 @@ function hitHandle(
   }
 
   const handleRadius = HANDLE_HIT_PAD / objectScale;
-  for (const h of resizeHandles(obj.box, objectScale)) {
+  for (const h of resizeHandles(box, objectScale)) {
     const dist = Math.hypot(local.x - h.x, local.y - h.y);
     if (dist <= handleRadius && dist < bestDist) {
       bestDist = dist;
@@ -200,6 +207,33 @@ function hitHandle(
     }
   }
   return best;
+}
+
+/** The handle under a point, on one object's own box. */
+function hitHandle(
+  obj: SizedObject,
+  p: { x: number; y: number },
+): ResizeHandle | null {
+  return pickHandle(
+    obj.transform,
+    obj.box,
+    Math.max(0.05, Math.abs(obj.transform.scale) || 1),
+    p,
+  );
+}
+
+/**
+ * The handle under a point, on a whole selection's frame.
+ *
+ * The frame carries no scale of its own — its half-extents are already visual —
+ * so the shared chrome geometry is measured in design units throughout, exactly
+ * as the collection overlay draws it.
+ */
+function hitFrameHandle(
+  frame: SelectionFrame,
+  p: { x: number; y: number },
+): ResizeHandle | null {
+  return pickHandle(frameTransform(frame), frameBox(frame), 1, p);
 }
 
 /** Pointer angle (degrees) about a centre, measured in design space. */
@@ -242,6 +276,26 @@ let cancelSettle: (() => void) | null = null;
 function cancelRotationSettle() {
   cancelSettle?.();
   cancelSettle = null;
+}
+
+/**
+ * The frame a whole selection's handles are drawn on, with its members — or null
+ * when the selection has no frame of its own to grab.
+ *
+ * Null for a single object (its own chrome carries the handles) and for an
+ * *entered* collection, whose frame is context only: the member inside it is the
+ * thing with handles, so the two chromes never compete for the same press.
+ * Mirrors `EditorCanvas`'s frame rule exactly, which is what keeps the drawn
+ * handles and the grabbable ones in the same place.
+ */
+function collectionTarget(
+  store: ReturnType<typeof useEditorStore.getState>,
+): { frame: SelectionFrame; members: SizedObject[] } | null {
+  // The same rule the canvas draws and the chip labels: a `whole` selection is
+  // the one whose handles are live, so an entered collection's context box can
+  // never steal a press from the member inside it.
+  const selection = selectionFrame(store.selectedIds, store.sizedObjects);
+  return selection?.state === "whole" ? selection : null;
 }
 
 /**
@@ -300,6 +354,79 @@ function settleRotation(
     s.updateObject(id, {
       transform: { ...o.transform, rotation: done ? target : x },
     });
+    if (done) {
+      cancelSettle = null;
+      return;
+    }
+    raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
+  cancelSettle = () => {
+    cancelled = true;
+    cancelAnimationFrame(raf);
+  };
+}
+
+/**
+ * The collection counterpart of `settleRotation`.
+ *
+ * The spring runs on the collection's rotation *delta* about the pivot captured
+ * at pointer-down, and every frame is written to every member through
+ * `updateObjects` — the members hold no frame of their own, so the delta is the
+ * only thing that can be animated.
+ */
+function settleCollectionRotation(
+  target: number,
+  v0: number,
+  reduceMotion: boolean,
+) {
+  cancelRotationSettle();
+  const store = useEditorStore.getState();
+  const { collectionOrigins, resizeOriginX, resizeOriginY } = store.gs;
+  if (collectionOrigins.length === 0) {
+    return;
+  }
+  const pivot = { x: resizeOriginX, y: resizeOriginY };
+  const write = (delta: number) => {
+    const live = useEditorStore.getState().project?.objects ?? [];
+    const full: { id: string; patch: Partial<DesignObject> }[] = [];
+    for (const patch of rotateCollection(collectionOrigins, delta, pivot)) {
+      const obj = live.find((o) => o.id === patch.id);
+      if (!obj) {
+        continue;
+      }
+      full.push({
+        id: patch.id,
+        patch: { transform: { ...obj.transform, ...patch.transform } },
+      });
+    }
+    useEditorStore.getState().updateObjects(full);
+  };
+  const from = store.gs.collectionDelta;
+  if (reduceMotion || from === target) {
+    if (from !== target) {
+      write(target);
+    }
+    return;
+  }
+  const start = performance.now();
+  const A = from - target;
+  const B = v0 + SETTLE_C * A;
+  let raf = 0;
+  let cancelled = false;
+  const step = (now: number) => {
+    if (cancelled) {
+      return;
+    }
+    const t = Math.min((now - start) / 1000, SETTLE_MAX_MS / 1000);
+    const e = Math.exp(-SETTLE_C * t);
+    const x = target + (A + B * t) * e;
+    const v = (B - SETTLE_C * (A + B * t)) * e;
+    const done =
+      (Math.abs(x - target) < SETTLE_EPS_ANGLE &&
+        Math.abs(v) < SETTLE_EPS_VEL) ||
+      now - start >= SETTLE_MAX_MS;
+    write(done ? target : x);
     if (done) {
       cancelSettle = null;
       return;
@@ -385,11 +512,62 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
       rotateVelocity: 0,
       lastSnapAngle: null,
       dragOrigins: [],
-      selectionHandledOnDown: false,
+      // The press is fully handled here, so the trailing tap must not act: a tap
+      // on a handle that did not move is still a tap on the handle. Left `false`,
+      // it would fall through to the canvas hit-test — which reads the point
+      // *outside* the box, and on a collection's edge is often far from every
+      // member — and clear the whole selection.
+      selectionHandledOnDown: true,
       additiveSelect: additive,
     });
     store.snapshot();
     return;
+  }
+
+  // A whole selection is one element with its own frame, so its handles are
+  // grabbed exactly like an object's box: the frame the overlay draws and the
+  // frame this tests are the same one (`collectionTarget` mirrors the canvas).
+  const target = collectionTarget(store);
+  if (target) {
+    const frameHandle = hitFrameHandle(target.frame, p);
+    if (frameHandle) {
+      const { frame } = target;
+      const frameT = frameTransform(frame);
+      const local = toLocal(frameT, p);
+      hapticTick();
+      store.setGs({
+        resizeTargetId: null,
+        resizeHandle: frameHandle,
+        resizeOriginX: frame.x,
+        resizeOriginY: frame.y,
+        // The frame carries no scale of its own: its half-extents are already
+        // visual, so the whole resize runs in design units.
+        resizeOriginScale: 1,
+        resizeOriginRotation: frame.rotation,
+        resizeOriginFlipH: false,
+        resizeOriginFlipV: false,
+        resizeOriginBoxW: frame.hw * 2,
+        resizeOriginBoxH: frame.hh * 2,
+        resizeStartX: p.x,
+        resizeStartY: p.y,
+        resizeStartLocalX: local.x,
+        resizeStartLocalY: local.y,
+        resizeLastAngle: pointerAngle(p, frame.x, frame.y),
+        resizeLastAngleAt: Date.now(),
+        rotateVelocity: 0,
+        lastSnapAngle: null,
+        collectionOrigins: memberOrigins(target.members),
+        collectionDelta: 0,
+        dragOrigins: [],
+        // Handled here, for the same reason as the single-object grab above: the
+        // frame's edge can sit well outside every member, so the trailing tap's
+        // hit-test would miss and clear the selection.
+        selectionHandledOnDown: true,
+        additiveSelect: additive,
+      });
+      store.snapshot();
+      return;
+    }
   }
 
   const sorted = [...store.sizedObjects].sort((a, b) => b.zIndex - a.zIndex);
@@ -471,7 +649,9 @@ function updateDrag(
   }
   const store = useEditorStore.getState();
   const resizeId = store.gs.resizeTargetId;
-  if (resizeId) {
+  // A collection drag has no single id to key on, so the captured member list is
+  // what marks one as running.
+  if (resizeId || store.gs.collectionOrigins.length > 0) {
     updateResize(store, resizeId, translationX, translationY);
     return;
   }
@@ -528,14 +708,20 @@ function updateDrag(
  */
 function updateResize(
   store: ReturnType<typeof useEditorStore.getState>,
-  id: string,
+  id: string | null,
   translationX: number,
   translationY: number,
 ) {
-  const obj = store.project?.objects.find((o) => o.id === id);
+  // A collection drag has no object id: the captured member list is what marks
+  // one as running, and the frame's own geometry is the origin bundle.
+  if (store.gs.collectionOrigins.length > 0) {
+    updateCollectionResize(store, translationX, translationY);
+    return;
+  }
+  const obj = id ? store.project?.objects.find((o) => o.id === id) : undefined;
   const { viewport, gs } = store;
   const handle = gs.resizeHandle;
-  if (!obj || !handle) {
+  if (!obj || !handle || id === null) {
     return;
   }
 
@@ -617,8 +803,8 @@ function updateResize(
   }
 
   const scale = Math.min(
-    MAX_SCALE,
-    Math.max(MIN_SCALE, gs.resizeOriginScale * factor),
+    OBJECT_SCALE_BOUNDS.max,
+    Math.max(OBJECT_SCALE_BOUNDS.min, gs.resizeOriginScale * factor),
   );
   const center = centerForAnchor(origin, anchorFor(handle, hw, hh), scale);
   store.updateObject(id, {
@@ -634,7 +820,120 @@ function clearResize() {
     transformTargetId: null,
     lastSnapAngle: null,
     dragOrigins: [],
+    collectionOrigins: [],
+    collectionDelta: 0,
   });
+}
+
+/**
+ * A handle drag on a whole selection.
+ *
+ * The same shape as the single-object path — absolute values recomputed from the
+ * origins captured at pointer-down, so nothing accumulates — but every member is
+ * written at once through `updateObjects`: one store write, one render per frame
+ * for the whole collection, exactly like the group drag.
+ */
+function updateCollectionResize(
+  store: ReturnType<typeof useEditorStore.getState>,
+  translationX: number,
+  translationY: number,
+) {
+  const { viewport, gs } = store;
+  const handle = gs.resizeHandle;
+  if (!handle || gs.collectionOrigins.length === 0) {
+    return;
+  }
+  const frame: Frame = {
+    x: gs.resizeOriginX,
+    y: gs.resizeOriginY,
+    // The frame has no scale of its own, so the whole resize runs in design
+    // units and the shared helpers need no conversion.
+    scale: 1,
+    rotation: gs.resizeOriginRotation,
+    flipH: false,
+    flipV: false,
+  };
+  const hw = Math.max(1, gs.resizeOriginBoxW / 2);
+  const hh = Math.max(1, gs.resizeOriginBoxH / 2);
+  const p = {
+    x: gs.resizeStartX + translationX / viewport.scale,
+    y: gs.resizeStartY + translationY / viewport.scale,
+  };
+  const write = (
+    patches: readonly { id: string; transform: Partial<ObjectTransform> }[],
+  ) => {
+    // The collection patches name only the fields they change, so each one is
+    // completed against the object's own transform here — the same shape the
+    // single-object path writes.
+    const live = useEditorStore.getState().project?.objects ?? [];
+    const full: { id: string; patch: Partial<DesignObject> }[] = [];
+    for (const patch of patches) {
+      const obj = live.find((o) => o.id === patch.id);
+      if (!obj) {
+        continue;
+      }
+      full.push({
+        id: patch.id,
+        patch: { transform: { ...obj.transform, ...patch.transform } },
+      });
+    }
+    store.updateObjects(full);
+  };
+
+  if (isRotateHandle(handle)) {
+    const angle = pointerAngle(p, frame.x, frame.y);
+    const step = angleStep(gs.resizeLastAngle, angle);
+    const now = Date.now();
+    const dt = Math.max(1, now - gs.resizeLastAngleAt) / 1000;
+    const rotateVelocity = Math.max(
+      -MAX_RELEASE_VEL,
+      Math.min(MAX_RELEASE_VEL, 0.7 * gs.rotateVelocity + 0.3 * (step / dt)),
+    );
+    const delta = gs.collectionDelta + step;
+    // The *frame's* angle is what snaps, so a collection lands on the same 45°
+    // multiples a single object does.
+    const snapped = snapRotationTarget(gs.resizeOriginRotation + delta);
+    if (snapped !== null && snapped !== gs.lastSnapAngle) {
+      hapticTick();
+    }
+    store.setGs({
+      resizeLastAngle: angle,
+      resizeLastAngleAt: now,
+      rotateVelocity,
+      lastSnapAngle: snapped,
+      collectionDelta: delta,
+    });
+    // The pivot is the frame's centre: a collection turns about its own middle,
+    // the way one object turns about its centre.
+    write(
+      rotateCollection(gs.collectionOrigins, delta, {
+        x: frame.x,
+        y: frame.y,
+      }),
+    );
+    return;
+  }
+
+  const local = toLocal(frame, p);
+  const factor = resizeFactor(
+    handle,
+    local.x - gs.resizeStartLocalX,
+    local.y - gs.resizeStartLocalY,
+    hw,
+    hh,
+  );
+  // Scaling pivots on the *opposite* handle, exactly as one object does, so the
+  // edge the user is not holding stays put.
+  const anchorLocal = anchorFor(handle, hw, hh);
+  const anchor = localOffset(frame, anchorLocal.x, anchorLocal.y);
+  write(
+    scaleCollection(
+      gs.collectionOrigins,
+      factor,
+      { x: frame.x + anchor.x, y: frame.y + anchor.y },
+      OBJECT_SCALE_BOUNDS,
+    ),
+  );
 }
 
 /**
@@ -659,6 +958,20 @@ function endDrag(reduceMotion: boolean) {
       }
     }
   }
+  // A collection rotation settles the same way, on the frame's own angle — which
+  // is the angle the members' shared rotation reads back as, so the frame the
+  // user sees lands exactly on the multiple.
+  if (gs.collectionOrigins.length > 0 && gs.resizeHandle === "rotate") {
+    const snapped = snapRotationTarget(
+      gs.resizeOriginRotation + gs.collectionDelta,
+    );
+    if (snapped !== null) {
+      const target = snapped - gs.resizeOriginRotation;
+      if (target !== gs.collectionDelta) {
+        settleCollectionRotation(target, gs.rotateVelocity, reduceMotion);
+      }
+    }
+  }
 }
 
 /** Pinch/rotate start: capture the selection's current scale & rotation. */
@@ -666,8 +979,9 @@ function beginTransform() {
   cancelRotationSettle();
   const store = useEditorStore.getState();
   // A handle drag owns the object — a second finger must not start a
-  // competing absolute transform on top of it.
-  if (store.gs.resizeTargetId) {
+  // competing absolute transform on top of it. A collection drag counts: it has
+  // no `resizeTargetId`, only the captured member list.
+  if (store.gs.resizeTargetId || store.gs.collectionOrigins.length > 0) {
     return;
   }
   // Pinch and rotate both fire onStart for the same two-finger touch; the
@@ -703,8 +1017,8 @@ function applyPinch(scaleChange: number) {
     return;
   }
   const scale = Math.min(
-    20,
-    Math.max(0.05, store.gs.scaleOrigin * scaleChange),
+    OBJECT_SCALE_BOUNDS.max,
+    Math.max(OBJECT_SCALE_BOUNDS.min, store.gs.scaleOrigin * scaleChange),
   );
   store.updateObject(id!, { transform: { ...obj.transform, scale } });
 }

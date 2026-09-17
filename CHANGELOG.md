@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Collections: a group and a split word are now one concept.** Select two or
+  more objects and tap **Group** (or `Ctrl/Cmd+G`) and they become one element:
+  tapping any member selects them all, and they move, duplicate, restack, delete,
+  restyle and now **scale and rotate** together. A split word is a collection too,
+  so it can be moved, scaled and rotated whole — and tapped again to step back
+  inside and edit one letter.
+- **Collection handles.** A whole selection draws one box with eight handles and a
+  rotate grip: corners and edges scale the collection about the opposite edge, the
+  grip turns it about its centre, and the rotation snaps to the 45° multiples like
+  an object's does.
+- **A member strip** replaces the split-only parts strip: a tile per member, in
+  reading order, with prev/next stepping. A text member shows its own glyph.
+- **A collection chip** on the canvas replaces the count badge that used to head
+  the selection rail: it reports the element count, and inside a collection it
+  shows which member you are on and takes you back to the whole thing.
+
+### Changed
+
+- The selection rail's width budget no longer charges for the count badge, so the
+  bar fits roughly one more action and the context strip gets a larger share.
+  (The old badge also went on charging a stale width after it unmounted; that is
+  gone with it.)
+- The rail's scale, rotate and flip buttons act on a whole selection as a unit:
+  they orbit and scale about the selection's centre instead of overwriting every
+  member's own value from the primary object.
+- **Learn mode** now teaches the collection gestures — its canvas legend lists the
+  collection handles, how to enter a collection and how to leave one — and the
+  member strip's tiles and arrows explain themselves on tap instead of stepping.
+
+### Fixed
+
+- A grouped word could not be edited letter by letter: selecting a part grew back
+  to the whole group. A part is now entered individually.
+- Pressing and dragging an object that was not yet selected used to move the
+  _previously_ selected object: the drag origins were read from the store snapshot
+  taken before the press.
+
 ## [0.2.0-rc.1] - 2026-09-16
 
 ### Added

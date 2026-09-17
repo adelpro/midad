@@ -32,11 +32,22 @@ new Function("exports", "module", outputText)(moduleShim.exports, moduleShim);
 const {
   canGroup,
   canUngroup,
+  clampCollectionScale,
+  collectionFrame,
+  collectionMembers,
   dissolveSingletonGroups,
+  enteredCollection,
   expandToGroups,
+  flipCollection,
+  frameTopCentre,
   groupMemberIds,
+  memberOrigins,
   remapGroupIds,
+  rotateCollection,
   sameIds,
+  scaleCollection,
+  selectionCollection,
+  selectionFrame,
   selectionUnits,
   unitCount,
 } = moduleShim.exports;
@@ -71,6 +82,27 @@ function check(name, got, expected) {
 
 function ok(name, condition) {
   check(name, condition, true);
+}
+
+/** Round every number in a value, so trigonometry noise cannot fail a case. */
+function roundDeep(value, digits = 6) {
+  if (typeof value === "number") {
+    return Number(value.toFixed(digits));
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => roundDeep(v, digits));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, roundDeep(v, digits)]),
+    );
+  }
+  return value;
+}
+
+/** `check` for geometry, where exact equality is not a fair test. */
+function near(name, got, expected) {
+  check(name, roundDeep(got), roundDeep(expected));
 }
 
 console.log("\nexpandToGroups — a selection is always whole groups");
@@ -295,6 +327,322 @@ check("equal lists", sameIds(["a", "b"], ["a", "b"]), true);
 check("different order", sameIds(["b", "a"], ["a", "b"]), false);
 check("different length", sameIds(["a"], ["a", "b"]), false);
 check("both empty", sameIds([], []), true);
+
+// ---------------------------------------------------------------------------
+// The collection: which objects one selection is made of, the box around them,
+// and the per-member transform a handle drag writes.
+// ---------------------------------------------------------------------------
+
+console.log("\nselectionCollection / enteredCollection — the two states");
+
+check(
+  "a whole group is one collection",
+  selectionCollection(["b", "c"], doc),
+  "G1",
+);
+check(
+  "an entered member is still that collection",
+  selectionCollection(["b"], doc),
+  "G1",
+);
+check(
+  "a lone object is not a collection",
+  selectionCollection(["a"], doc),
+  null,
+);
+check(
+  "a group beside a lone object is not one collection",
+  selectionCollection(["b", "c", "a"], doc),
+  null,
+);
+check(
+  "two groups are not one collection",
+  selectionCollection(["b", "c", "e"], doc),
+  null,
+);
+check(
+  "an empty selection is not a collection",
+  selectionCollection([], doc),
+  null,
+);
+
+check(
+  "an entered member names its collection",
+  enteredCollection(["c"], doc),
+  "G1",
+);
+check("a whole group is not entered", enteredCollection(["b", "c"], doc), null);
+check("a lone object is not entered", enteredCollection(["a"], doc), null);
+check("an empty selection is not entered", enteredCollection([], doc), null);
+
+console.log(
+  "\ncollectionMembers — reading order for a word, document order otherwise",
+);
+
+const wordDoc = [
+  { id: "w1", groupId: "W", part: { index: 1 } },
+  { id: "loose" },
+  { id: "w0", groupId: "W", part: { index: 0 } },
+  { id: "w2", groupId: "W", part: { index: 2 } },
+];
+check(
+  "a split word is read in index order",
+  collectionMembers(["w1"], wordDoc).map((m) => m.id),
+  ["w0", "w1", "w2"],
+);
+check(
+  "a whole group keeps document order",
+  collectionMembers(["b", "c"], doc).map((m) => m.id),
+  ["b", "c"],
+);
+check("a loose object has no members", collectionMembers(["a"], doc), []);
+
+console.log("\ncollectionFrame — the box the handles are drawn on");
+
+const frameMember = (id, x, y, rotation = 0, scale = 1) => ({
+  id,
+  transform: { x, y, scale, rotation, flipH: false, flipV: false },
+  box: { width: 100, height: 50 },
+});
+
+check("an empty collection has no frame", collectionFrame([]), null);
+near(
+  "one member's frame is its own box",
+  collectionFrame([frameMember("a", 0, 0)]),
+  { x: 0, y: 0, hw: 50, hh: 25, rotation: 0 },
+);
+near(
+  "two members union in design space when their rotations agree",
+  collectionFrame([frameMember("a", 0, 0), frameMember("b", 200, 0)]),
+  { x: 100, y: 0, hw: 150, hh: 25, rotation: 0 },
+);
+// Both members turned 90°: the arrangement now stands vertically, so the frame
+// turns with it rather than growing into a rotation-widened union.
+near(
+  "a unanimously rotated collection gets an oriented frame",
+  collectionFrame([frameMember("a", 0, 0, 90), frameMember("b", 200, 0, 90)]),
+  { x: 100, y: 0, hw: 50, hh: 125, rotation: 90 },
+);
+// Mixed rotations have no honest orientation, so the box is the axis-aligned
+// union of the rotation-widened boxes and the rotation reads 0. Member `b`
+// turned a quarter turn is 50 wide and 100 tall, so it reaches 225.
+near(
+  "mixed rotations fall back to the axis-aligned union",
+  collectionFrame([frameMember("a", 0, 0, 0), frameMember("b", 200, 0, 90)]),
+  { x: 87.5, y: 0, hw: 137.5, hh: 50, rotation: 0 },
+);
+near(
+  "a scaled member contributes its visual box",
+  collectionFrame([frameMember("a", 0, 0, 0, 2)]),
+  { x: 0, y: 0, hw: 100, hh: 50, rotation: 0 },
+);
+near(
+  "the chip anchors on the frame's top edge",
+  frameTopCentre({ x: 100, y: 0, hw: 150, hh: 25, rotation: 0 }),
+  { x: 100, y: -25 },
+);
+near(
+  "the top edge follows the frame's rotation",
+  frameTopCentre({ x: 100, y: 0, hw: 50, hh: 125, rotation: 90 }),
+  { x: 225, y: 0 },
+);
+
+console.log(
+  "\nscaleCollection / rotateCollection — handles move the whole set",
+);
+
+const origins = memberOrigins([
+  frameMember("a", 0, 0),
+  frameMember("b", 200, 0),
+]);
+check("memberOrigins captures the transform", origins[1], {
+  id: "b",
+  x: 200,
+  y: 0,
+  scale: 1,
+  rotation: 0,
+  flipH: false,
+  flipV: false,
+});
+
+const scaled = scaleCollection(
+  origins,
+  2,
+  { x: 100, y: 0 },
+  { min: 0.05, max: 20 },
+);
+check(
+  "scaling doubles every offset from the pivot",
+  scaled.map((p) => [p.id, p.transform.x, p.transform.scale]),
+  [
+    ["a", -100, 2],
+    ["b", 300, 2],
+  ],
+);
+check(
+  "a member sitting on the pivot does not move",
+  scaleCollection(
+    memberOrigins([frameMember("a", 100, 0)]),
+    3,
+    { x: 100, y: 0 },
+    { min: 0.05, max: 20 },
+  )[0].transform.x,
+  100,
+);
+check(
+  "the factor is clamped so no member leaves the bounds",
+  clampCollectionScale(origins, 2, { min: 0.05, max: 20 }),
+  2,
+);
+const nearMax = memberOrigins([frameMember("a", 0, 0, 0, 15)]);
+check(
+  "a member already near the ceiling caps the factor",
+  Number(clampCollectionScale(nearMax, 2, { min: 0.05, max: 20 }).toFixed(4)),
+  1.3333,
+);
+check(
+  "the clamped factor keeps the member inside the bounds",
+  scaleCollection(nearMax, 2, { x: 0, y: 0 }, { min: 0.05, max: 20 })[0]
+    .transform.scale,
+  20,
+);
+ok(
+  "a span wider than the bounds falls back rather than inventing a factor",
+  clampCollectionScale(
+    // Scales a single-object resize could never produce, but an imported
+    // document can: the span exceeds MAX/MIN, so no single factor exists.
+    memberOrigins([
+      frameMember("a", 0, 0, 0, 0.001),
+      frameMember("b", 0, 0, 0, 100),
+    ]),
+    2,
+    { min: 0.05, max: 20 },
+  ) === 2,
+);
+
+const turned = rotateCollection(origins, 90, { x: 100, y: 0 });
+check(
+  "rotating orbits each member about the pivot and turns it",
+  turned.map((p) => [p.id, p.transform.x, p.transform.y, p.transform.rotation]),
+  [
+    ["a", 100, -100, 90],
+    ["b", 100, 100, 90],
+  ],
+);
+check(
+  "a half turn mirrors both offsets",
+  rotateCollection(origins, 180, { x: 100, y: 0 }).map((p) => [
+    p.id,
+    Math.round(p.transform.x),
+    Math.round(p.transform.y),
+  ]),
+  [
+    ["a", 200, 0],
+    ["b", 0, 0],
+  ],
+);
+check(
+  "rotating by nothing changes nothing",
+  rotateCollection(origins, 0, { x: 100, y: 0 }).map((p) => p.transform.x),
+  [0, 200],
+);
+
+console.log(
+  "\nflipCollection — a mirror moves the arrangement, not just the letters",
+);
+
+const mirrored = flipCollection(origins, "h", { x: 100, y: 0 });
+check(
+  "offsets mirror about the pivot",
+  mirrored.map((p) => [p.id, p.transform.x, p.transform.y]),
+  [
+    ["a", 200, 0],
+    ["b", 0, 0],
+  ],
+);
+check(
+  "each member turns to face the other way",
+  mirrored.map((p) => [p.transform.rotation, p.transform.flipH]),
+  [
+    [0, true],
+    [0, true],
+  ],
+);
+check(
+  "a mirrored member's angle negates",
+  flipCollection(
+    memberOrigins([frameMember("a", 0, 0, 30), frameMember("b", 200, 0, 30)]),
+    "h",
+    { x: 100, y: 0 },
+  ).map((p) => p.transform.rotation),
+  [-30, -30],
+);
+check(
+  "a vertical mirror flips the other axis and keeps x",
+  flipCollection(origins, "v", { x: 100, y: 0 }).map((p) => [
+    p.transform.x,
+    p.transform.flipV,
+  ]),
+  [
+    [0, true],
+    [200, true],
+  ],
+);
+check(
+  "a vertical mirror mirrors y about the pivot",
+  flipCollection(memberOrigins([frameMember("a", 0, 40)]), "v", {
+    x: 0,
+    y: 0,
+  })[0].transform.y,
+  -40,
+);
+
+console.log(
+  "\nselectionFrame — one box for the canvas, the chip and the press",
+);
+
+const sizedMember = (id, groupId, x, y) => ({
+  id,
+  groupId,
+  transform: { x, y, scale: 1, rotation: 0, flipH: false, flipV: false },
+  box: { width: 100, height: 50 },
+});
+
+check(
+  "one loose object has no frame of its own",
+  selectionFrame(["a"], [sizedMember("a", undefined, 0, 0)]),
+  null,
+);
+const loosePair = selectionFrame(
+  ["a", "b"],
+  [sizedMember("a", undefined, 0, 0), sizedMember("b", undefined, 200, 0)],
+);
+check("a loose multi-selection is whole", loosePair.state, "whole");
+near("its frame is the selection's own box", loosePair.frame.hw, 150);
+const insideGroup = selectionFrame(
+  ["a"],
+  [sizedMember("a", "G", 0, 0), sizedMember("b", "G", 200, 0)],
+);
+check("one member of a collection is entered", insideGroup.state, "entered");
+near("its frame is the whole collection's box", insideGroup.frame.hw, 150);
+check("and it carries every member", insideGroup.members.length, 2);
+const wholeGroup = selectionFrame(
+  ["a", "b"],
+  [sizedMember("a", "G", 0, 0), sizedMember("b", "G", 200, 0)],
+);
+check("a whole collection is whole", wholeGroup.state, "whole");
+check(
+  "a selection that is not a collection still gets one box",
+  selectionFrame(
+    ["a", "b", "c"],
+    [
+      sizedMember("a", "G1", 0, 0),
+      sizedMember("b", "G1", 200, 0),
+      sizedMember("c", undefined, 400, 0),
+    ],
+  ).state,
+  "whole",
+);
 
 console.log(
   failures === 0

@@ -2,6 +2,11 @@ import type { DesignObject } from "@/storage/project-schema";
 
 export interface SizedObject {
   id: string;
+  /**
+   * Collection membership, published with the measured box so the chrome can
+   * resolve a whole selection's frame without walking the document again.
+   */
+  groupId?: string;
   transform: DesignObject["transform"];
   zIndex: number;
   box: { width: number; height: number };
@@ -257,4 +262,64 @@ export function groupAabb(objects: SizedObject[]): Aabb | null {
     if (b.bottom > bottom) bottom = b.bottom;
   }
   return { left, top, right, bottom };
+}
+
+/**
+ * A box the selection chrome can be drawn around, in *design* units.
+ *
+ * Two things separate it from a `SizedObject`: the half-extents are already
+ * visual (`|scale|` folded in), and it carries an orientation. That is what lets
+ * one overlay serve both a single object and a whole collection — a collection
+ * has no transform of its own to nest the chrome inside.
+ *
+ * Structurally identical to `CollectionFrame` in `groups.ts`, which owns the
+ * maths that derives a collection's frame; that module cannot import this one
+ * (the check script transpiles it standalone), so the shape is declared twice.
+ */
+export interface SelectionFrame {
+  /** Centre, design units. */
+  x: number;
+  y: number;
+  /** Half-extents, design units (visual, not local). */
+  hw: number;
+  hh: number;
+  /** Orientation in degrees. */
+  rotation: number;
+}
+
+/** The frame as the box `resizeHandles` / `rotateHandle` expect. */
+export function frameBox(frame: SelectionFrame): {
+  width: number;
+  height: number;
+} {
+  return { width: frame.hw * 2, height: frame.hh * 2 };
+}
+
+/**
+ * The frame as a `TransformFrame`, so `toLocalPoint` and the gesture layer's
+ * `localOffset` accept it unchanged. `scale: 1` because the half-extents are
+ * already visual — this is also what keeps the shared chrome geometry
+ * (`selectionPad`, `rotateGap`, the hit radii) measured in design units.
+ */
+export function frameTransform(frame: SelectionFrame): TransformFrame {
+  return {
+    x: frame.x,
+    y: frame.y,
+    scale: 1,
+    rotation: frame.rotation,
+    flipH: false,
+    flipV: false,
+  };
+}
+
+/** One object's own box as a frame — the same box `objectAabb` measures. */
+export function objectFrame(o: SizedObject): SelectionFrame {
+  const { hw, hh } = visualHalfExtents(o);
+  return {
+    x: o.transform.x,
+    y: o.transform.y,
+    hw,
+    hh,
+    rotation: o.transform.rotation,
+  };
 }
