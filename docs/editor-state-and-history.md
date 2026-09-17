@@ -12,16 +12,16 @@
 slices. Nothing here is persisted — the document is written to disk by
 `useAutoSave`, not by the store.
 
-| Slice             | Type                   | What it is                                               |
-| ----------------- | ---------------------- | -------------------------------------------------------- |
-| `project`         | `MidadProject \| null` | The working document: canvas, objects, grid flag, name   |
-| `selectedIds`     | `string[]`             | Current selection, in the order the user added to it     |
-| `multiSelectMode` | `boolean`              | When on, taps add/remove instead of replacing            |
-| `sizedObjects`    | `SizedObject[]`        | Measured boxes + transforms, published **by the canvas** |
-| `viewport`        | `Viewport`             | Fit-to-view scale + centering offsets (view px)          |
-| `gs`              | `GestureScratch`       | Non-reactive gesture bookkeeping — see §7                |
-| `past`            | `HistoryEntry[]`       | Undo stack, capped at `MAX_HISTORY` (`50`)               |
-| `future`          | `HistoryEntry[]`       | Redo stack, capped at `MAX_HISTORY`                      |
+| Slice             | Type                   | What it is                                                                                                    |
+| ----------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `project`         | `MidadProject \| null` | The working document: canvas, objects, grid flag, name                                                        |
+| `selectedIds`     | `string[]`             | Current selection, in the order the user added to it — always a union of whole groups (`editor-groups.md` §3) |
+| `multiSelectMode` | `boolean`              | When on, taps add/remove instead of replacing                                                                 |
+| `sizedObjects`    | `SizedObject[]`        | Measured boxes + transforms, published **by the canvas**                                                      |
+| `viewport`        | `Viewport`             | Fit-to-view scale + centering offsets (view px)                                                               |
+| `gs`              | `GestureScratch`       | Non-reactive gesture bookkeeping — see §7                                                                     |
+| `past`            | `HistoryEntry[]`       | Undo stack, capped at `MAX_HISTORY` (`50`)                                                                    |
+| `future`          | `HistoryEntry[]`       | Redo stack, capped at `MAX_HISTORY`                                                                           |
 
 `Viewport`, `DragOrigin`, `GestureScratch` and `HistoryEntry` are all
 module-private except `DragOrigin`, which the gesture layer names.
@@ -32,8 +32,8 @@ This is the rule that matters most, and it is not uniform. Mutators split in two
 
 **Self-snapshotting.** These call `get().snapshot()` themselves, before writing:
 `addObject` · `removeObjects` · `duplicateObjects` · `splitObjectIntoParts` ·
-`mergeObjectParts` · `bringToFront` · `sendToBack` · `alignSelected` ·
-`nudgeSelected` (conditionally — see §6).
+`mergeObjectParts` · `bringToFront` · `sendToBack` · `groupSelected` ·
+`ungroupSelected` · `alignSelected` · `nudgeSelected` (conditionally — see §6).
 
 **Not snapshotting.** These write straight to `project` and record nothing:
 `updateObject` · `updateObjects` · `setCanvas` · `setGrid` · `setName`.
@@ -157,15 +157,15 @@ every target costs zero renders.
 Several setters return the previous state (or skip `set` entirely) to avoid
 notifying subscribers:
 
-| Setter                                                                                                                         | Suppressed when                                           |
-| ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| `select(null)`                                                                                                                 | selection is already empty                                |
-| `select(id)`                                                                                                                   | the same single id is already selected                    |
-| `setSizedObjects`                                                                                                              | ids, transform identities and box sizes all match         |
-| `setViewport`                                                                                                                  | scale and both offsets are unchanged                      |
-| `updateObjects`                                                                                                                | no patch matched any object                               |
-| `snapshot`                                                                                                                     | the newest entry's objects stringify identically          |
-| `alignSelected`, `nudgeSelected`, `duplicateObjects`, `splitObjectIntoParts`, `mergeObjectParts`, `bringToFront`, `sendToBack` | guard clauses: empty selection, unknown id, empty id list |
+| Setter                                                                                                                                                             | Suppressed when                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `select(null)`                                                                                                                                                     | selection is already empty                                                                                       |
+| `select(id)`                                                                                                                                                       | the same single id is already selected                                                                           |
+| `setSizedObjects`                                                                                                                                                  | ids, transform identities and box sizes all match                                                                |
+| `setViewport`                                                                                                                                                      | scale and both offsets are unchanged                                                                             |
+| `updateObjects`                                                                                                                                                    | no patch matched any object                                                                                      |
+| `snapshot`                                                                                                                                                         | the newest entry's objects stringify identically                                                                 |
+| `alignSelected`, `nudgeSelected`, `duplicateObjects`, `splitObjectIntoParts`, `mergeObjectParts`, `bringToFront`, `sendToBack`, `groupSelected`, `ungroupSelected` | guard clauses: empty selection, unknown id, empty id list, and for the two group actions `canGroup`/`canUngroup` |
 
 `select(id)` in additive mode **toggles**: an already-selected id is removed. That
 is intentional and shared with the canvas tap path.
@@ -192,6 +192,7 @@ actions while the next tap replaced the whole selection.
 | Concern                                              | File                                             |
 | ---------------------------------------------------- | ------------------------------------------------ |
 | Store, history, all document mutations, `gs`         | `src/editor/store.ts`                            |
+| Group membership + the whole-groups invariant        | `src/editor/groups.ts`                           |
 | `HistoryEntry`, `MAX_HISTORY`, `restorableSelection` | `src/editor/store.ts`                            |
 | Nudge coalescing, `NUDGE_COALESCE_MS`                | `src/editor/store.ts`, `src/editor/shortcuts.ts` |
 | Publishing `sizedObjects` + `viewport`               | `src/editor/EditorCanvas.tsx`                    |

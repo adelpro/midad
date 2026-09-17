@@ -117,6 +117,8 @@ const EXPECTED_IDS = [
   "rotateCw",
   "bringToFront",
   "sendToBack",
+  "group",
+  "ungroup",
   "toolSelect",
   "toolMultiSelect",
   "toolText",
@@ -240,6 +242,21 @@ eq(
   "Ctrl+[ lowers",
   idOf({ code: "BracketLeft", key: "[", ctrlKey: true }),
   "sendToBack",
+);
+
+eq("Ctrl+G groups", idOf({ code: "KeyG", key: "g", ctrlKey: true }), "group");
+eq("Cmd+G groups", idOf({ code: "KeyG", key: "g", metaKey: true }), "group");
+eq(
+  "Ctrl+Shift+G ungroups rather than grouping",
+  idOf({ code: "KeyG", key: "G", ctrlKey: true, shiftKey: true }),
+  "ungroup",
+);
+// The grid toggle owns the bare letter, so the grouping chords must not reach
+// it — and it must not reach them.
+eq(
+  "G toggles the grid, not a group",
+  idOf({ code: "KeyG", key: "g" }),
+  "toggleGrid",
 );
 
 eq("V selects", idOf({ code: "KeyV", key: "v" }), "toolSelect");

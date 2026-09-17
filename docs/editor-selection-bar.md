@@ -29,21 +29,27 @@ so "what the selection is" → "what is available" stays a pure function.
 
 `RAIL_SLOTS` — one entry per slot, in priority **and** truncation order:
 
-| #   | Slot              | Notes                                                      |
-| --- | ----------------- | ---------------------------------------------------------- |
-| 0   | `styleOpen`       | Leads on purpose — see below                               |
-| 1   | `scaleUp`         |                                                            |
-| 2   | `scaleDown`       |                                                            |
-| 3   | `fitText`         | Text only                                                  |
-| 4   | `split`, `rejoin` | **Share a slot** — only one can apply to a given selection |
-| 5   | `duplicate`       |                                                            |
-| 6   | `bringToFront`    |                                                            |
-| 7   | `sendToBack`      |                                                            |
-| 8   | `delete`          |                                                            |
+| #   | Slot               | Notes                                                         |
+| --- | ------------------ | ------------------------------------------------------------- |
+| 0   | `styleOpen`        | Leads on purpose — see below                                  |
+| 1   | `scaleUp`          |                                                               |
+| 2   | `scaleDown`        |                                                               |
+| 3   | `fitText`          | Text only                                                     |
+| 4   | `split`, `rejoin`  | **Share a slot** — only one can apply to a given selection    |
+| 5   | `group`, `ungroup` | **Share a slot** — a selection is loose elements or one group |
+| 6   | `duplicate`        |                                                               |
+| 7   | `bringToFront`     |                                                               |
+| 8   | `sendToBack`       |                                                               |
+| 9   | `delete`           |                                                               |
 
 `styleOpen` leads because it is the **only route to the style panel**, so it has
 to survive every truncation. It costs one slot rather than the five a full preset
 navigator (arrows + name) used to take from the same row.
+
+The two shared slots are the same idea twice. `split`/`rejoin` are one decision
+seen from two sides; `group`/`ungroup` are the two ends of another — a selection
+is either a set of loose elements (which can be grouped) or one whole group
+(which can be dissolved), never both. See `editor-groups.md` §7.
 
 `OVERFLOW_ACTIONS` — sheet-only, 13 ids: `rotateCcw`, `rotateCw`, `flipH`, the
 six `align*`, `centerH`, `centerV`, `stylePrev`, `styleNext`.
@@ -72,14 +78,22 @@ the one-per-slot rule has to survive that flattening — otherwise `split` and
 
 ## 3. Availability
 
-Only four facts about the selection decide which actions exist:
+Only these facts about the selection decide which actions exist:
 
-| `SelectionShape` | Meaning                                            |
-| ---------------- | -------------------------------------------------- |
-| `isText`         | A text object is selected                          |
-| `canSplit`       | The text can be broken into parts                  |
-| `canRejoin`      | The selection is one part of an already-split word |
-| `isMulti`        | More than one object is selected                   |
+| `SelectionShape` | Meaning                                                          |
+| ---------------- | ---------------------------------------------------------------- |
+| `isText`         | A text object is selected                                        |
+| `canSplit`       | The text can be broken into parts                                |
+| `canRejoin`      | The selection is one part of an already-split word               |
+| `isMulti`        | More than one **element** is selected                            |
+| `canGroup`       | Two or more loose elements are selected, none already in a group |
+| `canUngroup`     | The selection is exactly one whole group                         |
+
+`isMulti` counts **elements**, not objects: a group is one element, so a group of
+three offers the actions a single object does. That is what "acts as a unique
+element" means for this table. The two group predicates come straight from
+`groups.ts`, so the button and the behaviour cannot disagree
+(`editor-groups.md` §7).
 
 `isAvailable(id, shape)` maps them:
 
@@ -88,6 +102,8 @@ Only four facts about the selection decide which actions exist:
 | `styleOpen`, `stylePrev`, `styleNext`, `fitText`                                     | `isText`       |
 | `split`                                                                              | `canSplit`     |
 | `rejoin`                                                                             | `canRejoin`    |
+| `group`                                                                              | `canGroup`     |
+| `ungroup`                                                                            | `canUngroup`   |
 | `alignLeft`, `alignCenterH`, `alignRight`, `alignTop`, `alignMiddleV`, `alignBottom` | `isMulti`      |
 | everything else                                                                      | always         |
 
@@ -232,6 +248,14 @@ this device presents the editor, so it never enters the project document — no
 schema bump, nothing for `import-project.ts` to validate. The cost is that a
 customised bar does **not** travel with an exported `.midad` file. That is the
 intended trade.
+
+**A new action reaches a customised bar through the `⋯` sheet, not the rail.**
+The stored value is a list of ids, so a bar saved before an action existed simply
+does not mention it — and `overflowActionIds` walks the static `SHEET_ORDER`, so
+the action is listed in the sheet, which is also how it gets pinned into the rail.
+Appending whatever the stored order is missing would look tidier and would break
+**unpinning**: `togglePin` removes an id from the stored list, so a resolver that
+re-adds missing ids would put it straight back.
 
 ## 9. Copy lives in the help catalog
 

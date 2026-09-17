@@ -40,7 +40,9 @@ import {
   PushPin,
   Question,
   Scissors,
+  Selection,
   SelectionPlus,
+  SelectionSlash,
   Shapes,
   ShareNetwork,
   Sparkle,
@@ -105,6 +107,8 @@ export type IconName =
   | "gallery"
   | "help"
   | "multiSelect"
+  | "group"
+  | "ungroup"
   | "alignLeft"
   | "alignCenterH"
   | "alignRight"
@@ -157,6 +161,8 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   gallery: SquaresFour,
   help: Question,
   multiSelect: SelectionPlus,
+  group: Selection,
+  ungroup: SelectionSlash,
   alignLeft: AlignLeft,
   alignCenterH: AlignCenterHorizontal,
   alignRight: AlignRight,

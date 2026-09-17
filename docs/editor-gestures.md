@@ -71,6 +71,14 @@ Let `additive = multiSelectMode || isAdditiveSelectionModifier()`, and
 The last two branches capture `dragOrigins` (one entry per selected object) and
 set `selectionHandledOnDown: !alreadySelected`, then `snapshot()`.
 
+`select` resolves the press to the whole **element** the pointer landed on — the
+object plus its group — so `alreadySelected` is true for any member of the current
+group and the drag moves the group. The origins are read back from the store
+**after** that write, never from the snapshot `beginDrag` opened with: the
+snapshot predates the selection change, so using it would drag the previously
+selected objects instead, and a press that expands to a group would move nothing
+at all. See `docs/editor-groups.md` §3.
+
 **History is snapshotted once, here at drag start** — not per frame. See
 `docs/editor-state-and-history.md` §2.
 

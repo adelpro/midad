@@ -36,6 +36,8 @@ so the two halves can never contradict each other.
 ## 3. Select tool
 
 - **Tap an object** → it becomes the selection (single); handles appear.
+- **Tap a grouped object** → the whole group becomes the selection, and the group
+  box (no handles) appears. See [`editor-groups.md`](editor-groups.md).
 - **Tap empty space** → selection clears.
 - **Drag an object** → moves it; its handles resize/rotate it.
 - **Drag is gated on the Select tool.** In any other tool you can tap to select,
@@ -50,6 +52,9 @@ While additive is on:
 
 - **Tap an unselected object** → adds it to the selection (does not replace).
 - **Tap an already-selected object** → deselects it (the toggle idiom).
+- **Tap a member of a group** → the whole group is added or removed, never one
+  member: a selection is always a union of whole groups
+  ([`editor-groups.md`](editor-groups.md) §3).
 - **Drag a selected object** → moves the whole group.
 - **Tap empty space** → clears everything.
 
@@ -110,3 +115,4 @@ restating them:
 | [`editor-selection-bar.md`](editor-selection-bar.md)         | The rail's action set, width budget and pins                                          |
 | [`editor-coordinates.md`](editor-coordinates.md)             | §7 covers the handle geometry the tap path shares                                     |
 | [`editor-keyboard.md`](editor-keyboard.md)                   | §9 covers the Shift/Cmd/Ctrl flag the multi-select path reads                         |
+| [`editor-groups.md`](editor-groups.md)                       | Owns group membership and the whole-groups invariant the multi-select toggle obeys    |

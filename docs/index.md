@@ -22,63 +22,68 @@ the file to open first. Every path below is copied from a code map in this folde
 
 ## 2. Start here — by task
 
-| Task                                                | Contract                                                      | Open first                                                         |
-| --------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Change what a drag, pinch or rotate does            | [`editor-gestures.md`](editor-gestures.md) §2                 | `src/editor/use-object-gestures.ts`                                |
-| Change hit-testing, grab tolerance or handle shapes | [`editor-coordinates.md`](editor-coordinates.md) §7           | `src/editor/hit-test.ts`                                           |
-| Change fit-to-view or the viewport                  | [`editor-coordinates.md`](editor-coordinates.md) §3           | `src/editor/EditorCanvas.tsx`                                      |
-| Make an edit undoable — or deliberately not         | [`editor-state-and-history.md`](editor-state-and-history.md) §2 | `src/editor/store.ts`                                            |
-| Add a shape or a glyph                              | [`editor-render-contract.md`](editor-render-contract.md) §5   | `src/editor/skia/shape-geometry.ts`                                |
-| Keep canvas, PNG and SVG agreeing                   | [`editor-render-contract.md`](editor-render-contract.md) §2   | `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts`       |
-| Change Arabic shaping or text measurement           | [`editor-text-engine.md`](editor-text-engine.md) §1           | `src/editor/skia/text.ts`                                          |
-| Change how a word splits or rejoins                 | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §2 | `src/editor/text/clusters.ts`                                      |
-| Change how a press selects                          | [`editor-selection.md`](editor-selection.md) §2               | `src/editor/use-object-gestures.ts`, `src/editor/EditorScreen.tsx` |
-| Add or reorder a selection-bar action               | [`editor-selection-bar.md`](editor-selection-bar.md) §2       | `src/editor/selection-actions.tsx`                                 |
-| Add a keyboard binding                              | [`editor-keyboard.md`](editor-keyboard.md) §3                 | `src/editor/shortcuts.ts`                                          |
-| Change a label, role, tooltip or help entry         | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §2 | `src/editor/help/catalog.ts`                                 |
+| Task                                                | Contract                                                            | Open first                                                         |
+| --------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Change what a drag, pinch or rotate does            | [`editor-gestures.md`](editor-gestures.md) §2                       | `src/editor/use-object-gestures.ts`                                |
+| Change hit-testing, grab tolerance or handle shapes | [`editor-coordinates.md`](editor-coordinates.md) §7                 | `src/editor/hit-test.ts`                                           |
+| Change fit-to-view or the viewport                  | [`editor-coordinates.md`](editor-coordinates.md) §3                 | `src/editor/EditorCanvas.tsx`                                      |
+| Make an edit undoable — or deliberately not         | [`editor-state-and-history.md`](editor-state-and-history.md) §2     | `src/editor/store.ts`                                              |
+| Add a shape or a glyph                              | [`editor-render-contract.md`](editor-render-contract.md) §5         | `src/editor/skia/shape-geometry.ts`                                |
+| Keep canvas, PNG and SVG agreeing                   | [`editor-render-contract.md`](editor-render-contract.md) §2         | `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts`       |
+| Change Arabic shaping or text measurement           | [`editor-text-engine.md`](editor-text-engine.md) §1                 | `src/editor/skia/text.ts`                                          |
+| Change how a word splits or rejoins                 | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §2       | `src/editor/text/clusters.ts`                                      |
+| Make several objects act as one element             | [`editor-groups.md`](editor-groups.md) §3                           | `src/editor/groups.ts`, `src/editor/store.ts`                      |
+| Change how a press selects                          | [`editor-selection.md`](editor-selection.md) §2                     | `src/editor/use-object-gestures.ts`, `src/editor/EditorScreen.tsx` |
+| Add or reorder a selection-bar action               | [`editor-selection-bar.md`](editor-selection-bar.md) §2             | `src/editor/selection-actions.tsx`                                 |
+| Add a keyboard binding                              | [`editor-keyboard.md`](editor-keyboard.md) §3                       | `src/editor/shortcuts.ts`                                          |
+| Change a label, role, tooltip or help entry         | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §2 | `src/editor/help/catalog.ts`                                       |
 
 ## 3. The contracts
 
-| Document                                                          | Owns                                          | Entry point                                                                             | Check               |
-| ----------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------- |
-| [`editor-coordinates.md`](editor-coordinates.md)                   | Four frames, fit-to-view, handle geometry     | `src/editor/hit-test.ts`, `src/editor/EditorCanvas.tsx`                                 | —                   |
-| [`editor-gestures.md`](editor-gestures.md)                         | Tap/pan/pinch/rotate, resize, release settle  | `src/editor/use-object-gestures.ts`                                                     | —                   |
-| [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md)   | Help catalog, tooltips, learn mode            | `src/editor/help/catalog.ts`, `src/editor/help/use-help-mode.ts`                         | `check-help.mjs`    |
-| [`editor-keyboard.md`](editor-keyboard.md)                         | Binding table, matcher, chord text            | `src/editor/shortcuts.ts`, `src/editor/use-keyboard-shortcuts.web.ts`                    | `check-shortcuts.mjs` |
-| [`editor-render-contract.md`](editor-render-contract.md)           | Canvas ↔ PNG ↔ SVG agreement                   | `src/editor/EditorCanvas.tsx`, `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts` | —               |
-| [`editor-selection-bar.md`](editor-selection-bar.md)               | The action rail, width budget, pins           | `src/editor/selection-actions.tsx`, `src/editor/EditorScreen.tsx`                        | —                   |
-| [`editor-selection.md`](editor-selection.md)                       | Select tool, multi-select, background flow    | `src/editor/use-object-gestures.ts`, `src/editor/store.ts`, `src/editor/hit-test.ts`     | —                   |
-| [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md)         | The cluster split/rejoin algorithm            | `src/editor/text/clusters.ts`, `src/editor/text/split.ts`                                | `check-clusters.mjs` |
-| [`editor-state-and-history.md`](editor-state-and-history.md)       | Store slices, undo/redo, z-order              | `src/editor/store.ts`                                                                    | —                   |
-| [`editor-text-engine.md`](editor-text-engine.md)                   | Arabic shaping, auto width, paragraph lifetime | `src/editor/skia/text.ts`, `src/editor/skia/use-text-layouts.ts`                        | —                   |
+| Document                                                         | Owns                                           | Entry point                                                                                 | Check                 |
+| ---------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------- |
+| [`editor-coordinates.md`](editor-coordinates.md)                 | Four frames, fit-to-view, handle geometry      | `src/editor/hit-test.ts`, `src/editor/EditorCanvas.tsx`                                     | —                     |
+| [`editor-gestures.md`](editor-gestures.md)                       | Tap/pan/pinch/rotate, resize, release settle   | `src/editor/use-object-gestures.ts`                                                         | —                     |
+| [`editor-groups.md`](editor-groups.md)                           | Group membership, the whole-groups invariant   | `src/editor/groups.ts`, `src/editor/store.ts`                                               | `check-groups.mjs`    |
+| [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) | Help catalog, tooltips, learn mode             | `src/editor/help/catalog.ts`, `src/editor/help/use-help-mode.ts`                            | `check-help.mjs`      |
+| [`editor-keyboard.md`](editor-keyboard.md)                       | Binding table, matcher, chord text             | `src/editor/shortcuts.ts`, `src/editor/use-keyboard-shortcuts.web.ts`                       | `check-shortcuts.mjs` |
+| [`editor-render-contract.md`](editor-render-contract.md)         | Canvas ↔ PNG ↔ SVG agreement                   | `src/editor/EditorCanvas.tsx`, `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts` | —                     |
+| [`editor-selection-bar.md`](editor-selection-bar.md)             | The action rail, width budget, pins            | `src/editor/selection-actions.tsx`, `src/editor/EditorScreen.tsx`                           | —                     |
+| [`editor-selection.md`](editor-selection.md)                     | Select tool, multi-select, background flow     | `src/editor/use-object-gestures.ts`, `src/editor/store.ts`, `src/editor/hit-test.ts`        | —                     |
+| [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md)       | The cluster split/rejoin algorithm             | `src/editor/text/clusters.ts`, `src/editor/text/split.ts`                                   | `check-clusters.mjs`  |
+| [`editor-state-and-history.md`](editor-state-and-history.md)     | Store slices, undo/redo, z-order               | `src/editor/store.ts`                                                                       | —                     |
+| [`editor-text-engine.md`](editor-text-engine.md)                 | Arabic shaping, auto width, paragraph lifetime | `src/editor/skia/text.ts`, `src/editor/skia/use-text-layouts.ts`                            | —                     |
 
 ## 4. Executable specs
 
-There is no test runner. Three contracts own a standalone script that is the real
+There is no test runner. Four contracts own a standalone script that is the real
 specification for their tables; run the one that covers what you touched.
 
-| Script                          | Guards                                          | Owner                                    |
-| ------------------------------- | ----------------------------------------------- | ---------------------------------------- |
-| `scripts/check-clusters.mjs`    | Segmentation types + split/round-trip            | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §9  |
-| `scripts/check-shortcuts.mjs`   | Binding table, matcher, chord text               | [`editor-keyboard.md`](editor-keyboard.md) §10                 |
-| `scripts/check-help.mjs`        | Catalog ↔ `strings.ts` ↔ `shortcuts.ts`          | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §5 |
+| Script                        | Guards                                           | Owner                                                               |
+| ----------------------------- | ------------------------------------------------ | ------------------------------------------------------------------- |
+| `scripts/check-clusters.mjs`  | Segmentation types + split/round-trip            | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §9       |
+| `scripts/check-groups.mjs`    | Expansion, units, predicates, singleton dissolve | [`editor-groups.md`](editor-groups.md) §3                           |
+| `scripts/check-shortcuts.mjs` | Binding table, matcher, chord text               | [`editor-keyboard.md`](editor-keyboard.md) §10                      |
+| `scripts/check-help.mjs`      | Catalog ↔ `strings.ts` ↔ `shortcuts.ts`          | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §5 |
 
 Repo-wide, and cheaper than any of them: `npx tsc --noEmit` and `npx eslint src`.
 
-All three scripts transpile and evaluate their target module standalone. That is
-why `shortcuts.ts` and `help/catalog.ts` may declare **only `import type`**, and
-`i18n/strings.ts` no imports at all — a value import breaks the check silently.
+All four scripts transpile and evaluate their target module standalone. That is
+why `shortcuts.ts` and `help/catalog.ts` may declare **only `import type`**,
+`i18n/strings.ts` no imports at all, and `groups.ts` only a structural interface
+of its own — a value import breaks the check silently.
 
 ## 5. Moves that span files
 
-| Move                          | Files that must move together                                                      | Contract                                             |
-| ----------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| A new keyboard binding        | `shortcuts.ts` + `help/catalog.ts` + `i18n/strings.ts`, then both checks            | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §6 |
-| A new selection-bar action    | `selection-actions.tsx` table entry + a `sel.<id>` catalog entry                    | [`editor-selection-bar.md`](editor-selection-bar.md) §2 and §9 |
-| A new shape                   | `skia/shape-geometry.ts` builder + the SVG and PNG paths                           | [`editor-render-contract.md`](editor-render-contract.md) §5 |
-| A split/rejoin change         | `text/clusters.ts` + `store.ts` + `TextPartRef` in `storage/project-schema.ts`     | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §8 |
-| A new help or tooltip string  | `i18n/strings.ts` + `help/catalog.ts` — never one alone                            | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §6 |
-| A new undoable mutator        | `store.ts` (snapshot internally) + every call site that does not                  | [`editor-state-and-history.md`](editor-state-and-history.md) §2 |
+| Move                         | Files that must move together                                                  | Contract                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| A new keyboard binding       | `shortcuts.ts` + `help/catalog.ts` + `i18n/strings.ts`, then both checks       | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §6 |
+| A new selection-bar action   | `selection-actions.tsx` table entry + a `sel.<id>` catalog entry               | [`editor-selection-bar.md`](editor-selection-bar.md) §2 and §9      |
+| A new shape                  | `skia/shape-geometry.ts` builder + the SVG and PNG paths                       | [`editor-render-contract.md`](editor-render-contract.md) §5         |
+| A split/rejoin change        | `text/clusters.ts` + `store.ts` + `TextPartRef` in `storage/project-schema.ts` | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §8       |
+| A new help or tooltip string | `i18n/strings.ts` + `help/catalog.ts` — never one alone                        | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §6 |
+| A group-aware behaviour      | `groups.ts` helper + the store write that applies it + `check-groups.mjs`      | [`editor-groups.md`](editor-groups.md) §3                           |
+| A new undoable mutator       | `store.ts` (snapshot internally) + every call site that does not               | [`editor-state-and-history.md`](editor-state-and-history.md) §2     |
 
 ## 6. Conventions this folder follows
 

@@ -69,6 +69,8 @@ export type SelectionActionId =
   | "fitText"
   | "split"
   | "rejoin"
+  | "group"
+  | "ungroup"
   | "duplicate"
   | "bringToFront"
   | "sendToBack"
@@ -101,8 +103,12 @@ export interface SelectionShape {
   readonly canSplit: boolean;
   /** The selection is one part of an already-split word. */
   readonly canRejoin: boolean;
-  /** More than one object is selected, so the align group applies. */
+  /** More than one element is selected, so the align group applies. */
   readonly isMulti: boolean;
+  /** Two or more loose elements are selected, so they can become a group. */
+  readonly canGroup: boolean;
+  /** The selection is exactly one whole group, so it can be dissolved. */
+  readonly canUngroup: boolean;
 }
 
 /**
@@ -112,6 +118,10 @@ export interface SelectionShape {
  * from two sides: only one of them can ever apply to a given selection. The
  * order is the truncation order too: when only six slots fit on a phone, the
  * six that survive are the first six.
+ *
+ * `group` and `ungroup` share one for the same reason: a selection is either a
+ * set of loose elements (which can be grouped) or one whole group (which can be
+ * dissolved), never both at once.
  *
  * `styleOpen` leads on purpose. It is the only route to the style panel, so it
  * has to survive every truncation — and it costs one slot rather than the five
@@ -123,6 +133,7 @@ const RAIL_SLOTS: readonly (readonly SelectionActionId[])[] = [
   ["scaleDown"],
   ["fitText"],
   ["split", "rejoin"],
+  ["group", "ungroup"],
   ["duplicate"],
   ["bringToFront"],
   ["sendToBack"],
@@ -210,6 +221,10 @@ function isAvailable(id: SelectionActionId, shape: SelectionShape): boolean {
       return shape.canSplit;
     case "rejoin":
       return shape.canRejoin;
+    case "group":
+      return shape.canGroup;
+    case "ungroup":
+      return shape.canUngroup;
     case "alignLeft":
     case "alignCenterH":
     case "alignRight":

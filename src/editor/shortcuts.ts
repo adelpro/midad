@@ -31,6 +31,8 @@ export type ShortcutId =
   | "rotateCw"
   | "bringToFront"
   | "sendToBack"
+  | "group"
+  | "ungroup"
   | "toolSelect"
   | "toolMultiSelect"
   | "toolText"
@@ -113,6 +115,12 @@ export const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
 
   { id: "bringToFront", code: "BracketRight", mod: true },
   { id: "sendToBack", code: "BracketLeft", mod: true },
+
+  // Grouping: the modified chord joins the selection into one element, the
+  // shifted one dissolves it again. Declared shifted-first, like every other
+  // pair in this table.
+  { id: "ungroup", code: "KeyG", mod: true, shift: true },
+  { id: "group", code: "KeyG", mod: true },
 
   { id: "toolSelect", code: "KeyV" },
   { id: "toolMultiSelect", code: "KeyM" },

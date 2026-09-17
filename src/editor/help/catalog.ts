@@ -284,6 +284,26 @@ export const HELP_ENTRIES = [
     icon: "rejoin",
   },
   {
+    key: "sel.group",
+    group: "selection",
+    label: { hint: "group" },
+    roleAr: "جمع التحديد في عنصر واحد يتحرك ويتغيّر معًا.",
+    roleEn:
+      "Join the selection into one element that moves and restyles as a whole.",
+    icon: "group",
+    shortcutId: "group",
+  },
+  {
+    key: "sel.ungroup",
+    group: "selection",
+    label: { hint: "ungroup" },
+    roleAr: "فكّ المجموعة إلى عناصر مستقلة يتحرك كل منها منفردًا.",
+    roleEn:
+      "Take the group apart into separate objects you can move one by one.",
+    icon: "ungroup",
+    shortcutId: "ungroup",
+  },
+  {
     key: "sel.duplicate",
     group: "selection",
     label: { hint: "duplicate" },

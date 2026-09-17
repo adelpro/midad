@@ -31,6 +31,7 @@ import {
   collectUsedFamilies,
   projectToSvg,
 } from "@/editor/export/svg";
+import { canGroup, canUngroup, unitCount } from "@/editor/groups";
 import { HelpSheet, LearnOverlay, useHelpMode } from "@/editor/help";
 import { InsertSheet, type ShapeKey } from "@/editor/insert-sheet";
 import { renderProjectToPng } from "@/editor/render/offscreen";
@@ -77,6 +78,7 @@ import { pickBackgroundImage } from "@/storage/background-image";
 import { shareFile, shareImage } from "@/storage/export";
 import type {
   CalligraphyTextObject,
+  DesignObject,
   ObjectTransform,
   TextAlign,
 } from "@/storage/project-schema";
@@ -108,6 +110,20 @@ import {
 } from "@/theme/presentations";
 
 type ActiveTool = "select" | "text" | "insert" | "color" | "background";
+
+/**
+ * The current selection, in document order, read fresh from the store.
+ *
+ * Every style edit below acts on the whole selection — a group is one element,
+ * so a colour or a preset belongs to all of it — and they all need the same
+ * list.
+ */
+function currentSelection(): DesignObject[] {
+  const store = useEditorStore.getState();
+  return (
+    store.project?.objects.filter((o) => store.selectedIds.includes(o.id)) ?? []
+  );
+}
 
 /** Font-size bounds for the size gauge (design units). */
 const MIN_FONT_SIZE = 12;
@@ -175,7 +191,6 @@ export function EditorScreen() {
   const canRedo = useEditorStore((s) => s.future.length > 0);
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const select = useEditorStore((s) => s.select);
-  const updateObject = useEditorStore((s) => s.updateObject);
   const alignSelected = useEditorStore((s) => s.alignSelected);
   const setGrid = useEditorStore((s) => s.setGrid);
   const gridEnabled = useEditorStore((s) => s.project?.gridEnabled);
@@ -186,6 +201,8 @@ export function EditorScreen() {
   const nudgeSelected = useEditorStore((s) => s.nudgeSelected);
   const bringToFront = useEditorStore((s) => s.bringToFront);
   const sendToBack = useEditorStore((s) => s.sendToBack);
+  const groupSelected = useEditorStore((s) => s.groupSelected);
+  const ungroupSelected = useEditorStore((s) => s.ungroupSelected);
 
   const [tool, setTool] = useState<ActiveTool>("select");
   /**
@@ -448,15 +465,21 @@ export function EditorScreen() {
     [partSiblings, select],
   );
 
-  /** Cycles the presentation presets, wrapping in both directions. */
+  /**
+   * Cycles the presentation presets, wrapping in both directions.
+   *
+   * The step is read from the primary selection and applied to every selected
+   * text object, so stepping a group keeps the group in one look.
+   */
   const cyclePresentation = useCallback(
     (direction: 1 | -1) => {
-      const obj = liveText();
-      if (!obj) {
+      const primary = liveText();
+      const texts = currentSelection().filter((o) => o.type === "text");
+      if (!primary || texts.length === 0) {
         return;
       }
       const current = presentations.findIndex(
-        (p) => p.key === obj.presentation?.key,
+        (p) => p.key === primary.presentation?.key,
       );
       const next =
         current < 0
@@ -467,38 +490,80 @@ export function EditorScreen() {
       const preset = presentations[next];
       const store = useEditorStore.getState();
       store.snapshot();
-      store.updateObject(obj.id, presetPatch(preset, obj) as never);
+      for (const obj of texts) {
+        store.updateObject(obj.id, presetPatch(preset, obj) as never);
+      }
     },
     [liveText],
   );
 
-  const applyPresentation = useCallback(
-    (key: string) => {
-      const obj = liveText();
-      const preset = presentationByKey(key);
-      if (!obj || !preset) {
+  /**
+   * Applies a presentation preset to every selected text object.
+   *
+   * The patch is resolved per object — a preset is a delta against each object's
+   * own properties — so a group ends up in one look without flattening what each
+   * member started from.
+   */
+  const applyPresentation = useCallback((key: string) => {
+    const preset = presentationByKey(key);
+    const texts = currentSelection().filter((o) => o.type === "text");
+    if (!preset || texts.length === 0) {
+      return;
+    }
+    const store = useEditorStore.getState();
+    store.snapshot();
+    for (const obj of texts) {
+      store.updateObject(obj.id, presetPatch(preset, obj) as never);
+    }
+  }, []);
+
+  /**
+   * Patches every selected object in one step.
+   *
+   * `color` and `opacity` are the two style fields all three object types carry,
+   * so these are the two controls that reach a group of mixed kinds; text-only
+   * fields stay in `patchStyle`.
+   */
+  const patchSelectedAll = useCallback(
+    (patch: { color?: string; opacity?: number }) => {
+      const store = useEditorStore.getState();
+      const objects = currentSelection();
+      if (objects.length === 0) {
         return;
       }
-      const store = useEditorStore.getState();
       store.snapshot();
-      store.updateObject(obj.id, presetPatch(preset, obj) as never);
+      for (const obj of objects) {
+        store.updateObject(obj.id, patch as never);
+      }
     },
-    [liveText],
+    [],
   );
 
-  /** Snapshot + patch for one discrete style change on the selected text. */
-  const patchStyle = useCallback(
-    (patch: Partial<CalligraphyTextObject>) => {
-      const obj = liveText();
-      if (!obj) {
-        return;
-      }
-      const store = useEditorStore.getState();
-      store.snapshot();
+  /** The ink swatch: recolours the whole selection. */
+  const setInk = useCallback(
+    (color: string) => patchSelectedAll({ color }),
+    [patchSelectedAll],
+  );
+
+  /**
+   * Snapshot + patch for one discrete style change, applied to every selected
+   * text object.
+   *
+   * A group is one element, so a style change lands on all of it — the same rule
+   * `transformSelected` already follows for the transform buttons. One snapshot
+   * covers the whole selection, so a single undo reverts all of it.
+   */
+  const patchStyle = useCallback((patch: Partial<CalligraphyTextObject>) => {
+    const store = useEditorStore.getState();
+    const texts = currentSelection().filter((o) => o.type === "text");
+    if (texts.length === 0) {
+      return;
+    }
+    store.snapshot();
+    for (const obj of texts) {
       store.updateObject(obj.id, patch as never);
-    },
-    [liveText],
-  );
+    }
+  }, []);
 
   /**
    * Live font-size change on the selection.
@@ -507,24 +572,32 @@ export function EditorScreen() {
    * `beginFontSizeDrag`, so one gesture — which fires this dozens of times —
    * lands as a single history entry instead of flooding undo.
    */
-  const setFontSize = useCallback(
-    (fontSize: number) => {
-      const obj = liveText();
-      if (!obj || fontSize === obj.fontSize) {
-        return;
+  const setFontSize = useCallback((fontSize: number) => {
+    const store = useEditorStore.getState();
+    const patches: { id: string; patch: Partial<DesignObject> }[] = [];
+    for (const obj of currentSelection()) {
+      if (obj.type !== "text" || fontSize === obj.fontSize) {
+        continue;
       }
-      // Scale the leading with the size so the text does not reflow as it grows.
+      // Scale the leading with the size so the text does not reflow as it
+      // grows. The ratio is each object's own, so a group of texts set at
+      // different leadings keeps each one's rhythm.
       const ratio =
         obj.fontSize > 0
           ? obj.lineHeight / obj.fontSize
           : DEFAULT_LEADING_RATIO;
-      useEditorStore.getState().updateObject(obj.id, {
-        fontSize,
-        lineHeight: Math.round(fontSize * ratio),
-      } as never);
-    },
-    [liveText],
-  );
+      patches.push({
+        id: obj.id,
+        patch: { fontSize, lineHeight: Math.round(fontSize * ratio) },
+      });
+    }
+    if (patches.length === 0) {
+      return;
+    }
+    // One write for the whole selection, and still snapshot-free: the gauge
+    // brackets a whole drag in `beginFontSizeDrag`.
+    store.updateObjects(patches);
+  }, []);
 
   /** Opens the undo bracket that one gauge drag (or one step tap) fills. */
   const beginFontSizeDrag = useCallback(() => {
@@ -563,9 +636,11 @@ export function EditorScreen() {
       if (opacity === obj.opacity) {
         return;
       }
-      patchStyle({ opacity });
+      // Cross-type: opacity is meaningful on a text object and an ornament
+      // alike, so a mixed group dims together.
+      patchSelectedAll({ opacity });
     },
-    [liveText, patchStyle],
+    [liveText, patchSelectedAll],
   );
 
   /** Applies a discrete transform to the selection with a history snapshot. */
@@ -904,17 +979,19 @@ export function EditorScreen() {
           rotation: (selectedObject?.transform.rotation ?? 0) + 90,
         }),
       bringToFront: () => {
-        const id = selectedIds[0];
-        if (id) {
-          bringToFront([id]);
+        if (selectedIds.length > 0) {
+          bringToFront(selectedIds);
         }
       },
       sendToBack: () => {
-        const id = selectedIds[0];
-        if (id) {
-          sendToBack([id]);
+        if (selectedIds.length > 0) {
+          sendToBack(selectedIds);
         }
       },
+      // Grouping is a discrete structural edit, so the chord mirrors the rail
+      // button exactly — same predicate, same store call.
+      group: groupSelected,
+      ungroup: ungroupSelected,
       toolSelect: () => {
         setMultiSelectMode(false, true);
         selectTool("select");
@@ -945,15 +1022,36 @@ export function EditorScreen() {
   // through `run`; the module decides what is available and in what order.
   // ---------------------------------------------------------------------------
 
+  /**
+   * How many *elements* the selection holds — a group counts as one.
+   *
+   * This is what the badge reports and what `isMulti` gates the align group on,
+   * so a group of three reads as "1" and offers the same actions a single
+   * object does. That is the point of a group: it behaves as one element.
+   */
+  const elementCount = useMemo(
+    () => unitCount(selectedIds, project?.objects ?? []),
+    [selectedIds, project],
+  );
+
   /** What the current selection can do, for the action table. */
   const shape: SelectionShape = useMemo(
     () => ({
       isText: !!selectedText,
       canSplit: canSplitSelected,
       canRejoin: partSiblings.length > 1,
-      isMulti: selectedIds.length > 1,
+      isMulti: elementCount > 1,
+      canGroup: canGroup(selectedIds, project?.objects ?? []),
+      canUngroup: canUngroup(selectedIds, project?.objects ?? []),
     }),
-    [selectedText, canSplitSelected, partSiblings.length, selectedIds.length],
+    [
+      selectedText,
+      canSplitSelected,
+      partSiblings.length,
+      selectedIds,
+      elementCount,
+      project,
+    ],
   );
 
   /** What each selection command does. A `Record`, so a new id cannot be left unhandled. */
@@ -986,16 +1084,19 @@ export function EditorScreen() {
       split: splitSelected,
       rejoin: rejoinSelected,
       duplicate: duplicateSelected,
+      group: groupSelected,
+      ungroup: ungroupSelected,
       bringToFront: () => {
-        const id = selectedIds[0];
-        if (id) {
-          bringToFront([id]);
+        // The whole selection, not the primary alone: z-order is part of what a
+        // group owns, and `bringToFront` already assigns one value to all of it
+        // so the group keeps its internal layering.
+        if (selectedIds.length > 0) {
+          bringToFront(selectedIds);
         }
       },
       sendToBack: () => {
-        const id = selectedIds[0];
-        if (id) {
-          sendToBack([id]);
+        if (selectedIds.length > 0) {
+          sendToBack(selectedIds);
         }
       },
       delete: deleteSelected,
@@ -1022,6 +1123,8 @@ export function EditorScreen() {
       deleteSelected,
       alignSelected,
       cyclePresentation,
+      groupSelected,
+      ungroupSelected,
     ],
   );
 
@@ -1222,7 +1325,7 @@ export function EditorScreen() {
                     onLayout={(e) => setCountWidth(e.nativeEvent.layout.width)}
                     style={styles.selectionCount}
                   >
-                    {formatSelectedCount(selectedIds.length, language)}
+                    {formatSelectedCount(elementCount, language)}
                   </Text>
                 )}
                 <SelectionRailActions
@@ -1316,13 +1419,7 @@ export function EditorScreen() {
                         selectedObject.color === col &&
                           styles.colorSwatchActive,
                       ]}
-                      onPress={() => {
-                        const store = useEditorStore.getState();
-                        store.snapshot();
-                        updateObject(selectedObject.id, {
-                          color: col,
-                        } as never);
-                      }}
+                      onPress={() => setInk(col)}
                     />
                   ))}
                 </View>

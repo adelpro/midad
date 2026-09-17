@@ -1,6 +1,16 @@
 import { create } from "zustand";
 
 import { computeAlignUpdates, type AlignMode } from "@/editor/align";
+import {
+  canGroup,
+  canUngroup,
+  dissolveSingletonGroups,
+  expandToGroups,
+  newGroupId,
+  remapGroupIds,
+  sameIds,
+  selectionUnits,
+} from "@/editor/groups";
 import type { ResizeHandle, SizedObject } from "@/editor/hit-test";
 import { NUDGE_COALESCE_MS } from "@/editor/shortcuts";
 import type {
@@ -188,6 +198,18 @@ interface EditorState {
   mergeObjectParts: (merged: CalligraphyTextObject, partIds: string[]) => void;
   bringToFront: (ids: string[]) => void;
   sendToBack: (ids: string[]) => void;
+  /**
+   * Makes the selection one group: from now on a tap on any member selects them
+   * all, and they move, duplicate, reorder and restyle together. Inert when the
+   * selection is not groupable (fewer than two elements, or already grouped —
+   * groups do not nest).
+   */
+  groupSelected: () => void;
+  /**
+   * Dissolves the selected group back into independent objects. Inert unless the
+   * selection is exactly one whole group.
+   */
+  ungroupSelected: () => void;
   /** Aligns or centres the current selection (see `AlignMode`). */
   alignSelected: (mode: AlignMode) => void;
   /**
@@ -215,15 +237,20 @@ function clone(objects: DesignObject[]): DesignObject[] {
 }
 
 /**
- * A history entry's selection, narrowed to the ids its own objects still hold.
+ * A history entry's selection, narrowed to the ids its own objects still hold
+ * and then grown back to whole elements.
  *
  * Undoing an insert restores a document that never contained the inserted
  * object, so its id must not come back as a selection the canvas cannot draw
- * handles around.
+ * handles around. The expansion on the way out is what keeps a restored
+ * selection a union of whole groups, the invariant `groups.ts` describes.
  */
 function restorableSelection(entry: HistoryEntry): string[] {
   const ids = new Set(entry.objects.map((o) => o.id));
-  return entry.selectedIds.filter((id) => ids.has(id));
+  return expandToGroups(
+    entry.selectedIds.filter((id) => ids.has(id)),
+    entry.objects,
+  );
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -248,43 +275,60 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }),
 
   select: (id, additive = false) => {
+    // Group membership is resolved here, in the one place every selection write
+    // funnels through, so a group can never end up half-selected (see
+    // `groups.ts` for the invariant).
+    const objects = get().project?.objects ?? [];
     set((s) => {
       if (id == null) {
         // Bail when already empty — a no-op must not allocate a new array
         // (and re-render every selection subscriber) for nothing.
         return s.selectedIds.length === 0 ? s : { selectedIds: [] };
       }
+      // The element the press resolved to: the object, plus its group.
+      const element = expandToGroups([id], objects);
       if (additive) {
-        return {
-          selectedIds: s.selectedIds.includes(id)
-            ? s.selectedIds.filter((x) => x !== id)
-            : [...s.selectedIds, id],
-        };
+        // The toggle idiom works on the element, not the object: tapping a
+        // member of an already-selected group takes the whole group out.
+        if (s.selectedIds.includes(id)) {
+          const drop = new Set(element);
+          const next = s.selectedIds.filter((x) => !drop.has(x));
+          return sameIds(next, s.selectedIds) ? s : { selectedIds: next };
+        }
+        const next = expandToGroups([...s.selectedIds, id], objects);
+        return sameIds(next, s.selectedIds) ? s : { selectedIds: next };
       }
-      // Same single selection — bail for the same reason.
-      if (s.selectedIds.length === 1 && s.selectedIds[0] === id) {
+      // Same element already selected — bail for the same reason.
+      if (sameIds(element, s.selectedIds)) {
         return s;
       }
-      return { selectedIds: [id] };
+      return { selectedIds: element };
     });
   },
 
   clearSelection: () => set({ selectedIds: [] }),
 
   setMultiSelectMode: (enabled, keepSelection = false) =>
-    set((s) => ({
-      multiSelectMode: enabled,
-      // Collapsing to a single id when the mode is switched off keeps the
-      // single-object UI (handles, transform buttons) meaningful. The *last*
-      // id is the one the user touched most recently, so it is the one they
-      // expect the handles to land on. `keepSelection` (the Select button and
-      // the multi-select toggle) exits the mode without collapsing the group.
-      selectedIds: enabled
-        ? s.selectedIds
-        : keepSelection
-          ? s.selectedIds
-          : s.selectedIds.slice(-1),
-    })),
+    set((s) => {
+      if (enabled) {
+        return s.multiSelectMode ? s : { multiSelectMode: true };
+      }
+      // Collapsing keeps the single-object UI (handles, transform buttons)
+      // meaningful. The seed is the *last* id — the element the user touched
+      // most recently, which is where they expect the handles to land — and it
+      // is expanded rather than taken alone, so leaving the mode never tears a
+      // group in half. `keepSelection` (the Select button and the multi-select
+      // toggle) exits the mode without collapsing at all.
+      const seed = s.selectedIds[s.selectedIds.length - 1];
+      const collapsed = seed
+        ? expandToGroups([seed], s.project?.objects ?? [])
+        : [];
+      const selectedIds = keepSelection ? s.selectedIds : collapsed;
+      if (!s.multiSelectMode && sameIds(selectedIds, s.selectedIds)) {
+        return s;
+      }
+      return { multiSelectMode: false, selectedIds };
+    }),
 
   setSizedObjects: (sizedObjects) =>
     set((s) => {
@@ -370,14 +414,29 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   removeObjects: (ids) => {
-    get().snapshot();
-    set((s) => ({
-      project: {
-        ...s.project!,
-        objects: s.project!.objects.filter((o) => !ids.includes(o.id)),
-      },
-      selectedIds: s.selectedIds.filter((x) => !ids.includes(x)),
-    }));
+    const s0 = get();
+    if (!s0.project || ids.length === 0) {
+      return;
+    }
+    s0.snapshot();
+    set((s) => {
+      const objects = [
+        ...dissolveSingletonGroups(
+          s.project!.objects.filter((o) => !ids.includes(o.id)),
+        ),
+      ];
+      return {
+        project: { ...s.project!, objects },
+        // Deleting a member of a group deletes the group (the selection is
+        // always whole groups), so what is left is re-expanded against the
+        // surviving document — which is also what drops the last trace of a
+        // group that has just fallen below two members.
+        selectedIds: expandToGroups(
+          s.selectedIds.filter((x) => !ids.includes(x)),
+          objects,
+        ),
+      };
+    });
   },
 
   duplicateObjects: (ids) => {
@@ -386,30 +445,43 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return;
     }
     const maxZ = Math.max(...s0.project.objects.map((o) => o.zIndex), 0);
-    const clones = s0.project.objects
-      .filter((o) => ids.includes(o.id))
-      .map(
-        (o, i) =>
-          ({
-            ...clone([o])[0],
-            id: `${o.type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-            transform: {
-              ...o.transform,
-              x: o.transform.x + 24,
-              y: o.transform.y + 24,
-            },
-            zIndex: maxZ + 10 + i * 10,
-            // A duplicate is a standalone object: it must not claim membership
-            // of the source's split group, or the group would gain a second
-            // part with the same index and could never be re-joined.
-            part: undefined,
-          }) as DesignObject,
-      );
+    const clones = remapGroupIds(
+      s0.project.objects
+        .filter((o) => ids.includes(o.id))
+        .map(
+          (o, i) =>
+            ({
+              ...clone([o])[0],
+              id: `${o.type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              transform: {
+                ...o.transform,
+                x: o.transform.x + 24,
+                y: o.transform.y + 24,
+              },
+              zIndex: maxZ + 10 + i * 10,
+              // A duplicate is a standalone object: it must not claim membership
+              // of the source's split group, or the group would gain a second
+              // part with the same index and could never be re-joined.
+              part: undefined,
+            }) as DesignObject,
+        ),
+      // A copied group becomes its own group. Sharing the source's id would
+      // make the copy and the original one group, so dragging either would drag
+      // both — and a copy of a single member dissolves back to standalone.
+      newGroupId(),
+    );
     s0.snapshot();
-    set((s) => ({
-      project: { ...s.project!, objects: [...s.project!.objects, ...clones] },
-      selectedIds: clones.map((c) => c.id),
-    }));
+    set((s) => {
+      const objects = [...s.project!.objects, ...clones];
+      return {
+        project: { ...s.project!, objects },
+        // Whole elements again: the copy of a group comes back selected as one.
+        selectedIds: expandToGroups(
+          clones.map((c) => c.id),
+          objects,
+        ),
+      };
+    });
   },
 
   splitObjectIntoParts: (sourceId, parts) => {
@@ -422,14 +494,28 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (at < 0) {
       return;
     }
+    const source = objects[at];
     // The parts take over the source's slot in the array. They all keep its
     // z-index, so array order (which a stable sort preserves) is their paint
     // order — the word still reads left-to-right in the same place.
-    const next = [...objects.slice(0, at), ...parts, ...objects.slice(at + 1)];
+    //
+    // They also inherit the source's group: splitting a grouped object replaces
+    // one member with several, and the group must survive that.
+    const stamped =
+      source.groupId === undefined
+        ? parts
+        : parts.map((p) => ({ ...p, groupId: source.groupId }));
+    const next = [
+      ...dissolveSingletonGroups([
+        ...objects.slice(0, at),
+        ...stamped,
+        ...objects.slice(at + 1),
+      ]),
+    ];
     s0.snapshot();
     set((s) => ({
       project: s.project ? { ...s.project, objects: next } : s.project,
-      selectedIds: [parts[0].id],
+      selectedIds: expandToGroups([stamped[0].id], next),
     }));
   },
 
@@ -445,11 +531,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     const kept = objects.filter((o) => !partIds.includes(o.id));
     const insertAt = Math.min(at, kept.length);
-    const next = [...kept.slice(0, insertAt), merged, ...kept.slice(insertAt)];
+    // The merged object inherits the membership its parts shared, so rejoining
+    // a word inside a group leaves the group intact.
+    const source = objects[at];
+    const next = [
+      ...dissolveSingletonGroups([
+        ...kept.slice(0, insertAt),
+        source.groupId === undefined
+          ? merged
+          : { ...merged, groupId: source.groupId },
+        ...kept.slice(insertAt),
+      ]),
+    ];
     s0.snapshot();
     set((s) => ({
       project: s.project ? { ...s.project, objects: next } : s.project,
-      selectedIds: [merged.id],
+      selectedIds: expandToGroups([merged.id], next),
     }));
   },
 
@@ -491,19 +588,76 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }));
   },
 
+  groupSelected: () => {
+    const s0 = get();
+    const objects = s0.project?.objects;
+    // `canGroup` is the same predicate the rail asks for availability, so the
+    // button and the behaviour can never disagree.
+    if (!objects || !canGroup(s0.selectedIds, objects)) {
+      return;
+    }
+    const groupId = newGroupId();
+    const ids = new Set(s0.selectedIds);
+    s0.snapshot();
+    set((s) => ({
+      project: {
+        ...s.project!,
+        objects: s.project!.objects.map((o) =>
+          ids.has(o.id) ? ({ ...o, groupId } as DesignObject) : o,
+        ),
+      },
+      // The selection is one element now, so the multi-select idiom (a tap adds
+      // or toggles) would fight it: the next tap on the group would deselect it
+      // instead of doing nothing. Same rule as the Select button — leave the
+      // mode, keep what is selected.
+      multiSelectMode: false,
+    }));
+  },
+
+  ungroupSelected: () => {
+    const s0 = get();
+    const objects = s0.project?.objects;
+    if (!objects || !canUngroup(s0.selectedIds, objects)) {
+      return;
+    }
+    const ids = new Set(s0.selectedIds);
+    s0.snapshot();
+    set((s) => ({
+      project: {
+        ...s.project!,
+        objects: s.project!.objects.map((o) =>
+          ids.has(o.id) ? ({ ...o, groupId: undefined } as DesignObject) : o,
+        ),
+      },
+      // The result *is* a multi-selection, so the mode has to come on — exactly
+      // the reason `selectAll` switches it on: the count badge and the align
+      // actions are about to appear, and with the mode off the very next tap
+      // would replace the whole selection instead of adding to it.
+      multiSelectMode: true,
+    }));
+  },
+
   alignSelected: (mode) => {
     const s0 = get();
     const canvas = s0.project?.canvas;
     if (!canvas) {
       return;
     }
-    const selected = s0.sizedObjects.filter((o) =>
-      s0.selectedIds.includes(o.id),
-    );
-    if (selected.length === 0) {
+    // Align works on *elements*, not objects: a group is one unit that moves as
+    // a whole, so aligning a group cannot collapse it onto its own outermost
+    // member. A loose object is a one-object unit, which is why a plain
+    // multi-selection aligns exactly as it always has.
+    const units = selectionUnits(s0.selectedIds, s0.project!.objects)
+      .map((ids) =>
+        ids
+          .map((id) => s0.sizedObjects.find((o) => o.id === id))
+          .filter((o): o is SizedObject => o !== undefined),
+      )
+      .filter((unit) => unit.length > 0);
+    if (units.length === 0) {
       return;
     }
-    const updates = computeAlignUpdates(mode, selected, canvas);
+    const updates = computeAlignUpdates(mode, units, canvas);
     const targets = new Map(updates.map((u) => [u.id, u.transform]));
     if (targets.size === 0) {
       return;

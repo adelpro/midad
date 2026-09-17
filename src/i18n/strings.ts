@@ -200,6 +200,8 @@ export interface Translation {
       centerV: string;
       split: string;
       rejoin: string;
+      group: string;
+      ungroup: string;
       stylePrev: string;
       styleNext: string;
       partPrev: string;
@@ -396,6 +398,8 @@ export const strings: Record<Language, Translation> = {
         centerV: "توسيط عموديًا في اللوحة",
         split: "تقسيم النص إلى أجزاء",
         rejoin: "دمج الأجزاء في نص واحد",
+        group: "تجميع العناصر في عنصر واحد",
+        ungroup: "فكّ تجميع العناصر",
         stylePrev: "النمط السابق",
         styleNext: "النمط التالي",
         partPrev: "الجزء السابق",
@@ -594,6 +598,8 @@ export const strings: Record<Language, Translation> = {
         centerV: "Center vertically on canvas",
         split: "Split the text into parts",
         rejoin: "Rejoin the parts into one text",
+        group: "Group the elements into one",
+        ungroup: "Ungroup the elements",
         stylePrev: "Previous style",
         styleNext: "Next style",
         partPrev: "Previous part",

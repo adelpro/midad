@@ -435,10 +435,17 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
     store.select(hit.id);
   }
 
+  // Re-read the store after that write. `store` is the *pre-press* snapshot, and
+  // `select` is what resolves the element the press landed on — the object plus
+  // its whole group. Capturing origins from the stale snapshot would drag the
+  // previously selected objects instead of the pressed one, and a press that
+  // expands to a group would move nothing at all.
+  const next = useEditorStore.getState();
+
   // Capture origins for the whole (possibly just-updated) selection.
   const origins: DragOrigin[] = [];
-  for (const id of store.selectedIds) {
-    const o = store.sizedObjects.find((x) => x.id === id);
+  for (const id of next.selectedIds) {
+    const o = next.sizedObjects.find((x) => x.id === id);
     if (o) {
       origins.push({ id, x: o.transform.x, y: o.transform.y });
     }

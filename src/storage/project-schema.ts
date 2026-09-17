@@ -71,7 +71,27 @@ export interface TextPresentation {
   key: string;
 }
 
-export interface CalligraphyTextObject {
+/**
+ * Membership of an object in a group.
+ *
+ * A group is a set of objects the editor treats as one element: tapping any
+ * member selects them all, and they move, duplicate, reorder and restyle
+ * together. Like `TextPartRef`, membership is a plain field on the object
+ * rather than a container type, so the document model stays flat and
+ * hit-testing, gestures, rendering and export keep working untouched.
+ *
+ * The editor also holds one invariant on top of this field: a selection is
+ * always a union of *whole* groups, so a group can never be half-selected.
+ */
+export interface GroupMember {
+  /**
+   * Id of the group this object belongs to. Absent when the object stands
+   * alone, which is the state every object is created in.
+   */
+  groupId?: string;
+}
+
+export interface CalligraphyTextObject extends GroupMember {
   id: string;
   type: "text";
   text: string;
@@ -104,7 +124,7 @@ export interface CalligraphyTextObject {
   locked?: boolean;
 }
 
-export interface GlyphObject {
+export interface GlyphObject extends GroupMember {
   id: string;
   type: "glyph";
   glyphKey: string; // one of the decorative ornament keys
@@ -136,7 +156,7 @@ export type ShapeKey =
   | "crescent"
   | "arch";
 
-export interface ShapeObject {
+export interface ShapeObject extends GroupMember {
   id: string;
   type: "shape";
   shapeKey: ShapeKey;
