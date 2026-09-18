@@ -139,10 +139,12 @@ export interface Translation {
     paper: string;
     enterText: string;
     exportShareImage: string;
+    exportSaveToPhotos: string;
     exportSvgAction: string;
     exportProjectFile: string;
     exporting: string;
     exportFailed: string;
+    saveToPhotosDenied: string;
     saving: string;
     saved: string;
     saveFailed: string;
@@ -354,10 +356,12 @@ export const strings: Record<Language, Translation> = {
       paper: 'ورق',
       enterText: 'اكتب نصك هنا…',
       exportShareImage: 'مشاركة الصورة',
+      exportSaveToPhotos: 'حفظ في الصور',
       exportSvgAction: 'تصدير SVG',
       exportProjectFile: 'تصدير ملف المشروع',
       exporting: 'جارٍ التصدير…',
       exportFailed: 'فشل التصدير',
+      saveToPhotosDenied: 'تم رفض الإذن بحفظ الصور.',
       saving: 'جارٍ الحفظ…',
       saved: 'تم الحفظ',
       saveFailed: 'تعذّر الحفظ',
@@ -556,10 +560,12 @@ export const strings: Record<Language, Translation> = {
       paper: 'Paper',
       enterText: 'Type your text…',
       exportShareImage: 'Share image',
+      exportSaveToPhotos: 'Save to Photos',
       exportSvgAction: 'Export SVG',
       exportProjectFile: 'Export project file',
       exporting: 'Exporting…',
       exportFailed: 'Export failed',
+      saveToPhotosDenied: 'Permission to save to Photos was denied.',
       saving: 'Saving…',
       saved: 'Saved',
       saveFailed: 'Save failed',

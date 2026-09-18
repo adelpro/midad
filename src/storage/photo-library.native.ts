@@ -26,13 +26,20 @@ export async function saveImageToPhotoLibrary({
     tmp.write(new Uint8Array(await data.arrayBuffer()));
   }
 
-  const MediaLibrary = await import('expo-media-library');
-  const { status } = await MediaLibrary.requestPermissionsAsync();
+  const { Asset, requestPermissionsAsync } = await import('expo-media-library');
+  // Write-only: saving needs the "add to library" permission, not read access.
+  // `Asset.create` and the top-level `requestPermissionsAsync` are the current
+  // API — the `MediaLibrary.*` namespace methods are legacy and throw at
+  // runtime on SDK 57.
+  const { status } = await requestPermissionsAsync(true, ['photo']);
   if (status !== 'granted') {
     tmp.delete();
     return false;
   }
-  await MediaLibrary.saveToLibraryAsync(tmp.uri);
-  tmp.delete();
+  try {
+    await Asset.create(tmp.uri);
+  } finally {
+    tmp.delete();
+  }
   return true;
 }
