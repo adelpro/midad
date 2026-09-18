@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -12,7 +13,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { ready, error } = useBootstrap();
-  const { colors: c } = useTheme();
+  const { colors: c, isDark } = useTheme();
 
   if (!ready && !error) {
     return null;
@@ -21,6 +22,12 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <I18nProvider>
+        {/*
+         * The bar follows the in-app theme, not the OS: the light/dark choice
+         * is a user setting here and can differ from the system. Web is a
+         * documented no-op, so this needs no platform guard.
+         */}
+        <StatusBar style={isDark ? 'light' : 'dark'} animated />
         {Platform.OS === 'web' && (
           <Head>
             <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
