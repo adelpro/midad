@@ -3,6 +3,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
   type LayoutChangeEvent,
 } from "react-native";
 
@@ -29,16 +30,38 @@ const clamp = (v: number, lo: number, hi: number) =>
 
 /** Floor for the preview's type size (dp) — keeps the smallest sizes legible. */
 const MIN_PREVIEW_PX = 10;
+/** Lateral padding inside the preview box (dp). */
+const PREVIEW_PAD_X = spacing.md;
 /**
- * Ceiling for the preview's type size, as a fraction of the box height.
+ * Vertical padding inside the preview box (dp).
  *
- * Kept below `1 / DEFAULT_LEADING_RATIO` so the cap still leaves one whole line
- * on screen: the preview exists to show *how big* the text will be, and a size
- * that cannot fit a single line would say nothing at all.
+ * The box used to have lateral padding only, which is what clipped tashkeel:
+ * with no space reserved above the text, the first line's harakat were the first
+ * thing to go.
  */
-const MAX_PREVIEW_FRACTION = 0.75;
-/** Preview box height (dp). */
-const PREVIEW_HEIGHT = 116;
+const PREVIEW_PAD_Y = spacing.md;
+/**
+ * Room a glyph cluster may reach past its line box, per side, as a fraction of
+ * the preview's type size.
+ *
+ * Arabic harakat sit above the font's nominal ascent and are *not* part of
+ * `lineHeight`, so a box that reserves only the line box slices them off at the
+ * top edge. 0.2em covers a shadda plus fatha stacked two marks deep, which is
+ * the worst case in the calligraphy faces.
+ */
+const DIACRITIC_HEADROOM = 0.2;
+/** Hairline around the preview box (dp) — part of the height budget, not ink. */
+const PREVIEW_BORDER = 1;
+/**
+ * Share of the window height the preview box may occupy.
+ *
+ * Proportional rather than fixed so a short phone gets a shorter preview instead
+ * of a sheet whose top runs off the screen.
+ */
+const PREVIEW_WINDOW_FRACTION = 0.2;
+/** Floor and ceiling for the preview box (dp). */
+const PREVIEW_MIN_HEIGHT = 132;
+const PREVIEW_MAX_HEIGHT = 200;
 
 export interface NumberStepperProps {
   label: string;
@@ -200,7 +223,6 @@ export interface TextPreviewProps {
   lineHeight?: number;
   /** Design-space width of the canvas — the scale reference. */
   canvasWidth: number;
-  height?: number;
 }
 
 /**
@@ -211,6 +233,11 @@ export interface TextPreviewProps {
  * the size are honest — but plain text will not match the canvas's HarfBuzz
  * shaping glyph for glyph. That trade buys a preview that costs nothing to
  * re-render on every keystroke, which is what makes it live.
+ *
+ * The box is sized from a window-relative budget rather than a constant, and the
+ * type size it caps is derived from the *ink* that has to fit — the line box
+ * plus `DIACRITIC_HEADROOM` either side — so tashkeel is never clipped, whichever
+ * face and size is picked.
  */
 export function TextPreview({
   text,
@@ -219,10 +246,10 @@ export function TextPreview({
   fontSize,
   lineHeight,
   canvasWidth,
-  height = PREVIEW_HEIGHT,
 }: TextPreviewProps) {
   const { colors: c } = useTheme();
   const { t, language, isRTL } = useT();
+  const { height: windowHeight } = useWindowDimensions();
   const font = fontRoles[language].ui;
   /** Measured box width — the other half of the canvas scale reference. */
   const [boxWidth, setBoxWidth] = useState(0);
@@ -231,16 +258,53 @@ export function TextPreview({
     setBoxWidth(e.nativeEvent.layout.width);
   }, []);
 
+  /** Height the box is allowed to occupy, in dp. */
+  const budget = clamp(
+    Math.round(windowHeight * PREVIEW_WINDOW_FRACTION),
+    PREVIEW_MIN_HEIGHT,
+    PREVIEW_MAX_HEIGHT,
+  );
+  /**
+   * Height the text may use — the budget less the border and padding.
+   *
+   * Both the size ceiling and the line count are derived from *this*, which is
+   * what makes the headroom guarantee exact: for any line count the cap allows,
+   * the centred text block is left at least `headroom` above and below.
+   */
+  const innerHeight = budget - PREVIEW_BORDER * 2 - PREVIEW_PAD_Y * 2;
+
   // The same relative size as the canvas: a 96pt title on a 1080-wide artwork
   // covers the same fraction of the preview as it does of the artwork.
-  const scale = canvasWidth > 0 ? boxWidth / canvasWidth : 0;
+  //
+  // `onLayout` reports the *border* box, so the box's own padding has to come
+  // off first: counting it as text room made the preview ~7% too large, which
+  // wrapped lines early and then clipped them.
+  const innerWidth = Math.max(0, boxWidth - PREVIEW_PAD_X * 2);
+  const scale = canvasWidth > 0 ? innerWidth / canvasWidth : 0;
+  const leadingRatio =
+    lineHeight && fontSize > 0 ? lineHeight / fontSize : DEFAULT_LEADING_RATIO;
+
+  /** Ceiling for the type size, from the ink one line has to fit. */
+  const maxPreviewFontSize =
+    innerHeight / (leadingRatio + DIACRITIC_HEADROOM * 2);
   const previewFontSize = clamp(
     fontSize * scale,
     MIN_PREVIEW_PX,
-    height * MAX_PREVIEW_FRACTION,
+    // On a very short window the floor wins over the ceiling.
+    Math.max(MIN_PREVIEW_PX, maxPreviewFontSize),
   );
-  const leadingRatio =
-    lineHeight && fontSize > 0 ? lineHeight / fontSize : DEFAULT_LEADING_RATIO;
+
+  const lineBox = previewFontSize * leadingRatio;
+  const headroom = previewFontSize * DIACRITIC_HEADROOM;
+  /**
+   * Lines the reserved height can hold. Pinned as `numberOfLines` so a long
+   * draft is ellipsized rather than allowed to grow the box: the sheet keeps its
+   * height while typing, and no line can reach past its own headroom.
+   */
+  const maxLines = Math.max(
+    1,
+    Math.floor((innerHeight - headroom * 2) / lineBox),
+  );
 
   const draft = text.trim();
   const blank = draft.length === 0;
@@ -249,10 +313,7 @@ export function TextPreview({
     <View style={styles.preview}>
       <View style={styles.previewHead}>
         <Text
-          style={[
-            styles.previewCaption,
-            { color: c.muted, fontFamily: font },
-          ]}
+          style={[styles.previewCaption, { color: c.muted, fontFamily: font }]}
         >
           {t.editor.preview}
         </Text>
@@ -270,14 +331,20 @@ export function TextPreview({
         onLayout={onBoxLayout}
         style={[
           styles.previewBox,
-          { height, borderColor: c.border, backgroundColor: c.surfaceAlt },
+          {
+            height: budget,
+            borderColor: c.border,
+            backgroundColor: c.surfaceAlt,
+          },
         ]}
       >
         <Text
+          numberOfLines={maxLines}
+          ellipsizeMode="tail"
           style={{
             fontFamily: fontKey,
             fontSize: previewFontSize,
-            lineHeight: previewFontSize * leadingRatio,
+            lineHeight: lineBox,
             color: blank ? c.faint : c.ink,
             textAlign: "center",
             writingDirection: isRTL ? "rtl" : "ltr",
@@ -322,11 +389,14 @@ const styles = StyleSheet.create({
     lineHeight: typeScale.caption.lineHeight,
   },
   previewBox: {
-    borderWidth: 1,
+    borderWidth: PREVIEW_BORDER,
     borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
+    // Still a safety net rather than the cause: the ink is reserved for above,
+    // so this only rounds off anything that overshoots anyway.
     overflow: "hidden",
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: PREVIEW_PAD_X,
+    paddingVertical: PREVIEW_PAD_Y,
   },
 });

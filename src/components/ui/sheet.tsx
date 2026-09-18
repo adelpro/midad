@@ -50,6 +50,14 @@ export interface SheetProps extends PropsWithChildren {
    * the drag, so this is opt-in rather than automatic.
    */
   closeButton?: boolean;
+  /**
+   * Horizontal padding of the panel (dp), defaulting to `spacing.lg`.
+   *
+   * A sheet whose content wants the widest column it can get — the text sheet's
+   * preview, which is a scale model of the canvas — loosens it; everything else
+   * takes the default.
+   */
+  contentPadding?: number;
 }
 
 /** Fraction of the panel that must be dragged away before release dismisses. */
@@ -84,6 +92,7 @@ export function Sheet({
   children,
   presentation = "bottom",
   closeButton,
+  contentPadding = spacing.lg,
 }: SheetProps) {
   const { colors: c } = useTheme();
   const { t, isRTL } = useT();
@@ -207,7 +216,11 @@ export function Sheet({
             onLayout={onPanelLayout}
             style={[
               isBottom ? styles.bottomSheet : styles.modalSheet,
-              { backgroundColor: c.surface, borderColor: c.border },
+              {
+                backgroundColor: c.surface,
+                borderColor: c.border,
+                paddingHorizontal: contentPadding,
+              },
               elevationStyle(c, isBottom ? shadows.sheet : shadows.panel),
               panelStyle,
             ]}

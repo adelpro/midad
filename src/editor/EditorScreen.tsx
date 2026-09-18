@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import {
@@ -194,6 +195,14 @@ const SHAPE_STROKE_WIDTH = 4;
 /** Opacity bounds — never fully invisible, or the object could not be re-found. */
 const MIN_OPACITY = 0.1;
 const MAX_OPACITY = 1;
+/**
+ * Share of the window the text sheet's scrolling body may occupy.
+ *
+ * The preview box grows with the type it previews, so the controls have to be
+ * able to scroll rather than run the sheet's confirm button off the bottom. The
+ * rest of the 82% panel is left for that button and the sheet's chrome.
+ */
+const SHEET_BODY_MAX_FRACTION = 0.6;
 
 const clamp = (v: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, v));
@@ -274,6 +283,11 @@ export function EditorScreen() {
   // first layout pass, which the width maths treats as "everything fits".
   const [railWidth, setRailWidth] = useState(0);
   const [contextWidth, setContextWidth] = useState(0);
+
+  // The text sheet's preview budget and scroll cap are both window-relative, so
+  // a short phone gets a shorter preview instead of a sheet off the top of the
+  // screen.
+  const { height: windowHeight } = useWindowDimensions();
 
   useAutoSave();
 
@@ -1808,8 +1822,19 @@ export function EditorScreen() {
             setEditingId(null);
           }}
           title={t.editor.text}
+          contentPadding={spacing.md}
         >
-          <View style={styles.sheetBody}>
+          {/* The scroll cap is what lets the preview box be tall: without it a
+              big type size would grow the box past the panel and take the
+              confirm button off-screen with it. */}
+          <ScrollView
+            style={{
+              maxHeight: Math.round(windowHeight * SHEET_BODY_MAX_FRACTION),
+            }}
+            contentContainerStyle={styles.sheetBody}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+          >
             {/* Live, because a draft has no object on the canvas yet — this is
                 the only place the chosen face and size can be seen. In the
                 style sheet the canvas behind the sheet is the preview. */}
@@ -1844,8 +1869,13 @@ export function EditorScreen() {
                 />
               ))}
             </View>
-            <Button label={t.common.done} onPress={saveTextObject} fullWidth />
-          </View>
+          </ScrollView>
+          <Button
+            label={t.common.done}
+            onPress={saveTextObject}
+            fullWidth
+            style={styles.sheetFooter}
+          />
         </Sheet>
 
         {/* Ornament and shape library */}
@@ -2038,13 +2068,7 @@ function ToolBtn({
   active: boolean;
   onPress: () => void;
   icon:
-    | "pen"
-    | "type"
-    | "sparkle"
-    | "shapes"
-    | "palette"
-    | "image"
-    | "multiSelect";
+    "pen" | "type" | "sparkle" | "shapes" | "palette" | "image" | "multiSelect";
 }) {
   const { colors: c } = useTheme();
   const { language } = useT();
@@ -2214,6 +2238,8 @@ const styles = StyleSheet.create({
   toolLabel: { fontSize: typeScale.caption.size },
   toolAction: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   sheetBody: { gap: spacing.md },
+  /** The text sheet's confirm button, outside the scrolling body. */
+  sheetFooter: { marginTop: spacing.md },
   fontRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
   fontBtn: { minWidth: 84 },
   colorStrip: {
