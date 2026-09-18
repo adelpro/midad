@@ -3,13 +3,22 @@
     "appVersionSource": "local"
   },
   "build": {
-    "preview": {
+    "apk": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
+    "aab": {
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "preview": {
+      "extends": "apk"
+    },
     "production": {
+      "extends": "aab",
       "autoIncrement": true
     }
   },
