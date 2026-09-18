@@ -17,7 +17,6 @@
       }
     },
     "android": {
-      "supportsRTL": true,
       "adaptiveIcon": {
         "backgroundColor": "#F7F6F3",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
