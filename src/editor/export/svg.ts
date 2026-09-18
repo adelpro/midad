@@ -255,15 +255,11 @@ function textToSvg(
   fontSize: number,
   lineHeight: number,
   color: string,
-  outline?: { color: string; width: number },
   filterId?: string,
 ): string {
   const sample = lines.join(' ');
   const isArabic = /[\u0600-\u06FF]/.test(sample);
   const rtl = isArabic ? ' direction="rtl" unicode-bidi="plaintext"' : '';
-  const outlineAttrs = outline
-    ? ` stroke="${escapeXml(outline.color)}" stroke-width="${outline.width}" paint-order="stroke"`
-    : '';
   const filterAttr = filterId ? ` filter="url(#${filterId})"` : '';
   const dy0 = -((lines.length - 1) * lineHeight) / 2;
   const spans = lines
@@ -274,7 +270,7 @@ function textToSvg(
     .join('');
   return (
     `<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"` +
-    ` font-size="${fontSize}" fill="${escapeXml(color)}"${outlineAttrs}${filterAttr}${rtl}>${spans}</text>`
+    ` font-size="${fontSize}" fill="${escapeXml(color)}"${filterAttr}${rtl}>${spans}</text>`
   );
 }
 
@@ -332,7 +328,6 @@ export function projectToSvg(
         obj.fontSize,
         obj.lineHeight,
         obj.color,
-        obj.outline,
         filterId,
       );
     } else if (obj.type === 'shape') {

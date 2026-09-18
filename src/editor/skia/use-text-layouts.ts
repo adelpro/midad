@@ -28,9 +28,6 @@ function layoutSignature(
 ): string {
   let signature = String(canvasWidth);
   for (const obj of objects) {
-    const outline = obj.outline
-      ? `${obj.outline.color}:${obj.outline.width}`
-      : '';
     const shadows = obj.shadows
       ? obj.shadows
           .map((s) => `${s.color}:${s.offsetX}:${s.offsetY}:${s.blur}`)
@@ -47,7 +44,6 @@ function layoutSignature(
         obj.align,
         obj.wrapWidth ?? '',
         obj.color,
-        outline,
         shadows,
       ].join('\u0001');
   }
@@ -94,7 +90,6 @@ export function useTextLayouts(
           // canvas width.
           wrapWidth: obj.wrapWidth,
           maxWidth: canvasWidth,
-          outline: obj.outline,
           shadows: obj.shadows,
         },
         fonts,

@@ -40,7 +40,6 @@ function specFor(
     opacity: source.opacity,
     wrapWidth,
     maxWidth,
-    outline: source.outline,
     shadows: source.shadows,
   };
 }
@@ -171,7 +170,6 @@ export function splitTextObject(
         align: source.align,
         color: source.color,
         opacity: source.opacity,
-        outline: source.outline,
         shadows: source.shadows,
         presentation: source.presentation,
         part: {
@@ -188,7 +186,6 @@ export function splitTextObject(
         // All parts keep the source's z-index: they occupy the same layer, and
         // a stable sort preserves their reading order.
         zIndex: source.zIndex,
-        locked: source.locked,
       });
     }
   } finally {

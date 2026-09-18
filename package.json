@@ -3,13 +3,12 @@
   "main": "expo-router/entry",
   "version": "0.2.0",
   "dependencies": {
-    "@expo/ui": "~57.0.18",
+    "@expo/ui": "~57.0.19",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@shopify/flash-list": "2.0.2",
     "@shopify/react-native-skia": "2.6.2",
     "expo": "~57.0.22",
     "expo-constants": "~57.0.18",
-    "expo-device-hub": "^0.10.1",
     "expo-document-picker": "~57.0.2",
     "expo-file-system": "~57.0.7",
     "expo-font": "~57.0.4",
@@ -77,6 +76,7 @@
       "prettier --write"
     ]
   },
+  "license": "MIT",
   "private": true,
   "packageManager": "yarn@4.13.0+sha512.5c20ba010c99815433e5c8453112165e673f1c7948d8d2b267f4b5e52097538658388ebc9f9580656d9b75c5cc996f990f611f99304a2197d4c56d21eea370e7"
 }

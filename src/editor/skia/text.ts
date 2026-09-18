@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 import {
   Skia,
   useFonts,
@@ -62,7 +60,6 @@ export interface TextLayoutSpec {
   wrapWidth?: number | null;
   /** Ceiling for auto width — normally the canvas width. Ignored when wrapping. */
   maxWidth: number;
-  outline?: { color: string; width: number };
   /** Drop shadows behind the glyphs, painted in order (outermost first). */
   shadows?: { color: string; offsetX: number; offsetY: number; blur: number }[];
 }
@@ -199,10 +196,7 @@ export function layoutArabicText(
  * when the check fails (offset units differ on some platform) we return null so
  * callers can fall back to the object's explicit newlines.
  */
-export function paragraphLines(
-  paragraph: SkParagraph,
-  text: string,
-): string[] | null {
+function paragraphLines(paragraph: SkParagraph, text: string): string[] | null {
   try {
     const metrics = paragraph.getLineMetrics();
     if (!metrics || metrics.length === 0) {
@@ -245,7 +239,6 @@ export function textLineBreaks(
         opacity: obj.opacity,
         wrapWidth: obj.wrapWidth,
         maxWidth: project.canvas.width,
-        outline: obj.outline,
       },
       fonts,
     );
@@ -259,21 +252,4 @@ export function textLineBreaks(
     }
   }
   return out;
-}
-
-/** Utility: extract font family list for debugging. */
-export function useRegisteredFonts(
-  fonts: SkTypefaceFontProvider | null,
-): string[] {
-  return useMemo(() => {
-    if (!fonts) {
-      return [];
-    }
-    try {
-      const mgr = fonts as unknown as { getFamilies?: () => string[] };
-      return mgr.getFamilies ? mgr.getFamilies() : Object.keys(fontAssets);
-    } catch {
-      return Object.keys(fontAssets);
-    }
-  }, [fonts]);
 }

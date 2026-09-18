@@ -160,13 +160,12 @@ When it is absent, only explicit newlines (`obj.text.split("\n")`) are honoured,
 so a narrowed text box would export as one long line. The callers in
 `EditorScreen` compute it; a new export path must too.
 
-**Outlines are SVG-only.** `textToSvg` emits `stroke` + `stroke-width` with
-`paint-order="stroke"` (so the stroke is painted under the fill and does not eat
-into the glyph shapes). The canvas and PNG paths pass `outline` into
-`layoutArabicText` but `buildParagraph` never reads it, so **a text outline is
-invisible on the canvas and missing from a PNG export**. Nothing in the UI sets
-the field either — it is only copied by split/merge. Treat `outline` as an
-unimplemented field on the Skia paths, not as a working feature; see
+**Text outlines were removed.** `outline` used to be rendered by `textToSvg`
+alone (`stroke` + `paint-order="stroke"`, which paints the stroke under the fill
+so it does not eat into the glyph shapes), while the canvas and PNG paths carried
+the field into `layoutArabicText` without `buildParagraph` ever reading it — so
+the three paths disagreed about any document that set it. The field and the SVG
+branch are both gone and the renderers now agree by construction; see
 `docs/editor-text-engine.md` §7.
 
 **Shadows become `feDropShadow` filters.** A multi-shadow preset chains several

@@ -1,6 +1,6 @@
-import { FlashList, type FlashListRef } from "@shopify/flash-list";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutAnimation,
   Platform,
@@ -12,20 +12,20 @@ import {
   TextInput,
   useWindowDimensions,
   View,
-} from "react-native";
+} from 'react-native';
 import {
   useAnimatedScrollHandler,
   useReducedMotion,
   useSharedValue,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   GALLERY_HEADER_LARGE,
   GalleryHeader,
-} from "@/components/gallery/gallery-header";
-import { ProjectRow, type SwipeSide } from "@/components/gallery/project-row";
-import { useDeferredDelete } from "@/components/gallery/use-deferred-delete";
+} from '@/components/gallery/gallery-header';
+import { ProjectRow, type SwipeSide } from '@/components/gallery/project-row';
+import { useDeferredDelete } from '@/components/gallery/use-deferred-delete';
 import {
   Button,
   EmptyState,
@@ -33,26 +33,26 @@ import {
   ProjectCardSkeleton,
   Sheet,
   Snackbar,
-} from "@/components/ui";
-import { hapticDelete, hapticTick } from "@/haptics";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { rowStyle } from "@/i18n/rtl";
-import { formatGalleryCount } from "@/i18n/strings";
-import { importProjectFromJson } from "@/storage/import-project";
-import { sortPinnedFirst, usePins } from "@/storage/pins";
-import { isWeb } from "@/storage/platform";
-import type { MidadProject } from "@/storage/project-schema";
-import { listProjects, loadProject, saveProject } from "@/storage/projects";
-import { DEFAULT_CANVASES, useSettings } from "@/storage/settings";
-import { getThumb } from "@/storage/thumbs";
+} from '@/components/ui';
+import { hapticDelete, hapticTick } from '@/haptics';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { rowStyle } from '@/i18n/rtl';
+import { formatGalleryCount } from '@/i18n/strings';
+import { importProjectFromJson } from '@/storage/import-project';
+import { sortPinnedFirst, usePins } from '@/storage/pins';
+import { isWeb } from '@/storage/platform';
+import type { MidadProject } from '@/storage/project-schema';
+import { listProjects, loadProject, saveProject } from '@/storage/projects';
+import { DEFAULT_CANVASES, useSettings } from '@/storage/settings';
+import { getThumb } from '@/storage/thumbs';
 import {
   breakpoint,
   fontRoles,
   spacing,
   springDampingRatios,
   typeScale,
-} from "@/theme";
+} from '@/theme';
 
 const MIN_COLUMN_WIDTH = 168;
 /** Centered content cap so the grid never sprawls on desktop/tablet. */
@@ -96,13 +96,13 @@ function makeNewProject(index: number): MidadProject {
     version: 1,
     id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     // Empty name so the UI localizes "Untitled" per language.
-    name: "",
+    name: '',
     createdAt: now,
     updatedAt: now,
     canvas: {
       width: size.width,
       height: size.height,
-      background: { type: "paper", color: "#F7F6F3" },
+      background: { type: 'paper', color: '#F7F6F3' },
     },
     objects: [],
     gridEnabled: false,
@@ -143,7 +143,7 @@ export default function GalleryScreen() {
   // Project action menu state.
   const [menuProject, setMenuProject] = useState<MidadProject | null>(null);
   const [renaming, setRenaming] = useState(false);
-  const [renameText, setRenameText] = useState("");
+  const [renameText, setRenameText] = useState('');
 
   // Only needed so `prepareForLayoutAnimationRender()` can be called before a
   // pinned row is reordered.
@@ -262,7 +262,7 @@ export default function GalleryScreen() {
   const handleImportText = useCallback(
     async (text: string) => {
       const status = await importProjectFromJson(text);
-      if (status !== "ok") {
+      if (status !== 'ok') {
         setImportError(t.gallery.importFailed);
         return;
       }
@@ -274,10 +274,10 @@ export default function GalleryScreen() {
 
   const importProject = useCallback(async () => {
     setImportError(null);
-    if (Platform.OS === "web") {
-      const el = document.createElement("input");
-      el.type = "file";
-      el.accept = ".midad,application/json,.json";
+    if (Platform.OS === 'web') {
+      const el = document.createElement('input');
+      el.type = 'file';
+      el.accept = '.midad,application/json,.json';
       el.onchange = () => {
         const file = el.files?.[0];
         if (!file) return;
@@ -290,15 +290,15 @@ export default function GalleryScreen() {
       return;
     }
     try {
-      const DocumentPicker = await import("expo-document-picker");
+      const DocumentPicker = await import('expo-document-picker');
       const res = await DocumentPicker.getDocumentAsync({
-        type: "application/json",
+        type: 'application/json',
         copyToCacheDirectory: true,
       });
       if (res.canceled || !res.assets?.length) {
         return;
       }
-      const { File } = await import("expo-file-system");
+      const { File } = await import('expo-file-system');
       const text = await new File(res.assets[0].uri).text();
       await handleImportText(text);
     } catch {
@@ -326,7 +326,7 @@ export default function GalleryScreen() {
     setOpenRow(null);
     setMenuProject(project);
     setRenaming(false);
-    setRenameText(project.name || "");
+    setRenameText(project.name || '');
   }, []);
 
   const closeMenu = useCallback(() => setMenuProject(null), []);
@@ -338,7 +338,7 @@ export default function GalleryScreen() {
     const copy: MidadProject = {
       ...src,
       id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      name: src.name ? `${src.name}${t.gallery.copySuffix}` : "",
+      name: src.name ? `${src.name}${t.gallery.copySuffix}` : '',
       createdAt: now,
       updatedAt: now,
     };
@@ -454,7 +454,7 @@ export default function GalleryScreen() {
           ]}
         >
           {Array.from({ length: isWide ? 4 : 6 }).map((_, i) => (
-            <ProjectCardSkeleton key={i} layout={isWide ? "stack" : "row"} />
+            <ProjectCardSkeleton key={i} layout={isWide ? 'stack' : 'row'} />
           ))}
         </View>
       ) : projects.length === 0 ? (
@@ -509,7 +509,7 @@ export default function GalleryScreen() {
             <ProjectRow
               project={item}
               thumbUri={thumbs[item.id] ?? null}
-              layout={isWide ? "stack" : "row"}
+              layout={isWide ? 'stack' : 'row'}
               // Swipe is a touch affordance for the full-width row only: grid
               // tiles are too narrow for it, and a mouse drag on web is
               // undiscoverable — those get the overflow button instead.
@@ -633,8 +633,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   importErrorWrap: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginHorizontal: spacing.xl,
     marginBottom: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -654,24 +654,24 @@ const styles = StyleSheet.create({
   },
   center: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   emptyWrap: {
     flex: 1,
-    width: "100%",
-    alignSelf: "center",
+    width: '100%',
+    alignSelf: 'center',
   },
   listWrap: {
-    width: "100%",
-    alignSelf: "center",
+    width: '100%',
+    alignSelf: 'center',
   },
   list: {
     paddingHorizontal: spacing.sm,
     gap: spacing.md,
   },
   skeletonWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: spacing.sm,
     gap: spacing.md,
   },

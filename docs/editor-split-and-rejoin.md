@@ -116,12 +116,12 @@ offsetY = t.y + sx * sin + sy * cos
 
 ## 5. What a part inherits
 
-| Field           | Value                                                                                                            |
-| --------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `wrapWidth`     | **always `null`**                                                                                                |
-| `zIndex`        | the source's — all parts share one layer                                                                         |
-| `part`          | `{ rootId, index, count, gapBefore? }`                                                                           |
-| everything else | copied from the source (`fontKey`, `fontSize`, `align`, `color`, `opacity`, `shadows`, `presentation`, `locked`) |
+| Field           | Value                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------ |
+| `wrapWidth`     | **always `null`**                                                                                      |
+| `zIndex`        | the source's — all parts share one layer                                                               |
+| `part`          | `{ rootId, index, count, gapBefore? }`                                                                 |
+| everything else | copied from the source (`fontKey`, `fontSize`, `align`, `color`, `opacity`, `shadows`, `presentation`) |
 
 `wrapWidth: null` is not cosmetic: parts always hug their own glyphs. An inherited
 wrap width would re-flow them and break the alignment computed in §4.

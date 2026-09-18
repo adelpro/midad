@@ -378,7 +378,7 @@ in (learn mode) are one list in one shape, so neither can drift from the other.
 The row also supplies the icon the catalog deliberately omits:
 
 ```ts
-const STEP_DIRECTION = { stylePrev: "prev", styleNext: "next" };
+const STEP_DIRECTION = { stylePrev: 'prev', styleNext: 'next' };
 ```
 
 `stylePrev`/`styleNext` carry no catalog `icon` because **a fixed arrow would read

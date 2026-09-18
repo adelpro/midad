@@ -66,11 +66,6 @@ export const usePins = create<PinsState>()(
   ),
 );
 
-/** Non-reactive read, for use inside async handlers. */
-export function isPinned(id: string): boolean {
-  return usePins.getState().pinnedIds.includes(id);
-}
-
 /**
  * Pinned designs first, then newest-first — matching the `updatedAt` ordering
  * both storage backends already apply in `listProjects()`, so the list does not

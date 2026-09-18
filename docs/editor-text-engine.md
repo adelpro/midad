@@ -179,21 +179,23 @@ same reference must not queue a duplicate generation.
 The PNG renderer is the exception: it shapes its own paragraphs and disposes each
 immediately after painting, because nothing else holds that handle.
 
-## 7. Known gap: `outline` is accepted but not rendered
+## 7. `outline` was removed, not implemented
 
-`TextLayoutSpec.outline` is declared, plumbed through `layoutArabicText`,
-`useTextLayouts` and `renderProjectToPng` — and **never read by
-`buildParagraph`**. It also participates in the layout signature, so changing it
-re-shapes for no visual effect.
+`CalligraphyTextObject.outline` and `TextLayoutSpec.outline` used to exist, and
+they were a trap. The field was plumbed through `layoutArabicText`,
+`useTextLayouts` and `renderProjectToPng`, it participated in the layout
+signature (so changing it re-shaped paragraphs for no visual effect), and it was
+**never read by `buildParagraph`**. Only `projectToSvg` rendered it, and nothing
+in the UI ever set it — across the codebase it was only _copied_, by split and
+merge. So an outline could exist only in a hand-authored or imported document,
+where it was visible in the SVG export and invisible on the canvas and in a PNG.
 
-Only `projectToSvg` renders an outline (as `stroke` + `paint-order="stroke"`).
-And nothing in the UI sets the field: across the codebase it is only _copied_
-(by split and merge) or read. So a text outline can only exist in a
-hand-authored or imported document, and it will be visible in the SVG export
-and invisible everywhere else.
+The field is now **gone end-to-end**, together with the SVG `stroke` +
+`paint-order="stroke"` branch, so all three renderers agree again. A project file
+that still carries an `outline` key loads and simply ignores it.
 
-Do not document or describe an outline feature as working. Either implement it on
-the Skia paths (an `SkTextStyle.foreground` paint) or remove the field.
+Re-adding it means implementing it on the Skia paths as well (an
+`SkTextStyle.foreground` paint) so canvas, PNG and SVG land together.
 
 ## 8. Extracting visual lines
 
@@ -243,6 +245,5 @@ they keep an object selectable rather than collapsing it to zero.
 | `textObjectSize`                                         | `src/editor/skia/use-text-layouts.ts` |
 | Text objects painted on the canvas                       | `src/editor/EditorCanvas.tsx`         |
 | Offscreen re-shaping + immediate dispose                 | `src/editor/render/offscreen.ts`      |
-| Outline rendering (SVG only)                             | `src/editor/export/svg.ts`            |
 | Font registry and calligraphy families                   | `src/theme/fonts.ts`                  |
 | Style presets that patch these fields                    | `src/theme/presentations.ts`          |

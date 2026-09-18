@@ -36,7 +36,7 @@ This is the rule that matters most, and it is not uniform. Mutators split in two
 `ungroupSelected` · `alignSelected` · `nudgeSelected` (conditionally — see §6).
 
 **Not snapshotting.** These write straight to `project` and record nothing:
-`updateObject` · `updateObjects` · `setCanvas` · `setGrid` · `setName`.
+`updateObject` · `updateObjects` · `setCanvas` · `setGrid`.
 
 `updateObject`/`updateObjects` are the hot path — every drag frame, every colour
 swatch, every style patch. Making them snapshot would either flood the history or
@@ -173,12 +173,11 @@ is intentional and shared with the canvas tap path.
 
 ## 10. Outside the history by design
 
-`setCanvas`, `setGrid` and `setName` never snapshot, and no caller wraps them in
-one. So these are document writes that are **not undoable**:
+`setCanvas` and `setGrid` never snapshot, and no caller wraps them in one. So
+these are document writes that are **not undoable**:
 
 - paper colour and background image (`setBgColor`, `setBgImage`, `clearBgImage`)
 - the grid toggle (`toggleGrid`)
-- the project name
 
 They are still saved — they live in `project` and auto-save persists the whole
 document. If undoable backgrounds are wanted, that is a new decision, not

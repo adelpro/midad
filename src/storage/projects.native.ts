@@ -89,9 +89,3 @@ export async function deleteProject(id: string): Promise<void> {
     // ignore missing file
   }
 }
-
-export async function projectFileUri(id: string): Promise<string | null> {
-  const dir = await ensureDir();
-  const file = new File(dir, fileName(id));
-  return file.exists ? file.uri : null;
-}

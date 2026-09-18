@@ -16,7 +16,7 @@ export const SHAPE_BASE_SIZE = 120;
  */
 export const SHAPE_INSET = 8;
 
-export function buildStarPath(size: number): string {
+function buildStarPath(size: number): string {
   const cx = size / 2;
   const cy = size / 2;
   const outer = size / 2;
@@ -33,7 +33,7 @@ export function buildStarPath(size: number): string {
   return points.join(' ');
 }
 
-export function buildTrianglePath(size: number): string {
+function buildTrianglePath(size: number): string {
   const h = size * 0.86;
   return `M ${size / 2} ${(size - h) / 2} L ${size - 2} ${size - 2} L 2 ${size - 2} Z`;
 }
@@ -54,12 +54,12 @@ function buildRegularPolygon(size: number, sides: number): string {
   return `${points.join(' ')} Z`;
 }
 
-export function buildPentagonPath(size: number): string {
+function buildPentagonPath(size: number): string {
   return buildRegularPolygon(size, 5);
 }
 
 /** Pointy-top hexagon: taller than it is wide, so it needs no extra inset. */
-export function buildHexagonPath(size: number): string {
+function buildHexagonPath(size: number): string {
   return buildRegularPolygon(size, 6);
 }
 
@@ -67,7 +67,7 @@ export function buildHexagonPath(size: number): string {
  * A square with its corners cut, which is what reads as an octagon and fills the
  * box on the flats; the 45° corners give it the horizontal air automatically.
  */
-export function buildOctagonPath(size: number): string {
+function buildOctagonPath(size: number): string {
   const a = SHAPE_INSET;
   const b = size - SHAPE_INSET;
   const cut = (b - a) / (2 + Math.SQRT2);
@@ -80,7 +80,7 @@ export function buildOctagonPath(size: number): string {
 }
 
 /** Rhombus touching the middle of each side of the inset box. */
-export function buildDiamondPath(size: number): string {
+function buildDiamondPath(size: number): string {
   const a = SHAPE_INSET;
   const b = size - SHAPE_INSET;
   const mid = size / 2;
@@ -94,7 +94,7 @@ export function buildDiamondPath(size: number): string {
  * round the outer circle and returns along the inner one — two arcs, no
  * approximation, and identical in Skia and SVG.
  */
-export function buildCrescentPath(size: number): string {
+function buildCrescentPath(size: number): string {
   const c = size / 2;
   const outer = size / 2 - SHAPE_INSET;
   const inner = outer * 0.78;
@@ -114,7 +114,7 @@ export function buildCrescentPath(size: number): string {
  * The springing line sits one radius below the box top, which is what puts the
  * apex exactly on the inset edge.
  */
-export function buildArchPath(size: number): string {
+function buildArchPath(size: number): string {
   const a = SHAPE_INSET;
   const b = size - SHAPE_INSET;
   const mid = size / 2;

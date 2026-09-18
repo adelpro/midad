@@ -1,4 +1,4 @@
-import { type ComponentType, type ReactElement } from 'react';
+import { type ComponentType } from 'react';
 
 import {
   AlignBottom,
@@ -25,13 +25,9 @@ import {
   DownloadSimple,
   Export,
   FlipHorizontal,
-  FlipVertical,
   GearSix,
-  GlobeSimple,
   GridFour,
   Image,
-  LockSimple,
-  LockSimpleOpen,
   Minus,
   PaintBrush,
   PencilSimple,
@@ -44,13 +40,8 @@ import {
   SelectionPlus,
   SelectionSlash,
   Shapes,
-  ShareNetwork,
   Sparkle,
-  Square,
-  SquaresFour,
-  StackSimple,
   TextAa,
-  Translate,
   Trash,
   X,
   type IconWeight,
@@ -75,26 +66,19 @@ export type IconName =
   | 'type'
   | 'sparkle'
   | 'shapes'
-  | 'square'
   | 'palette'
   | 'image'
   | 'download'
-  | 'share'
   | 'trash'
   | 'duplicate'
   | 'undo'
   | 'redo'
-  | 'lock'
-  | 'unlock'
   | 'settings'
-  | 'globe'
   | 'flip'
-  | 'flipV'
   | 'rotateCw'
   | 'rotateCcw'
   | 'layerUp'
   | 'layerDown'
-  | 'layers'
   | 'fitText'
   | 'split'
   | 'rejoin'
@@ -103,8 +87,6 @@ export type IconName =
   | 'export'
   | 'pen'
   | 'pin'
-  | 'language'
-  | 'gallery'
   | 'help'
   | 'multiSelect'
   | 'group'
@@ -129,26 +111,19 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   type: TextAa,
   sparkle: Sparkle,
   shapes: Shapes,
-  square: Square,
   palette: PaintBrush,
   image: Image,
   download: DownloadSimple,
-  share: ShareNetwork,
   trash: Trash,
   duplicate: Copy,
   undo: ArrowCounterClockwise,
   redo: ArrowClockwise,
-  lock: LockSimple,
-  unlock: LockSimpleOpen,
   settings: GearSix,
-  globe: GlobeSimple,
   flip: FlipHorizontal,
-  flipV: FlipVertical,
   rotateCw: ArrowsClockwise,
   rotateCcw: ArrowsCounterClockwise,
   layerUp: ArrowUp,
   layerDown: ArrowDown,
-  layers: StackSimple,
   fitText: ArrowsInLineHorizontal,
   split: Scissors,
   rejoin: ArrowsInLineVertical,
@@ -157,8 +132,6 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   export: Export,
   pen: PenNib,
   pin: PushPin,
-  language: Translate,
-  gallery: SquaresFour,
   help: Question,
   multiSelect: SelectionPlus,
   group: Selection,
@@ -212,12 +185,4 @@ export function DirectionIcon({
       size={size}
     />
   );
-}
-
-/** Convenience renderer for embedding an icon inline. */
-export function renderIcon(
-  name: IconName,
-  props?: Omit<IconProps, 'name'>,
-): ReactElement {
-  return <Icon name={name} {...props} />;
 }

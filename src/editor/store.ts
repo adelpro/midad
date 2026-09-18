@@ -273,7 +273,6 @@ interface EditorState {
 
   setCanvas: (patch: Partial<MidadProject['canvas']>) => void;
   setGrid: (enabled: boolean) => void;
-  setName: (name: string) => void;
 }
 
 const MAX_HISTORY = 50;
@@ -915,7 +914,4 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((s) => ({
       project: s.project ? { ...s.project, gridEnabled } : s.project,
     })),
-
-  setName: (name) =>
-    set((s) => ({ project: s.project ? { ...s.project, name } : s.project })),
 }));
