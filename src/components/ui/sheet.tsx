@@ -24,7 +24,14 @@ import Animated, {
 import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
 import { rowStyle } from "@/i18n/rtl";
-import { elevationStyle, radius, shadows, spacing, springs } from "@/theme";
+import {
+  elevationStyle,
+  layout,
+  radius,
+  shadows,
+  spacing,
+  springs,
+} from "@/theme";
 
 import { Icon } from "./icon";
 import { IconButton } from "./icon-button";
@@ -241,14 +248,28 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
   },
+  /**
+   * The centred modal keeps its inset as overlay *padding* rather than as panel
+   * margin: a capped panel is `width: "100%"` of its parent, and a panel margin
+   * would be added on top of that and overflow the window.
+   */
   overlayCentered: {
     justifyContent: "center",
+    paddingHorizontal: spacing.xl,
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.4)",
   },
+  /**
+   * Capped and centred like every other surface's content (DESIGN.md §5), so a
+   * wide display cannot stretch the panel — and therefore its contents — across
+   * the whole window. On a phone the cap is inert: it is wider than the screen.
+   */
   bottomSheet: {
+    width: "100%",
+    maxWidth: layout.maxContent,
+    alignSelf: "center",
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
     borderWidth: 1,
@@ -258,9 +279,12 @@ const styles = StyleSheet.create({
     maxHeight: "82%",
   },
   modalSheet: {
+    width: "100%",
+    maxWidth: layout.maxContent,
+    alignSelf: "center",
     borderRadius: radius.xl,
     borderWidth: 1,
-    margin: spacing.xl,
+    marginVertical: spacing.xl,
     padding: spacing.lg,
     maxHeight: "82%",
   },

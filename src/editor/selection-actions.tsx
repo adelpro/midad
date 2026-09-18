@@ -29,7 +29,7 @@
  * its labels from honest.
  */
 
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useAnimatedStyle } from "react-native-reanimated";
 
 import {
@@ -37,6 +37,7 @@ import {
   DirectionIcon,
   Icon,
   IconButton,
+  Kbd,
   type IconName,
 } from "@/components/ui";
 import {
@@ -558,8 +559,12 @@ export function SelectionRailActions({
   );
 }
 
-/** How far the pin's box has to reach past its glyph to clear the 44pt floor. */
-const PIN_HIT_SLOP = { top: 9, bottom: 9, left: 9, right: 9 };
+/**
+ * The pin's own box is 32pt, so the slop only has to find the remaining 12 to
+ * clear the 44pt floor (DESIGN.md §5) — and a target that size cannot spill out
+ * of a 44pt row, which is what the row is exactly.
+ */
+const PIN_HIT_SLOP = { top: 6, bottom: 6, left: 6, right: 6 };
 
 /**
  * Which way the two entries the catalog leaves iconless point.
@@ -575,34 +580,58 @@ const STEP_DIRECTION: Partial<Record<SelectionActionId, "prev" | "next">> = {
 };
 
 /**
- * One action in the `⋯` sheet: a square tile with its glyph, its name and its
- * pin.
+ * One action in the `⋯` sheet: a row with its glyph, its name and its pin.
  *
  * Glyphs *and* labels, because that is the division of labour between the two
  * surfaces: the rail is the fast path for someone who already knows the glyphs,
- * and this sheet is where an ambiguous one gets named. The tile is sized from
- * the sheet's width rather than from its own text, and `aspectRatio` keeps it
- * square — a grid of differently shaped tiles is a list wearing a grid's
- * clothes.
+ * and this sheet is where an ambiguous one gets named.
  *
- * The pin is a control of its own rather than a long-press on the tile: this is
- * the discoverable half of the mechanism, and the tile's press is already spent
+ * A row rather than a square tile. A tile has to be about as wide as its label
+ * to hold one, and `aspectRatio: 1` makes it that tall as well, so twenty
+ * controls wore a screenful of giant squares — and because the tile was sized
+ * as a share of the sheet, it grew with the window on a wide display. The row
+ * borrows `HelpRow`'s own geometry (the 28pt icon box, the 14pt label), which is
+ * the point: the sheet the controls are *pressed* in and the sheet they are
+ * *read* in — learn mode's reference — are one list in one shape, and neither
+ * can drift from the other.
+ *
+ * The pin is a control of its own rather than a long-press on the row: this is
+ * the discoverable half of the mechanism, and the row's press is already spent
  * on the action itself. Pressing it never closes the sheet — the sheet is the
  * tool that just changed, so closing it would hide the reordering.
+ *
+ * The pin is a **sibling** of the row's press, never inside it. On web both
+ * pressables render a real `<button>`, and a button inside a button is invalid
+ * HTML — react-native-web logs a hydration error and the browser has to guess
+ * which of the two a tap meant.
  */
-function SelectionActionTile({ action }: { action: SelectionAction }) {
+function SelectionActionRow({
+  action,
+  divided,
+}: {
+  action: SelectionAction;
+  /** Draw a hairline above this row. Every row but the first in the list. */
+  divided: boolean;
+}) {
   const { colors: c } = useTheme();
   const { language, isRTL } = useT();
   const fonts = fontRoles[language];
   const press = usePressFeedback();
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: press.scale.value }],
+    backgroundColor: press.pressed.value ? c.surfacePressed : "transparent",
   }));
   const ink = action.danger ? c.danger : c.ink;
   const step = STEP_DIRECTION[action.id as SelectionActionId];
   const pin = action.pin;
   return (
-    <View style={styles.tileWrap}>
+    <View
+      style={[
+        styles.row,
+        rowStyle(isRTL),
+        divided && { borderTopWidth: 1, borderColor: c.border },
+      ]}
+    >
       <AnimatedPressable
         onPress={action.onPress}
         onPressIn={press.onPressIn}
@@ -610,27 +639,31 @@ function SelectionActionTile({ action }: { action: SelectionAction }) {
         accessibilityRole="button"
         accessibilityLabel={action.label}
         accessibilityHint={action.role}
-        style={[
-          styles.tile,
-          { borderColor: c.border, backgroundColor: c.surfaceAlt },
-          animStyle,
-        ]}
+        style={[styles.rowAction, rowStyle(isRTL), animStyle]}
       >
-        {action.icon || !step ? (
-          <Icon name={action.icon ?? "more"} size={20} color={ink} />
-        ) : (
-          <DirectionIcon
-            isRTL={step === "prev" ? !isRTL : isRTL}
-            size={20}
-            color={ink}
-          />
-        )}
+        <View
+          style={[
+            styles.rowIcon,
+            { backgroundColor: c.surface, borderColor: c.border },
+          ]}
+        >
+          {action.icon || !step ? (
+            <Icon name={action.icon ?? "more"} size={16} color={ink} />
+          ) : (
+            <DirectionIcon
+              isRTL={step === "prev" ? !isRTL : isRTL}
+              size={16}
+              color={ink}
+            />
+          )}
+        </View>
         <Text
-          numberOfLines={2}
-          style={[styles.tileLabel, { color: ink, fontFamily: fonts.ui }]}
+          numberOfLines={1}
+          style={[styles.rowLabel, { color: ink, fontFamily: fonts.uiMedium }]}
         >
           {action.label}
         </Text>
+        {action.chord ? <Kbd>{action.chord}</Kbd> : null}
       </AnimatedPressable>
       {pin && (
         <Pressable
@@ -639,11 +672,11 @@ function SelectionActionTile({ action }: { action: SelectionAction }) {
           accessibilityRole="button"
           accessibilityLabel={pin.label}
           accessibilityState={{ checked: pin.pinned }}
-          style={[styles.pin, isRTL ? styles.pinLeft : styles.pinRight]}
+          style={styles.pin}
         >
           <Icon
             name="pin"
-            size={13}
+            size={14}
             weight={pin.pinned ? "fill" : "regular"}
             color={pin.pinned ? c.accentText : c.faint}
           />
@@ -655,7 +688,6 @@ function SelectionActionTile({ action }: { action: SelectionAction }) {
 
 export interface SelectionOverflowActionsProps {
   actions: readonly SelectionAction[];
-  isRTL: boolean;
   /**
    * Learn mode. The sheet stops being a control surface and becomes the
    * reference for these controls: the same actions in the same order, read
@@ -669,57 +701,76 @@ export interface SelectionOverflowActionsProps {
 /**
  * The `⋯` sheet's body.
  *
- * Off learn mode: the actions the bar is not showing, as a grid of square tiles
- * — glyph, name, pin. The note above the grid is the pin control's own role,
- * taken from the catalog rather than written again here: it is the half of the
- * mechanism no gesture can explain for itself (the rail's long-press has no
- * room to), and one sentence in one place is enough for both surfaces.
+ * Off learn mode: the actions the bar is not showing, as one card of rows. The
+ * note above the card is the pin control's own role, taken from the catalog
+ * rather than written again here: it is the half of the mechanism no gesture can
+ * explain for itself (the rail's long-press has no room to), and one sentence in
+ * one place is enough for both surfaces.
  *
- * In learn mode: one reference row per control (`HelpRow`), the same shape the
- * help sheet lists them in, so the section can be read in place instead of
- * being the only part of the bar with no explanation of its own. Neither the
- * pins nor the note belong there: a reference list changes nothing, so it has
- * nothing to choose between.
+ * One card, in `SHEET_ORDER` and nothing else — deliberately flat. That order
+ * puts the rail's priorities first so an action the bar just dropped is near the
+ * top, where it can be picked straight back up; grouping the rows by kind would
+ * be a second order to keep in step with the first, and a heading every few rows
+ * to pay for.
+ *
+ * In learn mode: one reference row per control (`HelpRow`), the same list the
+ * help sheet prints, so the section can be read in place instead of being the
+ * only part of the bar with no explanation of its own. Neither the pins nor the
+ * note belong there: a reference list changes nothing, so it has nothing to
+ * choose between.
+ *
+ * Both readings scroll. The panel is capped at 82% of the window and the sheet
+ * can carry twenty controls, so a body that did not scroll would push its last
+ * rows past the panel's own edge.
  */
 export function SelectionOverflowActions({
   actions,
-  isRTL,
   learn = false,
 }: SelectionOverflowActionsProps) {
   const { colors: c } = useTheme();
   const { language } = useT();
-  if (learn) {
-    return (
-      <HelpCard>
-        {actions.map((action, index) => (
-          <HelpRow
-            key={action.key}
-            label={action.label}
-            role={action.role}
-            icon={action.icon}
-            keys={action.chord}
-            divided={index > 0}
-          />
-        ))}
-      </HelpCard>
-    );
-  }
   return (
-    <View style={styles.sheet}>
-      <Text
-        style={[
-          styles.sheetNote,
-          { color: c.muted, fontFamily: fontRoles[language].ui },
-        ]}
-      >
-        {helpRole(helpEntry("sel.pinToBar"), language)}
-      </Text>
-      <View style={[styles.grid, rowStyle(isRTL)]}>
-        {actions.map((action) => (
-          <SelectionActionTile key={action.key} action={action} />
-        ))}
-      </View>
-    </View>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollBody}
+      showsVerticalScrollIndicator={false}
+    >
+      {learn ? (
+        <HelpCard>
+          {actions.map((action, index) => (
+            <HelpRow
+              key={action.key}
+              label={action.label}
+              role={action.role}
+              icon={action.icon}
+              keys={action.chord}
+              divided={index > 0}
+            />
+          ))}
+        </HelpCard>
+      ) : (
+        <View style={styles.list}>
+          <Text
+            style={[
+              styles.sheetNote,
+              { color: c.muted, fontFamily: fontRoles[language].ui },
+            ]}
+          >
+            {helpRole(helpEntry("sel.pinToBar"), language)}
+          </Text>
+
+          <HelpCard>
+            {actions.map((action, index) => (
+              <SelectionActionRow
+                key={action.key}
+                action={action}
+                divided={index > 0}
+              />
+            ))}
+          </HelpCard>
+        </View>
+      )}
+    </ScrollView>
   );
 }
 const styles = StyleSheet.create({
@@ -729,49 +780,55 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: RAIL_GAP,
   },
-  sheet: { gap: spacing.sm },
+  scroll: { flexShrink: 1 },
+  scrollBody: { paddingBottom: spacing.xxs },
+  /** The note and the card it explains, in that order. */
+  list: { gap: spacing.sm },
   sheetNote: {
     fontSize: typeScale.caption.size,
     lineHeight: typeScale.caption.lineHeight,
   },
-  grid: {
-    flexWrap: "wrap",
+  /**
+   * One row: the press, then the pin beside it.
+   *
+   * `minHeight: 44` rather than padding that happens to add up to it: the floor
+   * is a promise (DESIGN.md §5), and this is the number it is promised at. The
+   * press is `flex: 1` so the whole row is the target and only the pin is not.
+   */
+  row: {
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  rowAction: {
+    flex: 1,
+    minHeight: 44,
+    alignItems: "center",
     gap: spacing.sm,
   },
-  /**
-   * A quarter of the sheet's width, kept square by `aspectRatio`: four tiles to
-   * a phone row, and no tile taller than its neighbours because one label
-   * needed a second line. `relative` explicitly, because the pin is positioned
-   * against it and react-native-web does not make every box a containing block.
-   */
-  tileWrap: { flexBasis: "22%", aspectRatio: 1, position: "relative" },
-  tile: {
-    flex: 1,
+  /** The catalog's glyph, in the same box `HelpRow` draws for it. */
+  rowIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.xxs,
-    paddingHorizontal: spacing.xs,
   },
-  tileLabel: {
-    fontSize: typeScale.micro.size,
-    lineHeight: typeScale.micro.lineHeight,
-    textAlign: "center",
+  rowLabel: {
+    flex: 1,
+    fontSize: typeScale.small.size,
+    lineHeight: typeScale.small.lineHeight,
   },
   /**
-   * The pin sits in the tile's trailing corner — the one place the centred glyph
-   * and (at most) two lines of label never reach — and mirrors with direction
-   * like every other trailing affordance.
+   * The trailing pin, in the flow rather than on a corner: a row has an end, so
+   * the direction-aware row style places it and nothing has to be positioned
+   * against the label's wrapping.
    */
   pin: {
-    position: "absolute",
-    top: spacing.xxs,
-    width: 26,
-    height: 26,
+    width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
   },
-  pinLeft: { left: spacing.xxs },
-  pinRight: { right: spacing.xxs },
 });

@@ -1961,13 +1961,13 @@ export function EditorScreen() {
           onClose={() => setMoreOpen(false)}
           title={t.common.more}
         >
-          <View style={styles.sheetBody}>
-            <SelectionOverflowActions
-              actions={overflowActions}
-              isRTL={isRTL}
-              learn={help.active}
-            />
-          </View>
+          {/* No body wrapper: the list's own scroller has to be the panel's
+              direct child, or its `flexShrink` cannot bite and the last rows
+              spill past the panel's edge instead of scrolling into view. */}
+          <SelectionOverflowActions
+            actions={overflowActions}
+            learn={help.active}
+          />
         </Sheet>
 
         {/* Help reference — the full catalog, plus the Learn mode entry point */}

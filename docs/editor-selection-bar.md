@@ -252,7 +252,7 @@ current.includes(id)
 
 | Surface   | Control                                                                          |
 | --------- | -------------------------------------------------------------------------------- |
-| `⋯` sheet | The tile's **corner pin** — the discoverable half                                |
+| `⋯` sheet | The row's **trailing pin** — the discoverable half                              |
 | Rail      | **Long-press a rail button** — `IconButton`'s `onLongPress={action.pin?.toggle}` |
 
 Two consequences worth preserving:
@@ -364,16 +364,18 @@ to decide through `rowStyle`, so the row can never be hardcoded one way.
 
 ### The `⋯` sheet
 
-A 4-per-row grid of square tiles (off learn mode). Each tile is
-`flexBasis: "22%"` + `aspectRatio: 1`, inside a wrapper with **explicit
-`position: "relative"`** (the pin is positioned against it, and react-native-web
-does not make every box a containing block).
+One `HelpCard` of rows, in `SHEET_ORDER` and nothing else — deliberately flat,
+because the order's whole point is that an action the bar just dropped is near
+the top, and a second grouping would be a second order to keep in step with it.
 
-A tile carries glyph **and** label — that is the division of labour between the
-two surfaces: the rail is the fast path for someone who already knows the glyphs,
-and this sheet is where an ambiguous one gets named.
+A row carries glyph **and** label — that is the division of labour between the
+two surfaces: the rail is the fast path for someone who already knows the
+glyphs, and this sheet is where an ambiguous one gets named. The row borrows
+`HelpRow`'s geometry (28pt icon box, 16pt glyph, 14pt label, `minHeight: 44`) on
+purpose: the sheet the controls are _pressed_ in and the sheet they are _read_
+in (learn mode) are one list in one shape, so neither can drift from the other.
 
-The tile also supplies the icon the catalog deliberately omits:
+The row also supplies the icon the catalog deliberately omits:
 
 ```ts
 const STEP_DIRECTION = { stylePrev: "prev", styleNext: "next" };
@@ -381,16 +383,29 @@ const STEP_DIRECTION = { stylePrev: "prev", styleNext: "next" };
 
 `stylePrev`/`styleNext` carry no catalog `icon` because **a fixed arrow would read
 backwards in Arabic** — the mirroring belongs to the renderer, not to the table.
-The tile mirrors a `DirectionIcon` from that local map instead.
+The row mirrors a `DirectionIcon` from that local map instead.
 
-The one sentence above the grid is `helpRole(helpEntry("sel.pinToBar"))` —
+A row's trailing side holds whatever the control has to say for itself: the bare
+`chord` in a `Kbd` where the platform has keys, then the pin. `rowStyle(isRTL)`
+places both, so nothing is positioned against the label's wrapping and no side is
+hardcoded.
+
+The one sentence above the card is `helpRole(helpEntry("sel.pinToBar"))` —
 reused, not rewritten, because it is the half of the mechanism no gesture can
 explain for itself.
 
-The pin is a separate `Pressable` with `PIN_HIT_SLOP = 9` on all sides, which
-takes a 26 × 26 control to the 44pt floor. It sits in the tile's trailing corner —
-the one place the centred glyph and (at most) two lines of label never reach — and
-mirrors with direction via `styles.pinLeft` / `styles.pinRight`.
+The pin is a separate `Pressable` inside the row. Its 32pt box plus
+`PIN_HIT_SLOP = 6` on all sides takes it to the 44pt floor — and a target that
+size cannot spill out of a 44pt row, which is what the row is exactly. The pin
+sits in the row's trailing end, the one place the label never reaches, and
+mirrors with direction through `rowStyle`.
+
+Both readings of the sheet scroll: the body is a `ScrollView` with
+`flexShrink: 1`, because the panel is capped at 82% of the window and a full
+sheet holds up to twenty controls. The panel itself is capped at
+`layout.maxContent` and centred (`ui/sheet.tsx`), like every other surface's
+content — without that, a row list on a wide display would stretch to the width
+of the window and read as a ledger.
 
 ## 12. Code map
 
@@ -401,8 +416,9 @@ mirrors with direction via `styles.pinLeft` / `styles.pinRight`.
 | `railActionIds`, `overflowActionIds`, `SLOT_INDEX_OF`                     | `src/editor/selection-actions.tsx`  |
 | `visibleActionCount` and the geometry constants                           | `src/editor/selection-actions.tsx`  |
 | `resolveSelectionActions`, `SelectionAction`, `SelectionPin`              | `src/editor/selection-actions.tsx`  |
-| `SelectionRailActions`, `SelectionActionTile`, `SelectionOverflowActions` | `src/editor/selection-actions.tsx`  |
+| `SelectionRailActions`, `SelectionActionRow`, `SelectionOverflowActions` | `src/editor/selection-actions.tsx`  |
 | `STEP_DIRECTION`, `DirectionIcon` usage                                   | `src/editor/selection-actions.tsx`  |
+| The sheet panel's width cap and centred presentation                      | `src/components/ui/sheet.tsx`       |
 | The collection bar (head, member track, placement)                        | `src/editor/collection-bar.tsx`     |
 | The context zone's contents, `hasContext`, the head's copy                | `src/editor/EditorScreen.tsx`       |
 | `bar`, `togglePin`, `railIds`, `visibleCount`, measurement callbacks      | `src/editor/EditorScreen.tsx`       |
