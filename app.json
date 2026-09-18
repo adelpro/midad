@@ -8,7 +8,8 @@
     "scheme": "midad",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.adelpro.midad",
+      "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
         "CFBundleLocalizations": ["ar", "en"],
@@ -24,7 +25,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.adelpro.midad"
+      "package": "com.adelpro.midad",
+      "versionCode": 1
     },
     "web": {
       "output": "static",
@@ -50,6 +52,14 @@
         "expo-image-picker",
         {
           "photosPermission": "يستخدم التطبيق مكتبة الصور لاختيار صورة خلفية للتصميم / The app uses your photo library to choose a design background image."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "يستخدم التطبيق مكتبة الصور لاختيار صورة خلفية للتصميم / The app uses your photo library to choose a design background image.",
+          "savePhotosPermission": "يستخدم التطبيق مكتبة الصور لحفظ تصميماتك / The app saves your designs to your photo library.",
+          "granularPermissions": ["photo"]
         }
       ]
     ],
