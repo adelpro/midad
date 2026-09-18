@@ -1663,9 +1663,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@expo/ui@npm:^57.0.18, @expo/ui@npm:~57.0.18":
-  version: 57.0.18
-  resolution: "@expo/ui@npm:57.0.18"
+"@expo/ui@npm:^57.0.18, @expo/ui@npm:~57.0.19":
+  version: 57.0.19
+  resolution: "@expo/ui@npm:57.0.19"
   dependencies:
     sf-symbols-typescript: "npm:^2.1.0"
     vaul: "npm:^1.1.2"
@@ -1683,7 +1683,7 @@ __metadata:
       optional: true
     react-native-worklets:
       optional: true
-  checksum: 10c0/d80f1ebf61a3139daa311785a6bf3a1b164fd7cd52dabf8344c5568517a175ee9b5cfe68cdb329b6049f54b34cf8513bbfa6aa680a87f65c6fb02379afc3055f
+  checksum: 10c0/e34cc5c634a77f2ab833c24dc19ee9599fffa4448013efedce517124e021db6935f3b60b28c9281fb3b590f50e9db68b7bbebe668771bb4106e8e57a1f252161
   languageName: node
   linkType: hard
 
@@ -7028,7 +7028,7 @@ __metadata:
   dependencies:
     "@commitlint/cli": "npm:^21.2.2"
     "@commitlint/config-conventional": "npm:^21.2.2"
-    "@expo/ui": "npm:~57.0.18"
+    "@expo/ui": "npm:~57.0.19"
     "@react-native-async-storage/async-storage": "npm:2.2.0"
     "@shopify/flash-list": "npm:2.0.2"
     "@shopify/react-native-skia": "npm:2.6.2"
