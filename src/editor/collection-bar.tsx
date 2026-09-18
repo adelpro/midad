@@ -170,7 +170,10 @@ export function CollectionBar({
   const bottom = frameBottomCentre(frame);
   const placement = collectionBarPlacement({
     topAnchor: { x: top.x * scale + offsetX, y: top.y * scale + offsetY },
-    bottomAnchor: { x: bottom.x * scale + offsetX, y: bottom.y * scale + offsetY },
+    bottomAnchor: {
+      x: bottom.x * scale + offsetX,
+      y: bottom.y * scale + offsetY,
+    },
     barWidth: size.width,
     barHeight: size.height,
     viewW: w,
@@ -220,7 +223,9 @@ export function CollectionBar({
             size={HEAD_ICON_SIZE}
             color={c.muted}
           />
-          <Text style={[styles.headText, { color: c.ink, fontFamily: fonts.ui }]}>
+          <Text
+            style={[styles.headText, { color: c.ink, fontFamily: fonts.ui }]}
+          >
             {text}
           </Text>
         </Pressable>
@@ -346,7 +351,9 @@ function MemberTile({
           color={c.ink}
         />
       )}
-      <Text style={[styles.tileIndex, { color: c.muted, fontFamily: fonts.ui }]}>
+      <Text
+        style={[styles.tileIndex, { color: c.muted, fontFamily: fonts.ui }]}
+      >
         {index + 1}
       </Text>
     </AnimatedPressable>

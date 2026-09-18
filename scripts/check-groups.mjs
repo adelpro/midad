@@ -493,15 +493,23 @@ check("a frame at the top edge flips the bar below it", barAt({ topY: 20 }), {
 
 // Neither side fits: a selection taller than the canvas clamps above the frame
 // rather than rendering off-screen.
-check("a frame taller than the canvas clamps the bar", barAt({ topY: -300, bottomY: 700 }), {
-  left: 100,
-  top: 4,
-  side: "above",
-});
+check(
+  "a frame taller than the canvas clamps the bar",
+  barAt({ topY: -300, bottomY: 700 }),
+  {
+    left: 100,
+    top: 4,
+    side: "above",
+  },
+);
 
 // The left clamp, both edges, and the mirroring case that a rotated frame
 // produces: an anchor off the canvas still yields an on-canvas bar.
-check("the bar clamps to the left edge", barAt({ topY: 200, barWidth: 0 }).left, 200);
+check(
+  "the bar clamps to the left edge",
+  barAt({ topY: 200, barWidth: 0 }).left,
+  200,
+);
 check(
   "an anchor past the left edge clamps to the margin",
   collectionBarPlacement({
@@ -695,9 +703,7 @@ check(
   -40,
 );
 
-console.log(
-  "\nselectionFrame — one box for the canvas, the bar and the press",
-);
+console.log("\nselectionFrame — one box for the canvas, the bar and the press");
 
 const sizedMember = (id, groupId, x, y) => ({
   id,

@@ -22,22 +22,22 @@ the file to open first. Every path below is copied from a code map in this folde
 
 ## 2. Start here — by task
 
-| Task                                                    | Contract                                                            | Open first                                                         |
-| ------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Change what a drag, pinch or rotate does                | [`editor-gestures.md`](editor-gestures.md) §2                       | `src/editor/use-object-gestures.ts`                                |
-| Change hit-testing, grab tolerance or handle shapes     | [`editor-coordinates.md`](editor-coordinates.md) §7                 | `src/editor/hit-test.ts`                                           |
-| Change fit-to-view or the viewport                      | [`editor-coordinates.md`](editor-coordinates.md) §3                 | `src/editor/EditorCanvas.tsx`                                      |
-| Make an edit undoable — or deliberately not             | [`editor-state-and-history.md`](editor-state-and-history.md) §2     | `src/editor/store.ts`                                              |
-| Add a shape or a glyph                                  | [`editor-render-contract.md`](editor-render-contract.md) §5         | `src/editor/skia/shape-geometry.ts`                                |
-| Keep canvas, PNG and SVG agreeing                       | [`editor-render-contract.md`](editor-render-contract.md) §2         | `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts`       |
-| Change Arabic shaping or text measurement               | [`editor-text-engine.md`](editor-text-engine.md) §1                 | `src/editor/skia/text.ts`                                          |
-| Change how a word splits or rejoins                     | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §2       | `src/editor/text/clusters.ts`                                      |
-| Make several objects act as one element                 | [`editor-groups.md`](editor-groups.md) §3                           | `src/editor/groups.ts`, `src/editor/store.ts`                      |
+| Task                                                        | Contract                                                            | Open first                                                         |
+| ----------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Change what a drag, pinch or rotate does                    | [`editor-gestures.md`](editor-gestures.md) §2                       | `src/editor/use-object-gestures.ts`                                |
+| Change hit-testing, grab tolerance or handle shapes         | [`editor-coordinates.md`](editor-coordinates.md) §7                 | `src/editor/hit-test.ts`                                           |
+| Change fit-to-view or the viewport                          | [`editor-coordinates.md`](editor-coordinates.md) §3                 | `src/editor/EditorCanvas.tsx`                                      |
+| Make an edit undoable — or deliberately not                 | [`editor-state-and-history.md`](editor-state-and-history.md) §2     | `src/editor/store.ts`                                              |
+| Add a shape or a glyph                                      | [`editor-render-contract.md`](editor-render-contract.md) §5         | `src/editor/skia/shape-geometry.ts`                                |
+| Keep canvas, PNG and SVG agreeing                           | [`editor-render-contract.md`](editor-render-contract.md) §2         | `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts`       |
+| Change Arabic shaping or text measurement                   | [`editor-text-engine.md`](editor-text-engine.md) §1                 | `src/editor/skia/text.ts`                                          |
+| Change how a word splits or rejoins                         | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §2       | `src/editor/text/clusters.ts`                                      |
+| Make several objects act as one element                     | [`editor-groups.md`](editor-groups.md) §3                           | `src/editor/groups.ts`, `src/editor/store.ts`                      |
 | Change the selection box, its handles or the collection bar | [`editor-collections.md`](editor-collections.md) §3                 | `src/editor/groups.ts`, `src/editor/EditorCanvas.tsx`              |
-| Change how a press selects                              | [`editor-selection.md`](editor-selection.md) §2                     | `src/editor/use-object-gestures.ts`, `src/editor/EditorScreen.tsx` |
-| Add or reorder a selection-bar action                   | [`editor-selection-bar.md`](editor-selection-bar.md) §2             | `src/editor/selection-actions.tsx`                                 |
-| Add a keyboard binding                                  | [`editor-keyboard.md`](editor-keyboard.md) §3                       | `src/editor/shortcuts.ts`                                          |
-| Change a label, role, tooltip or help entry             | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §2 | `src/editor/help/catalog.ts`                                       |
+| Change how a press selects                                  | [`editor-selection.md`](editor-selection.md) §2                     | `src/editor/use-object-gestures.ts`, `src/editor/EditorScreen.tsx` |
+| Add or reorder a selection-bar action                       | [`editor-selection-bar.md`](editor-selection-bar.md) §2             | `src/editor/selection-actions.tsx`                                 |
+| Add a keyboard binding                                      | [`editor-keyboard.md`](editor-keyboard.md) §3                       | `src/editor/shortcuts.ts`                                          |
+| Change a label, role, tooltip or help entry                 | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §2 | `src/editor/help/catalog.ts`                                       |
 
 ## 3. The contracts
 

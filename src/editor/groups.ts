@@ -616,7 +616,11 @@ export function collectionBarPlacement(args: {
   if (below + barHeight <= viewH - margin) {
     return { left, top: below, side: "below" };
   }
-  return { left, top: Math.min(Math.max(above, margin), maxTop), side: "above" };
+  return {
+    left,
+    top: Math.min(Math.max(above, margin), maxTop),
+    side: "above",
+  };
 }
 
 /** Capture the per-member origins a collection gesture transforms absolutely. */

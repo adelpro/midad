@@ -141,7 +141,7 @@ anchored surface. The head says:
 | A loose multi-selection | `المحدد: 3` / `Selected: 3` |
 | Inside a collection     | `2/3`, with a back chevron  |
 
-**Why the track left the rail.** The rail holds the selection's *actions*, and the
+**Why the track left the rail.** The rail holds the selection's _actions_, and the
 track is navigation — but the two were sharing one 56dp row and one width budget.
 With a three-part word selected the step arrows alone spent 84 of the ~146dp the
 context zone was allowed, so the rail truncated to three actions while the tiles
@@ -155,7 +155,7 @@ card's width, and the rail keeps its budget for actions
 `frameBottomCentre` when the frame sits too close to the top of the canvas; and
 clamped inside the card only when the selection leaves room for neither. The chip
 this replaced only ever clamped, which is fine for a one-line label and not fine
-for a row of tiles: a clamped bar sits *over* the very members it offers to
+for a row of tiles: a clamped bar sits _over_ the very members it offers to
 navigate.
 
 It is a plain React Native view in the canvas wrapper — the same place
@@ -166,7 +166,7 @@ that is not on the bar. It follows pan and zoom because it is positioned from th
 frame through the published `Viewport` (which now carries the canvas box size for
 exactly this reason), and its layer is **inset by the wrapper's own padding** so
 that "inset 4 from the canvas edge" means the card's edge — the chip measured
-against a box a whole padding-step larger, so its `left: 4` was 8dp *outside* the
+against a box a whole padding-step larger, so its `left: 4` was 8dp _outside_ the
 card it was labelling.
 
 ## 6. The member track
@@ -219,18 +219,18 @@ needs nothing else: `groupId` is a flat field, so a snapshot carries it.
 
 ## 9. Code map
 
-| Concern                                                                   | File                                                            |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Membership field (`GroupMember`)                                          | `src/storage/project-schema.ts`                                 |
-| Expansion, the entered state, the frame, the transform maths              | `src/editor/groups.ts`                                          |
-| `select` / `enterMember` / `exitCollection`, the invariant at every write | `src/editor/store.ts`                                           |
-| The collection overlay (frame, handles, grip)                             | `src/editor/EditorCanvas.tsx`                                   |
-| Frame handle hit-testing, the collection resize and its settle            | `src/editor/use-object-gestures.ts`                             |
-| The collection bar — head, member track, placement                        | `src/editor/collection-bar.tsx`                                 |
-| The bar's head copy, the collection-aware rail actions                    | `src/editor/EditorScreen.tsx`                                   |
-| Availability (`canGroup`/`canUngroup`), the rail's slot table             | `src/editor/selection-actions.tsx`                              |
-| Help entries, the canvas-group legend entries                             | `src/editor/help/catalog.ts`                                    |
-| Executable spec for all of the above that is pure                         | `scripts/check-groups.mjs`                                      |
+| Concern                                                                   | File                                |
+| ------------------------------------------------------------------------- | ----------------------------------- |
+| Membership field (`GroupMember`)                                          | `src/storage/project-schema.ts`     |
+| Expansion, the entered state, the frame, the transform maths              | `src/editor/groups.ts`              |
+| `select` / `enterMember` / `exitCollection`, the invariant at every write | `src/editor/store.ts`               |
+| The collection overlay (frame, handles, grip)                             | `src/editor/EditorCanvas.tsx`       |
+| Frame handle hit-testing, the collection resize and its settle            | `src/editor/use-object-gestures.ts` |
+| The collection bar — head, member track, placement                        | `src/editor/collection-bar.tsx`     |
+| The bar's head copy, the collection-aware rail actions                    | `src/editor/EditorScreen.tsx`       |
+| Availability (`canGroup`/`canUngroup`), the rail's slot table             | `src/editor/selection-actions.tsx`  |
+| Help entries, the canvas-group legend entries                             | `src/editor/help/catalog.ts`        |
+| Executable spec for all of the above that is pure                         | `scripts/check-groups.mjs`          |
 
 ## 10. Related documents
 

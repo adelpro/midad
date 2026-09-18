@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A grouped word could not be edited letter by letter: selecting a part grew back
   to the whole group. A part is now entered individually.
 - The collection chip measured its position against a box one padding-step larger
-  than the canvas card, so its 4dp inset put it 8dp *outside* the card it was
+  than the canvas card, so its 4dp inset put it 8dp _outside_ the card it was
   labelling. The bar's layer is inset by the canvas wrapper's own padding, which
   is what makes the inset mean what it says.
 - Pressing and dragging an object that was not yet selected used to move the

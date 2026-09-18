@@ -191,18 +191,18 @@ The zone used to hold the collection's **member track** — a tile per member wi
 prev/next arrows. It is now the collection bar on the canvas
 (`editor-collections.md` §5), for the same reason the count badge went: it is not
 an action. The cost was worse than the badge's, because the track was the widest
-thing the zone ever held and the *longest* words paid most: on a 390pt phone with a
+thing the zone ever held and the _longest_ words paid most: on a 390pt phone with a
 three-part word selected, the two step arrows alone spent 84 of the ~146dp the zone
 was allowed, and `fit` came out at **3**. The same selection now renders **7**
 actions, and the tiles no longer have to scroll to be read.
 
 ### What is left in the zone
 
-Content about the current *tool*, and nothing else: the ink swatches for the colour
+Content about the current _tool_, and nothing else: the ink swatches for the colour
 tool, the paper swatches and the image picker for the background tool, and the
 transient refusal notice. So the zone is empty in the editor's most common state.
 
-That state used to be charged anyway. The zone's scroller always reports *some*
+That state used to be charged anyway. The zone's scroller always reports _some_
 width — `contextTrack` keeps `paddingHorizontal: spacing.md`, and the
 `contentContainerStyle`'s padding counts as content — so an empty zone went on
 claiming ~28dp of the row in every state, forever. The screen now gates it:
@@ -394,21 +394,21 @@ mirrors with direction via `styles.pinLeft` / `styles.pinRight`.
 
 ## 12. Code map
 
-| Concern                                                                   | File                                                            |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `SelectionActionId`, `RAIL_SLOTS`, `OVERFLOW_ACTIONS`, `SHEET_ORDER`      | `src/editor/selection-actions.tsx`                              |
-| `SelectionShape`, `isAvailable`                                           | `src/editor/selection-actions.tsx`                              |
-| `railActionIds`, `overflowActionIds`, `SLOT_INDEX_OF`                     | `src/editor/selection-actions.tsx`                              |
-| `visibleActionCount` and the geometry constants                           | `src/editor/selection-actions.tsx`                              |
-| `resolveSelectionActions`, `SelectionAction`, `SelectionPin`              | `src/editor/selection-actions.tsx`                              |
-| `SelectionRailActions`, `SelectionActionTile`, `SelectionOverflowActions` | `src/editor/selection-actions.tsx`                              |
-| `STEP_DIRECTION`, `DirectionIcon` usage                                   | `src/editor/selection-actions.tsx`                              |
-| The collection bar (head, member track, placement)                        | `src/editor/collection-bar.tsx`                                 |
-| The context zone's contents, `hasContext`, the head's copy                | `src/editor/EditorScreen.tsx`                                   |
-| `bar`, `togglePin`, `railIds`, `visibleCount`, measurement callbacks      | `src/editor/EditorScreen.tsx`                                   |
-| `contextRail` slot, `CONTEXT_RAIL_HEIGHT`                                 | `src/editor/EditorScreen.tsx`                                   |
-| `selectionBarActions`, `setSelectionBarActions`                           | `src/storage/settings.ts`                                       |
-| `sel.*` labels, roles, icons and chords                                   | `src/editor/help/catalog.ts`                                    |
-| Hint suppression under `onLongPress`                                      | `src/components/ui/icon-button.tsx`                             |
-| `spacing`, `radius`, `typeScale` tokens                                   | `src/theme/tokens.ts`                                           |
-| The rail's layout rule                                                    | `DESIGN.md` §5                                                  |
+| Concern                                                                   | File                                |
+| ------------------------------------------------------------------------- | ----------------------------------- |
+| `SelectionActionId`, `RAIL_SLOTS`, `OVERFLOW_ACTIONS`, `SHEET_ORDER`      | `src/editor/selection-actions.tsx`  |
+| `SelectionShape`, `isAvailable`                                           | `src/editor/selection-actions.tsx`  |
+| `railActionIds`, `overflowActionIds`, `SLOT_INDEX_OF`                     | `src/editor/selection-actions.tsx`  |
+| `visibleActionCount` and the geometry constants                           | `src/editor/selection-actions.tsx`  |
+| `resolveSelectionActions`, `SelectionAction`, `SelectionPin`              | `src/editor/selection-actions.tsx`  |
+| `SelectionRailActions`, `SelectionActionTile`, `SelectionOverflowActions` | `src/editor/selection-actions.tsx`  |
+| `STEP_DIRECTION`, `DirectionIcon` usage                                   | `src/editor/selection-actions.tsx`  |
+| The collection bar (head, member track, placement)                        | `src/editor/collection-bar.tsx`     |
+| The context zone's contents, `hasContext`, the head's copy                | `src/editor/EditorScreen.tsx`       |
+| `bar`, `togglePin`, `railIds`, `visibleCount`, measurement callbacks      | `src/editor/EditorScreen.tsx`       |
+| `contextRail` slot, `CONTEXT_RAIL_HEIGHT`                                 | `src/editor/EditorScreen.tsx`       |
+| `selectionBarActions`, `setSelectionBarActions`                           | `src/storage/settings.ts`           |
+| `sel.*` labels, roles, icons and chords                                   | `src/editor/help/catalog.ts`        |
+| Hint suppression under `onLongPress`                                      | `src/components/ui/icon-button.tsx` |
+| `spacing`, `radius`, `typeScale` tokens                                   | `src/theme/tokens.ts`               |
+| The rail's layout rule                                                    | `DESIGN.md` §5                      |
