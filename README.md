@@ -52,9 +52,25 @@ You can start developing by editing the files inside the **app** directory. This
 
 ### Other setup steps
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
+- ESLint is already configured — see [Checking your work](#checking-your-work). This project follows Expo's ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/) guide, and `yarn lint:expo` runs `expo lint` itself.
 - If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
 - Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+
+## Checking your work
+
+`node scripts/verify.mjs` (or `yarn verify`) runs the typecheck, the lint and the four standalone check scripts **in parallel** and fails if any of them did. `--serial` runs them one after another when you want to read them in order.
+
+```bash
+yarn verify                      # everything, in parallel
+yarn typecheck                   # tsc --noEmit, incremental
+yarn lint                        # eslint src scripts, cached
+node scripts/check-clusters.mjs  # Arabic split segmentation + round-trip
+node scripts/check-groups.mjs    # group membership + the whole-groups invariant
+node scripts/check-shortcuts.mjs # binding table + matcher + chord text
+node scripts/check-help.mjs      # help catalog ↔ strings.ts ↔ shortcuts.ts
+```
+
+The first run of each is the slow one: the typecheck writes `tsconfig.tsbuildinfo` and the lint writes `.eslintcache` at the repo root, both gitignored, and later runs only redo what changed. Delete those two files to force a cold run.
 
 ## Learn more
 

@@ -40,6 +40,7 @@
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
+    "prettier": "^3.9.8",
     "sharp": "^0.35.3",
     "typescript": "~6.0.3"
   },
@@ -50,7 +51,12 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "prebuild": "expo prebuild",
-    "lint": "expo lint"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src scripts --cache --cache-location .eslintcache",
+    "lint:fix": "eslint src scripts --cache --cache-location .eslintcache --fix",
+    "format": "prettier --check . --cache --cache-location .prettiercache",
+    "format:fix": "prettier --write . --cache --cache-location .prettiercache",
+    "verify": "node scripts/verify.mjs"
   },
   "private": true,
   "packageManager": "yarn@4.13.0+sha512.5c20ba010c99815433e5c8453112165e673f1c7948d8d2b267f4b5e52097538658388ebc9f9580656d9b75c5cc996f990f611f99304a2197d4c56d21eea370e7"

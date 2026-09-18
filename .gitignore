@@ -38,6 +38,10 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# verification caches (see AGENTS.md "Checks")
+.eslintcache
+.prettiercache
+
 example
 
 # generated native folders

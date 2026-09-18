@@ -32,8 +32,8 @@
     {
       "label": "Lint",
       "type": "shell",
-      "command": "npx eslint src scripts",
-      "problemMatcher": ["$eslint - stylish"],
+      "command": "npx eslint src scripts --cache --cache-location .eslintcache",
+      "problemMatcher": ["$eslint-stylish"],
       "group": "build"
     },
     {
@@ -41,6 +41,13 @@
       "type": "shell",
       "command": "node scripts/check-help.mjs",
       "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Verify (all)",
+      "type": "shell",
+      "command": "node scripts/verify.mjs",
+      "problemMatcher": ["$tsc", "$eslint-stylish"],
       "group": "test"
     }
   ]

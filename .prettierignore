@@ -1,0 +1,21 @@
+# Prettier does not read .gitignore — only node_modules is excluded for free.
+# Everything listed here is generated, native or binary, and leaving it off the
+# list is what makes `prettier --write .` walk the whole prebuild tree.
+
+# Generated native projects (gitignored, thousands of files)
+android/
+ios/
+dist/
+.expo/
+
+node_modules/
+public/
+
+# Locks and binary assets
+yarn.lock
+assets/fonts/
+
+# Verification caches (see AGENTS.md "Checks")
+*.tsbuildinfo
+.eslintcache
+.prettiercache
