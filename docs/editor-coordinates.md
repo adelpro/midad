@@ -111,34 +111,55 @@ and `groupAabb(objects)` unions several. Alignment and centring must use these
 rather than the raw box, otherwise they disagree with what the user sees on a
 scaled object.
 
-## 6. Chrome is authored in design units
+## 6. Chrome is authored in screen pt
 
 Selection chrome must stay a **constant size on screen**. It is drawn inside the
 object's transform group, so it inherits both the view scale and the object's own
-scale. Anything authored in design units therefore has to divide both out:
+scale. Everything the chrome needs therefore goes through one factor, `unit` —
+the number that maps the frame the chrome lives in to screen pt:
+
+| Chrome drawn                                      | `unit`                                 |
+| ------------------------------------------------- | -------------------------------------- |
+| Inside one object's transform group               | `scale * safeObjectScale(objectScale)` |
+| A sibling of the objects (collection frame, grid) | `scale`                                |
 
 ```ts
 const unit = scale * safeObjectScale(objectScale);
 const border = 1.5 / unit;
-const handleR = 4 / unit;
+const handleR = 5 / unit;
 ```
 
 `safeObjectScale(s)` is `Math.max(MIN_OBJECT_SCALE, Math.abs(s) || 1)` with
-`MIN_OBJECT_SCALE = 0.05`, guarding division. Note the quirk: a scale of exactly
-`0` maps to **1** via `|| 1` (treated as unscaled), while a tiny _non-zero_ scale
-floors at `0.05`. A near-zero scale is not a supported state, but it will not
-produce `Infinity` either.
+`MIN_OBJECT_SCALE = 0.05`; `safeUnit(u)` is the same trick with `MIN_UNIT = 0.02`.
+Both share a quirk worth knowing: a value of exactly `0` maps to **1** via `|| 1`
+(an unmeasured view reports `scale: 1`, and a zero-scaled object is treated as
+unscaled), while a tiny _non-zero_ value floors at the minimum. A near-zero scale
+is not a supported state, but it will not produce `Infinity` either.
 
-Two pad helpers convert the design-unit constants into the local frame:
+**Every chrome length below is the size the user sees**, and the helpers divide
+`unit` out on the way into a frame's own units:
 
-| Constant               | Value | Meaning                         | Local form                        |
-| ---------------------- | ----- | ------------------------------- | --------------------------------- |
-| `SELECTION_HANDLE_PAD` | `4`   | Box edge → handle centre        | `selectionPad(scale) = 4 / safe…` |
-| `ROTATE_HANDLE_GAP`    | `26`  | Box top edge → rotate grip      | `rotateGap(scale) = 26 / safe…`   |
-| `OBJECT_HIT_PAD`       | `8`   | Grab tolerance **object-local** | used as-is                        |
+| Constant               | Screen pt | Meaning                       |
+| ---------------------- | --------- | ----------------------------- |
+| `SELECTION_HANDLE_PAD` | `6`       | Box edge → handle centre      |
+| `ROTATE_HANDLE_GAP`    | `30`      | Box top edge → rotate grip    |
+| `HANDLE_TOUCH_RADIUS`  | `22`      | Touch target around a handle  |
+| `ROTATE_TOUCH_RADIUS`  | `26`      | Touch target around the grip  |
+| `OBJECT_HIT_PAD`       | `10`      | Grab tolerance around the box |
 
-Keeping `selectionPad` shared is what stops the rotate grip from crowding — and
-swallowing — the resize handles on a scaled-down object.
+`selectionPad(unit)` is `SELECTION_HANDLE_PAD / unit` and `rotateGap(unit)` the
+same for the gap. Both are shared by the canvas overlay _and_ the gesture
+hit-test, which is what stops the rotate grip from crowding — and swallowing —
+the resize handles on a scaled-down object.
+
+**Authoring these in design units was a real bug, and it cost the whole
+Android/iOS experience.** A 1080-unit canvas on a 390pt phone fits at a view
+scale of ≈0.27–0.3, so a 4-unit pad put the drawn handles ~1.2pt off the box
+corner and a 12.7-unit touch radius gave a **~7pt** target: the handles landed
+on the border, and pressing them missed or fell through to the object body. Web
+was unaffected only because the pointer there is a mouse. Four constants moved
+(`4 → 6`, `26 → 30`, plus two new touch radii) and the assertions are locked in
+screen pt by `scripts/check-handles.mjs`.
 
 **Chrome drawn in the outer group divides by `scale` only.** `CollectionOverlay`
 (`1.5 / scale`) and `GridOverlay` (`1 / scale`) are siblings of the objects, not
@@ -156,22 +177,43 @@ shared rotation, or 0 when they disagree
 
 ## 7. Handle geometry
 
-`resizeHandles(box, objectScale)` returns the eight handles in the object's local
-frame, centred on the origin:
+`resizeHandles(box, unit)` returns the eight handles in the frame's own units,
+centred on the origin:
 
-- corners and edges at $\pm(box.w/2 + pad)$, $\pm(box.h/2 + pad)$
-- `rotateHandle(box, objectScale)` sits at $(0, -(box.h/2 + pad + rotateGap))$
+- corners and edges at $\pm(box.w/2 + pad)$, $\pm(box.h/2 + pad)$, where
+  `pad = selectionPad(unit)`
+- `rotateHandle(box, unit)` sits at $(0, -(box.h/2 + pad + rotateGap))$
 
 Both are imported by the canvas overlay _and_ the gesture hit-test, so the drawn
 handles and the tappable handles are the same numbers. `isCornerHandle`,
 `isHorizontalHandle` and `isRotateHandle` classify them for the resize maths
 (corners scale proportionally, `e`/`w` re-flow text, `n`/`s` scale font size).
 
-`OBJECT_HIT_PAD` is in **local** units, so the tolerance is measured against the
-box the user sees and scales with the object. It exists so a thin text line or a
-small shape stays easy to grab. The tap path and the drag path must pass the same
-pad — that is why the constant lives in `hit-test.ts` rather than in either
-caller.
+### What a press grabs
+
+`pickHandle(transform, box, unit, p)` owns that decision, in one copy — the
+gesture layer calls it for a single object and for a whole selection's frame.
+Three rules, in order:
+
+1. **The rim rule.** A resize handle is a candidate only when the press is in
+   the box's outer band: $\max(|l_x| / (w/2),\ |l_y| / (h/2)) \ge 0.55$
+   (`RIM_FRACTION`). The touch radii are deliberately far larger than the drawn
+   handles — a 44pt target swallows a small object whole — so without this rule
+   a press in the middle of an object would resize it instead of moving it. It
+   is a _fraction_, not a length, so it behaves identically at every zoom. The
+   rotate grip sits outside the box, so it clears the test on its own.
+2. **Tiers.** `rotate` → corners → edges. The grip can never be shadowed by a
+   resize handle, and a corner always beats an edge — otherwise a press on a
+   short object's corner would grab `e` and re-flow its text instead of scaling
+   it.
+3. **Nearest wins** within the winning tier.
+
+`pickObject(objects, x, y, unit)` does the same job for whole objects: front to
+back, the first object whose box grown by `OBJECT_HIT_PAD / (unit * |scale|)`
+contains the point wins. That pad is a screen length like the rest, so the
+tolerance a thin text line gets does not depend on the zoom. It is the one
+object-hit rule, shared by the tap path and the pointer-down drag path, so both
+accept the same press.
 
 ## 8. Measuring the canvas
 
@@ -190,14 +232,15 @@ object would re-run the fit memo, the viewport effect, and every object layer.
 
 ## 9. Code map
 
-| Concern                                                        | File                                  |
-| -------------------------------------------------------------- | ------------------------------------- |
-| `SizedObject`, `toLocalPoint`, `hitTest`, `visualHalfExtents`  | `src/editor/hit-test.ts`              |
-| `objectAabb`, `groupAabb`                                      | `src/editor/hit-test.ts`              |
-| `safeObjectScale`, `selectionPad`, `rotateGap`                 | `src/editor/hit-test.ts`              |
-| `resizeHandles`, `rotateHandle`, handle classifiers            | `src/editor/hit-test.ts`              |
-| Fit-to-view memo, viewport publish, wrapper measurement        | `src/editor/EditorCanvas.tsx`         |
-| Per-object transform group, content centering, chrome division | `src/editor/EditorCanvas.tsx`         |
-| `toDesign`, drag translation division                          | `src/editor/use-object-gestures.ts`   |
-| Text box measurement (`textObjectSize`)                        | `src/editor/skia/use-text-layouts.ts` |
-| Alignment maths consuming visual extents                       | `src/editor/align.ts`                 |
+| Concern                                                           | File                                  |
+| ----------------------------------------------------------------- | ------------------------------------- |
+| `SizedObject`, `toLocalPoint`, `hitTest`, `pickObject`            | `src/editor/hit-test.ts`              |
+| `objectAabb`, `groupAabb`                                         | `src/editor/hit-test.ts`              |
+| `safeUnit`, `safeObjectScale`, `selectionPad`, `rotateGap`        | `src/editor/hit-test.ts`              |
+| `resizeHandles`, `rotateHandle`, `pickHandle`, handle classifiers | `src/editor/hit-test.ts`              |
+| Fit-to-view memo, viewport publish, wrapper measurement           | `src/editor/EditorCanvas.tsx`         |
+| Per-object transform group, content centering, chrome division    | `src/editor/EditorCanvas.tsx`         |
+| `toDesign`, drag translation division                             | `src/editor/use-object-gestures.ts`   |
+| Text box measurement (`textObjectSize`)                           | `src/editor/skia/use-text-layouts.ts` |
+| Alignment maths consuming visual extents                          | `src/editor/align.ts`                 |
+| Screen-pt regression checks                                       | `scripts/check-handles.mjs`           |

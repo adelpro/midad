@@ -25,7 +25,7 @@ one before changing that area. When a document and the code disagree, fix the co
 ## Checks
 
 There is no test runner. `node scripts/verify.mjs` runs the typecheck, the lint
-and all four checks **in parallel** — wall clock is the slowest one — printing
+and all five checks **in parallel** — wall clock is the slowest one — printing
 each task's own output and failing if any of them did. Reach for it first; the
 individual scripts are the right tool when you already know what you touched.
 
@@ -48,6 +48,7 @@ npx tsc --noEmit                 # typecheck (incremental)
 npx eslint src --cache --cache-location .eslintcache   # lint, cached
 node scripts/check-clusters.mjs  # Arabic split segmentation + round-trip
 node scripts/check-groups.mjs    # group membership + the whole-groups invariant
+node scripts/check-handles.mjs   # selection-handle geometry in screen pt
 node scripts/check-shortcuts.mjs # binding table + matcher + chord text
 node scripts/check-help.mjs      # help catalog ↔ strings.ts ↔ shortcuts.ts
 ```

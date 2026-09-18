@@ -15,13 +15,14 @@ import {
   isCornerHandle,
   isHorizontalHandle,
   isRotateHandle,
-  OBJECT_HIT_PAD,
-  resizeHandles,
-  rotateHandle,
+  pickHandle,
+  pickObject,
+  safeObjectScale,
   toLocalPoint,
   type ResizeHandle,
   type SelectionFrame,
   type SizedObject,
+  type TransformFrame,
 } from '@/editor/hit-test';
 import {
   isAdditiveSelectionModifier,
@@ -31,10 +32,6 @@ import { useEditorStore, type DragOrigin } from '@/editor/store';
 import { hapticTick } from '@/haptics';
 import type { DesignObject, ObjectTransform } from '@/storage/project-schema';
 
-/** Hit radius around a resize handle, in the object's local frame (design units). */
-const HANDLE_HIT_PAD = 18 / Math.SQRT2;
-/** Wider touch target for the rotation grip, which is a lone handle. */
-const ROTATE_HIT_PAD = HANDLE_HIT_PAD + 8;
 /** Bounds for a horizontal (wrap-width) resize, in local design units. */
 const MIN_WRAP_WIDTH = 24;
 const MAX_WRAP_WIDTH = 20000;
@@ -77,26 +74,24 @@ function handleTap(viewX: number, viewY: number) {
 
 let tapRelay: ((p: { x: number; y: number }) => void) | null = null;
 
-/** The bits of an object transform needed to map to/from its local frame. */
-type Frame = Pick<
-  ObjectTransform,
-  'x' | 'y' | 'scale' | 'rotation' | 'flipH' | 'flipV'
->;
-
 /**
  * Convert a design-space point into a frame's local (unrotated, unscaled) units.
  * Delegates to the shared mapping so the gesture layer, the canvas overlay and
  * the selection hit-test can never disagree about where a box is.
  */
 function toLocal(
-  t: Frame,
+  t: TransformFrame,
   p: { x: number; y: number },
 ): { x: number; y: number } {
   return toLocalPoint(t, p.x, p.y);
 }
 
 /** Local offset (relative to the object center) → rotated/scaled design offset. */
-function localOffset(t: Frame, x: number, y: number): { x: number; y: number } {
+function localOffset(
+  t: TransformFrame,
+  x: number,
+  y: number,
+): { x: number; y: number } {
   const rot = (t.rotation * Math.PI) / 180;
   const cos = Math.cos(rot);
   const sin = Math.sin(rot);
@@ -111,7 +106,7 @@ function localOffset(t: Frame, x: number, y: number): { x: number; y: number } {
  * drags hold the opposite edge still.
  */
 function centerForAnchor(
-  origin: Frame,
+  origin: TransformFrame,
   anchor: { x: number; y: number },
   scale: number,
 ): { x: number; y: number } {
@@ -172,68 +167,36 @@ function resizeFactor(
 }
 
 /**
- * Resize handle or rotation grip under a design-space point, or null.
+ * The handle under a point, on one object's own box.
  *
- * Local coordinates are scale-free, so the touch radius is divided by the
- * object's scale to keep the target a constant size next to the drawn handles
- * regardless of how large the object is — the same conversion `resizeHandles`
- * and `rotateHandle` apply to place the handles. The closest target wins, so
- * the rotation grip can never shadow a resize handle.
+ * `viewScale` is the fit-to-view scale. The picker works in the object's local
+ * frame, where the object's own scale is already divided out, so the two are
+ * multiplied back together to give the picker the local → screen factor its
+ * touch radii are authored in. Without the view scale the target would shrink
+ * with the zoom — a 44 pt target became a 7 pt one on a phone, which is the bug
+ * this signature exists to prevent.
  */
-function pickHandle(
-  t: Frame,
-  box: { width: number; height: number },
-  objectScale: number,
-  p: { x: number; y: number },
-): ResizeHandle | null {
-  const local = toLocal(t, p);
-
-  let best: ResizeHandle | null = null;
-  let bestDist = Infinity;
-
-  const grip = rotateHandle(box, objectScale);
-  const gripDist = Math.hypot(local.x - grip.x, local.y - grip.y);
-  if (gripDist <= ROTATE_HIT_PAD / objectScale) {
-    best = 'rotate';
-    bestDist = gripDist;
-  }
-
-  const handleRadius = HANDLE_HIT_PAD / objectScale;
-  for (const h of resizeHandles(box, objectScale)) {
-    const dist = Math.hypot(local.x - h.x, local.y - h.y);
-    if (dist <= handleRadius && dist < bestDist) {
-      bestDist = dist;
-      best = h.handle;
-    }
-  }
-  return best;
-}
-
-/** The handle under a point, on one object's own box. */
 function hitHandle(
   obj: SizedObject,
   p: { x: number; y: number },
+  viewScale: number,
 ): ResizeHandle | null {
-  return pickHandle(
-    obj.transform,
-    obj.box,
-    Math.max(0.05, Math.abs(obj.transform.scale) || 1),
-    p,
-  );
+  const unit = viewScale * safeObjectScale(obj.transform.scale);
+  return pickHandle(obj.transform, obj.box, unit, p);
 }
 
 /**
  * The handle under a point, on a whole selection's frame.
  *
  * The frame carries no scale of its own — its half-extents are already visual —
- * so the shared chrome geometry is measured in design units throughout, exactly
- * as the collection overlay draws it.
+ * so `unit` is the view scale alone, exactly as the collection overlay draws it.
  */
 function hitFrameHandle(
   frame: SelectionFrame,
   p: { x: number; y: number },
+  viewScale: number,
 ): ResizeHandle | null {
-  return pickHandle(frameTransform(frame), frameBox(frame), 1, p);
+  return pickHandle(frameTransform(frame), frameBox(frame), viewScale, p);
 }
 
 /** Pointer angle (degrees) about a centre, measured in design space. */
@@ -482,11 +445,14 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
     return;
   }
   const p = toDesign(viewX, viewY);
+  // The fit-to-view scale, published by `EditorCanvas`. Every touch target below
+  // is a screen length, so this is what turns it into the frame's own units.
+  const viewScale = store.viewport.scale;
   const single =
     store.selectedIds.length === 1
       ? store.sizedObjects.find((o) => o.id === store.selectedIds[0])
       : undefined;
-  const handle = single ? hitHandle(single, p) : null;
+  const handle = single ? hitHandle(single, p, viewScale) : null;
   if (single && handle) {
     const t = single.transform;
     const local = toLocal(t, p);
@@ -529,7 +495,7 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
   // frame this tests are the same one (`collectionTarget` mirrors the canvas).
   const target = collectionTarget(store);
   if (target) {
-    const frameHandle = hitFrameHandle(target.frame, p);
+    const frameHandle = hitFrameHandle(target.frame, p, viewScale);
     if (frameHandle) {
       const { frame } = target;
       const frameT = frameTransform(frame);
@@ -570,16 +536,9 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
     }
   }
 
-  const sorted = [...store.sizedObjects].sort((a, b) => b.zIndex - a.zIndex);
-  // The shared tolerance is applied in the object's local units, so the grab
-  // matches the box the user can actually see — and matches the tap hit-test.
-  const hit = sorted.find((o) => {
-    const local = toLocal(o.transform, p);
-    return (
-      Math.abs(local.x) <= o.box.width / 2 + OBJECT_HIT_PAD &&
-      Math.abs(local.y) <= o.box.height / 2 + OBJECT_HIT_PAD
-    );
-  });
+  // One object-hit rule, shared with the tap path (`pickObject`), so a press is
+  // accepted or rejected identically by both halves of the gesture.
+  const hit = pickObject(store.sizedObjects, p.x, p.y, viewScale);
   if (!hit) {
     store.setGs({
       dragOrigins: [],
@@ -725,7 +684,7 @@ function updateResize(
     return;
   }
 
-  const origin: Frame = {
+  const origin: TransformFrame = {
     x: gs.resizeOriginX,
     y: gs.resizeOriginY,
     scale: gs.resizeOriginScale,
@@ -843,7 +802,7 @@ function updateCollectionResize(
   if (!handle || gs.collectionOrigins.length === 0) {
     return;
   }
-  const frame: Frame = {
+  const frame: TransformFrame = {
     x: gs.resizeOriginX,
     y: gs.resizeOriginY,
     // The frame has no scale of its own, so the whole resize runs in design

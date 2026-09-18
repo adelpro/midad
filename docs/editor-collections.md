@@ -86,10 +86,11 @@ members' boxes, measured in the collection's frame, unioned, then oriented
   its rotation reads 0. The cost of not storing a frame; the alternative is a
   document-level side table.
 - **Half-extents are visual** (member scales folded in), so the frame carries no
-  scale of its own. That is why the shared chrome geometry runs with
-  `objectScale = 1` and every length divides by the **view scale alone** — unlike
-  `SelectionOverlay`, which lives inside one object's transform and has to divide
-  that object's scale out as well.
+  scale of its own. That is why the shared chrome geometry runs with `unit` = the
+  **view scale alone** — unlike `SelectionOverlay`, which lives inside one object's
+  transform and passes `scale * safeObjectScale(objectScale)`, dividing that
+  object's scale out as well. See
+  [`editor-coordinates.md`](editor-coordinates.md) §6.
 - **One rule, three consumers**: `selectionFrame(ids, sized)` in `groups.ts`
   returns the frame, whether it is `whole` or `entered`, and its members. The
   canvas draws it, the bar labels it and the gesture layer grabs it — so the box

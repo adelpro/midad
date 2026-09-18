@@ -19,53 +19,94 @@ export interface SizedObject {
 export type ResizeHandle =
   'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se' | 'rotate';
 
-/** Distance (design units) between a box edge and its handle center. */
-export const SELECTION_HANDLE_PAD = 4;
+/**
+ * Distance (screen pt) between a box edge and its handle centre.
+ *
+ * Every chrome constant here is a **screen** length, never a design length.
+ * The chrome is drawn inside the fit-to-view group and, for a single object,
+ * inside that object's own transform group, so a length only stays the size the
+ * user sees if the view scale *and* the object scale are divided out on the way
+ * in. Failing to divide the view scale was what put the handles on a phone's
+ * box edge (1.2 pt off it at a fit scale of 0.3) while the strokes stayed 4 pt.
+ */
+export const SELECTION_HANDLE_PAD = 6;
 
-/** Gap (design units) between the box top edge and the rotate grip. */
-export const ROTATE_HANDLE_GAP = 26;
+/** Gap (screen pt) between the box top edge and the rotate grip. */
+export const ROTATE_HANDLE_GAP = 30;
 
 /**
- * Grab tolerance (object-local units) around an object's box: a press this far
- * outside the drawn edge is still accepted, so a thin text line or a small
- * shape stays easy to grab.
+ * Grab tolerance (screen pt) around an object's box: a press this far outside
+ * the drawn edge is still accepted, so a thin text line or a small shape stays
+ * easy to grab.
  *
  * It lives here so the tap hit-test and the pointer-down drag path cannot
- * disagree about where an object starts. Local units, not design units, so the
- * tolerance is measured against the box the user actually sees.
+ * disagree about where an object starts — both go through `pickObject` below.
  */
-export const OBJECT_HIT_PAD = 8;
+export const OBJECT_HIT_PAD = 10;
+
+/**
+ * Touch radius (screen pt) around a resize handle. 22 pt is DESIGN.md's
+ * non-negotiable 44×44 minimum, expressed as a radius.
+ */
+export const HANDLE_TOUCH_RADIUS = 22;
+
+/** Touch radius (screen pt) around the rotate grip — a lone handle, so wider. */
+export const ROTATE_TOUCH_RADIUS = 26;
+
+/**
+ * Fraction of the box's own half-extents inside which a press belongs to the
+ * *object* rather than to one of its handles.
+ *
+ * The touch radii are deliberately far larger than the drawn handles, so on a
+ * small object they cover the whole box. Without this rule a press in the middle
+ * of such an object would resize it instead of moving it — the one thing a
+ * generous touch target must not break. It is a fraction, not a length, so the
+ * behaviour is identical at every zoom.
+ *
+ * The rotate grip sits outside the box, so it clears this test on its own.
+ */
+const RIM_FRACTION = 0.55;
 
 /** Smallest object scale used when converting design units into local units. */
 const MIN_OBJECT_SCALE = 0.05;
 
+/** Smallest `unit` the chrome maths will divide by. */
+const MIN_UNIT = 0.02;
+
 /**
  * The object's scale, guarded against zero and near-zero so callers can divide
- * by it.
- *
- * Exported because the canvas overlay must apply the same conversion as the
- * geometry helpers below. The overlay renders *inside* the object's transform
- * group, so a length authored in design units only stays a constant size on
- * screen if it is divided by this as well as by the view scale.
+ * by it. Zero maps to 1 — the same shortcut `toLocalPoint` takes, so a press and
+ * a box can never disagree about a degenerate scale.
  */
 export function safeObjectScale(objectScale: number): number {
   return Math.max(MIN_OBJECT_SCALE, Math.abs(objectScale) || 1);
 }
 
 /**
- * Selection chrome is authored in design units so it stays a constant size on
- * screen. The overlay draws inside the object's transform group and the gesture
- * layer works in the object's local frame, so both divide by the object's scale
- * to place it. Keeping the two in step is what stops the rotate grip from
- * crowding — and swallowing — the resize handles on a scaled-down object.
+ * `unit` is the factor that maps a length in a frame's own units to screen pt:
+ * `viewport.scale` for chrome drawn beside the objects, multiplied by the
+ * object's own scale for chrome drawn inside one object's transform group.
+ * Guarded so an unmeasured view (`scale: 1` before the first layout) or a
+ * degenerate object can never produce `Infinity`.
  */
-export function selectionPad(objectScale = 1): number {
-  return SELECTION_HANDLE_PAD / safeObjectScale(objectScale);
+export function safeUnit(unit: number): number {
+  return Math.max(MIN_UNIT, Math.abs(unit) || 1);
 }
 
-/** Rotate-grip gap in the object's local frame. See `selectionPad`. */
-function rotateGap(objectScale = 1): number {
-  return ROTATE_HANDLE_GAP / safeObjectScale(objectScale);
+/**
+ * Selection chrome is authored in screen pt so it stays a constant size on
+ * screen. Both the overlay and the gesture layer work in a frame's own units,
+ * so both divide by `unit` to place it. Keeping the two in step is what stops
+ * the rotate grip from crowding — and swallowing — the resize handles on a
+ * scaled-down object.
+ */
+export function selectionPad(unit = 1): number {
+  return SELECTION_HANDLE_PAD / safeUnit(unit);
+}
+
+/** Rotate-grip gap in a frame's own units. See `selectionPad`. */
+function rotateGap(unit = 1): number {
+  return ROTATE_HANDLE_GAP / safeUnit(unit);
 }
 
 export interface ResizeHandlePoint {
@@ -81,9 +122,9 @@ export interface ResizeHandlePoint {
  */
 export function resizeHandles(
   box: { width: number; height: number },
-  objectScale = 1,
+  unit = 1,
 ): ResizeHandlePoint[] {
-  const pad = selectionPad(objectScale);
+  const pad = selectionPad(unit);
   const hw = box.width / 2 + pad;
   const hh = box.height / 2 + pad;
   return [
@@ -122,11 +163,11 @@ export function isRotateHandle(handle: ResizeHandle): boolean {
  */
 export function rotateHandle(
   box: { width: number; height: number },
-  objectScale = 1,
+  unit = 1,
 ): { x: number; y: number } {
   return {
     x: 0,
-    y: -(box.height / 2 + selectionPad(objectScale) + rotateGap(objectScale)),
+    y: -(box.height / 2 + selectionPad(unit) + rotateGap(unit)),
   };
 }
 
@@ -170,24 +211,107 @@ export function toLocalPoint(
  * raw design-space point would ignore the object's scale and rotation, making
  * scaled or rotated objects selectable only near their centre.
  *
- * `pad` is the grab tolerance in those same local units (`OBJECT_HIT_PAD` by
- * default) — the tap path and the drag path must accept the same press.
+ * `unit` maps the view's pt to design units (`viewport.scale`), so the grab
+ * tolerance is a constant `OBJECT_HIT_PAD` **screen** pt per object: dividing it
+ * by `unit × |object scale|` turns it into that object's local units. It is the
+ * one object-hit rule, shared by the tap path and the pointer-down drag path, so
+ * the two accept the same press.
  */
-export function hitTest(
+export function pickObject(
   objects: SizedObject[],
   x: number,
   y: number,
-  pad = OBJECT_HIT_PAD,
-): string | null {
+  unit = 1,
+): SizedObject | null {
+  const u = safeUnit(unit);
   // Iterate front-to-back (highest z first).
   const sorted = [...objects].sort((a, b) => b.zIndex - a.zIndex);
   for (const o of sorted) {
     const local = toLocalPoint(o.transform, x, y);
+    const pad = OBJECT_HIT_PAD / (u * safeObjectScale(o.transform.scale));
     if (
       Math.abs(local.x) <= o.box.width / 2 + pad &&
       Math.abs(local.y) <= o.box.height / 2 + pad
     ) {
-      return o.id;
+      return o;
+    }
+  }
+  return null;
+}
+
+/** The id of the top-most object under a point (`pickObject`), or null. */
+export function hitTest(
+  objects: SizedObject[],
+  x: number,
+  y: number,
+  unit = 1,
+): string | null {
+  return pickObject(objects, x, y, unit)?.id ?? null;
+}
+
+/**
+ * The handles in the order they are allowed to win a press: the rotate grip can
+ * never be shadowed by a resize handle, and a corner always beats an edge, which
+ * is what stops a press on a short object's corner from grabbing the `e` handle
+ * and re-flowing its text instead of scaling it.
+ */
+const HANDLE_TIERS: readonly (readonly ResizeHandle[])[] = [
+  ['rotate'],
+  ['nw', 'ne', 'sw', 'se'],
+  ['n', 's', 'e', 'w'],
+];
+
+/**
+ * The handle under a point, or null when the press belongs to the object body.
+ *
+ * `transform`/`box` describe a frame in its own units and `unit` maps those
+ * units to screen pt, so `HANDLE_TOUCH_RADIUS / unit` is a constant touch target
+ * on screen at every zoom — the same conversion that places the drawn handles.
+ * The nearest handle inside the winning tier wins; see `HANDLE_TIERS` and
+ * `RIM_FRACTION`.
+ */
+export function pickHandle(
+  transform: TransformFrame,
+  box: { width: number; height: number },
+  unit: number,
+  p: { x: number; y: number },
+): ResizeHandle | null {
+  const u = safeUnit(unit);
+  const local = toLocalPoint(transform, p.x, p.y);
+  const hw = Math.max(1e-6, box.width / 2);
+  const hh = Math.max(1e-6, box.height / 2);
+  // The interior of the box always moves the object; only the rim is up for
+  // grabs. See `RIM_FRACTION`.
+  const onRim =
+    Math.abs(local.x) / hw >= RIM_FRACTION ||
+    Math.abs(local.y) / hh >= RIM_FRACTION;
+  if (!onRim) {
+    return null;
+  }
+
+  const points: ResizeHandlePoint[] = [
+    { handle: 'rotate', ...rotateHandle(box, u) },
+    ...resizeHandles(box, u),
+  ];
+  for (const tier of HANDLE_TIERS) {
+    let best: ResizeHandle | null = null;
+    let bestDist = Infinity;
+    for (const point of points) {
+      if (!tier.includes(point.handle)) {
+        continue;
+      }
+      const dist = Math.hypot(local.x - point.x, local.y - point.y);
+      const radius =
+        (isRotateHandle(point.handle)
+          ? ROTATE_TOUCH_RADIUS
+          : HANDLE_TOUCH_RADIUS) / u;
+      if (dist <= radius && dist < bestDist) {
+        bestDist = dist;
+        best = point.handle;
+      }
+    }
+    if (best) {
+      return best;
     }
   }
   return null;

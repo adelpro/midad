@@ -6,6 +6,29 @@ import { saveProject } from '@/storage/projects';
 import { AUTO_SAVE_DEBOUNCE_MS, useSettings } from '@/storage/settings';
 
 /**
+ * True while a canvas gesture owns the document — a drag, a resize or a
+ * rotation.
+ *
+ * Writing is a full `JSON.stringify` of the project plus a synchronous file
+ * write, so a flush that lands mid-gesture stalls the very frame the finger is
+ * in. The debounce timer can never be the culprit (every drag frame resets it),
+ * but the periodic interval can and does.
+ *
+ * Read from `getState()` rather than subscribed: this is called from a timer,
+ * not from render, and subscribing would re-render the host for scratch state
+ * that is not rendered.
+ */
+function gestureInFlight(): boolean {
+  const { gs } = useEditorStore.getState();
+  return (
+    gs.resizeTargetId !== null ||
+    gs.transformTargetId !== null ||
+    gs.collectionOrigins.length > 0 ||
+    gs.dragOrigins.length > 0
+  );
+}
+
+/**
  * Persists the JSON project after a quiet edit period and periodically while
  * the document is being edited. The periodic flush matters during a long
  * drag, where every frame keeps resetting the quiet-period timer.
@@ -81,10 +104,19 @@ export function useAutoSave() {
       return;
     }
     const interval = setInterval(() => {
+      // A gesture owns the document right now, so a write here would stall one
+      // of its frames. Nothing is lost by waiting: the gesture's own frames keep
+      // re-arming the debounce timer, which fires once the drag has settled.
+      if (gestureInFlight()) {
+        return;
+      }
       void flush();
     }, intervalMs);
 
     const flushOnBackground = () => {
+      // Deliberately NOT gesture-guarded: the user is leaving the app, and the
+      // gesture in flight is being cancelled anyway. Stalling a frame that is
+      // about to be frozen beats losing the edit.
       if (AppState.currentState !== 'active') {
         void flush();
       }

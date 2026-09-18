@@ -175,18 +175,25 @@ export function EditorCanvas({
   // instead of looping a hit-test + selection write on every frame.
   const sizedRef = useRef(sized);
   const onTapResultRef = useRef(onTapResult);
+  // The grab tolerance is authored in screen pt, so the hit-test needs the live
+  // view scale — through a ref, because keying the tap effect on it would re-run
+  // the hit-test on every rotation.
+  const scaleRef = useRef(scale);
   useEffect(() => {
     sizedRef.current = sized;
   }, [sized]);
   useEffect(() => {
     onTapResultRef.current = onTapResult;
   }, [onTapResult]);
+  useEffect(() => {
+    scaleRef.current = scale;
+  }, [scale]);
 
   // Resolve a tap into a selection (effect, not render-time side effect).
   useEffect(() => {
     if (tapPoint) {
       onTapResultRef.current?.(
-        hitTest(sizedRef.current, tapPoint.x, tapPoint.y),
+        hitTest(sizedRef.current, tapPoint.x, tapPoint.y, scaleRef.current),
       );
     }
   }, [tapPoint]);
@@ -377,14 +384,19 @@ const CollectionOverlay = memo(function CollectionOverlay({
   handles: boolean;
 }) {
   const box = frameBox(frame);
-  const pad = selectionPad(1);
+  // The frame has no transform of its own, so the view scale alone maps these
+  // units to the screen. Every length below is a screen pt that `unit` divides
+  // back out — including the pad and the grip gap, which used to be left in
+  // design units and so collapsed onto the box edge on a phone.
+  const unit = scale;
+  const pad = selectionPad(unit);
   const hw = box.width / 2 + pad;
   const hh = box.height / 2 + pad;
-  const border = 1.5 / scale;
-  const handleR = 4 / scale;
-  const gripR = 5 / scale;
-  const positions = resizeHandles(box, 1);
-  const grip = rotateHandle(box, 1);
+  const border = 1.5 / unit;
+  const handleR = 5 / unit;
+  const gripR = 7 / unit;
+  const positions = resizeHandles(box, unit);
+  const grip = rotateHandle(box, unit);
   return (
     <Group
       transform={[
@@ -403,7 +415,7 @@ const CollectionOverlay = memo(function CollectionOverlay({
         style="stroke"
         strokeWidth={border}
       >
-        <DashPathEffect intervals={[6 / scale, 5 / scale]} />
+        <DashPathEffect intervals={[6 / unit, 5 / unit]} />
       </Rect>
       {handles &&
         positions.map((p) => (
@@ -413,7 +425,7 @@ const CollectionOverlay = memo(function CollectionOverlay({
             r={handleR}
             color="#111111"
             style="stroke"
-            strokeWidth={2 / scale}
+            strokeWidth={2 / unit}
           />
         ))}
       {handles &&
@@ -438,7 +450,7 @@ const CollectionOverlay = memo(function CollectionOverlay({
             r={gripR}
             color="#111111"
             style="stroke"
-            strokeWidth={2 / scale}
+            strokeWidth={2 / unit}
           />
           <Circle c={vec(grip.x, grip.y)} r={gripR} color="#FFFFFF" />
         </>
@@ -503,21 +515,23 @@ const SelectionOverlay = memo(function SelectionOverlay({
   scale: number;
   objectScale: number;
 }) {
-  const chromePad = selectionPad(objectScale);
+  // Drawn *inside* the object's transform group, so every length below is
+  // multiplied by the object's own scale on the way to the screen — on top of
+  // the view scale. `unit` is both of them together, and every length is a
+  // screen pt divided by it: the pad and the grip gap (through the shared
+  // geometry helpers), the strokes and the radii. Dividing by `scale` alone
+  // only covered the view zoom, which is why the handles used to grow with the
+  // object and the grip used to sit on its border.
+  const unit = scale * safeObjectScale(objectScale);
+  const chromePad = selectionPad(unit);
   const pad = chromePad * 2;
   const hw = box.width / 2 + chromePad;
   const hh = box.height / 2 + chromePad;
-  // Drawn *inside* the object's transform group, so every length below is
-  // multiplied by the object's own scale on the way to the screen. `chromePad`
-  // already divides that out; the strokes and radii have to do the same or the
-  // handles and the rotate grip grow along with the object — and shrink away on
-  // a scaled-down one. Dividing by `scale` alone only covers the view zoom.
-  const unit = scale * safeObjectScale(objectScale);
   const border = 1.5 / unit;
-  const handleR = 4 / unit;
-  const gripR = 5 / unit;
-  const positions = resizeHandles(box, objectScale);
-  const grip = rotateHandle(box, objectScale);
+  const handleR = 5 / unit;
+  const gripR = 7 / unit;
+  const positions = resizeHandles(box, unit);
+  const grip = rotateHandle(box, unit);
   return (
     <Group>
       <Rect

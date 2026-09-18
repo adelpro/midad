@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Icon, IconButton, Reveal, Sheet } from '@/components/ui';
 import { EditorCanvasHost } from '@/editor/EditorCanvasHost';
-import { CollectionBar, memberLabel } from '@/editor/collection-bar';
+import { CollectionBarHost } from '@/editor/collection-bar';
 import {
   collectSvgFontFaces,
   collectUsedFamilies,
@@ -33,7 +33,6 @@ import {
   OBJECT_SCALE_BOUNDS,
   rotateCollection,
   scaleCollection,
-  selectionCollection,
   selectionFrame,
   unitCount,
 } from '@/editor/groups';
@@ -83,7 +82,6 @@ import { useObjectGestures } from '@/editor/use-object-gestures';
 import { hapticDelete, hapticSuccess, hapticTick } from '@/haptics';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
-import { formatCollectionGroup, formatSelectedCount } from '@/i18n/strings';
 import { pickBackgroundImage } from '@/storage/background-image';
 import { saveImageToLibrary, shareFile, shareImage } from '@/storage/export';
 import { hasMediaLibrary } from '@/storage/platform';
@@ -250,7 +248,10 @@ export function EditorScreen() {
   const ungroupSelected = useEditorStore((s) => s.ungroupSelected);
   const enterMember = useEditorStore((s) => s.enterMember);
   const exitCollection = useEditorStore((s) => s.exitCollection);
-  const sizedObjects = useEditorStore((s) => s.sizedObjects);
+  // `sizedObjects` is deliberately NOT subscribed here: the canvas publishes it in
+  // an effect after every drag frame, so reading it from this screen re-rendered
+  // the whole tree a second time per frame. `CollectionBarHost` owns the
+  // subscription and the only thing that needs it — the selection's frame.
 
   const [tool, setTool] = useState<ActiveTool>('select');
   /**
@@ -1301,62 +1302,16 @@ export function EditorScreen() {
   );
 
   /**
-   * The collection bar's head: how many elements the selection is, or — while a
-   * collection is entered — which member is being edited, with the way back out.
-   * The member track and the bar's placement are the component's own business.
+   * What the collection bar's head names, and its way back out of an entered
+   * collection.
    *
-   * It replaced the count badge that used to head the selection rail. A label
-   * about the selection belongs on the selection, and the rail's width is for
-   * actions — the badge was also charged against their budget, twice over.
+   * Resolved here rather than inside `CollectionBarHost` because binding a press
+   * belongs to this screen — learn mode intercepts every one of them — and because
+   * neither value needs geometry. The host adds the frame, which does, and which is
+   * the only part of the bar that has to follow the canvas frame by frame.
    */
-  const barHead = useMemo(() => {
-    const selection = selectionFrame(selectedIds, sizedObjects);
-    if (!selection) {
-      return null;
-    }
-    const role = helpRole(helpEntry('sel.collectionBar'), language);
-    if (selection.state === 'entered') {
-      const index = selection.members.findIndex((m) => m.id === selectedIds[0]);
-      const total = selection.members.length;
-      // The member's own label, not the primary text's: the rule has to hold for
-      // every member of the collection, which is exactly what `collectionMembers`
-      // uses to decide reading order.
-      const primary = members[index];
-      return {
-        frame: selection.frame,
-        mode: 'entered' as const,
-        // Position only: the bar's track names the member, and the head is a
-        // label rather than a sentence.
-        text: `${index + 1}/${total}`,
-        label: primary
-          ? memberLabel(primary, index, total, language)
-          : `${index + 1}/${total}`,
-        hint: role,
-        onPress: helpPress('sel.collectionBar', exitCollection),
-      };
-    }
-    const text =
-      selectionCollection(selectedIds, project?.objects ?? []) !== null
-        ? formatCollectionGroup(selection.members.length, language)
-        : formatSelectedCount(selection.members.length, language);
-    return {
-      frame: selection.frame,
-      mode: 'whole' as const,
-      text,
-      label: text,
-      hint: role,
-      // Nothing to go back to: a whole selection already is the whole thing.
-      onPress: undefined,
-    };
-  }, [
-    selectedIds,
-    sizedObjects,
-    project,
-    language,
-    members,
-    exitCollection,
-    helpPress,
-  ]);
+  const collectionBarRole = helpRole(helpEntry('sel.collectionBar'), language);
+  const exitCollectionForBar = helpPress('sel.collectionBar', exitCollection);
 
   /** What each selection command does. A `Record`, so a new id cannot be left unhandled. */
   const run = useMemo<Record<SelectionCommandId, () => void>>(
@@ -1477,6 +1432,51 @@ export function EditorScreen() {
     { ...sources, afterRun: () => setMoreOpen(false) },
   );
 
+  /**
+   * The tool rail's six presses.
+   *
+   * Hoisted out of the JSX so `ToolBtn` — which is memoized — sees the same
+   * `onPress` for a given tool and can skip its subtree. An inline closure would
+   * be a new function on every render, and a drag re-renders this screen on every
+   * frame, so the six buttons would reconcile sixty times a second to change
+   * nothing. The dependencies are what the presses actually read: the current
+   * tool and multi-select mode, both of which change on a tap, not on a frame.
+   */
+  const pressSelectTool = useCallback(() => {
+    // Exit multi-select while keeping the group — the Select button is the
+    // "leave the mode, keep what you picked" affordance.
+    setMultiSelectMode(false, true);
+    selectTool('select');
+  }, [selectTool, setMultiSelectMode]);
+
+  const pressMultiSelectTool = useCallback(() => {
+    selectTool('select');
+    // Turning the mode off keeps the group (same as Select).
+    setMultiSelectMode(!multiSelectMode, multiSelectMode);
+  }, [multiSelectMode, selectTool, setMultiSelectMode]);
+
+  const pressTextTool = useCallback(() => {
+    setMultiSelectMode(false);
+    selectTool('text');
+    openTextSheet();
+  }, [openTextSheet, selectTool, setMultiSelectMode]);
+
+  const pressInsertTool = useCallback(() => {
+    setMultiSelectMode(false);
+    selectTool('insert');
+    setInsertSheetOpen(true);
+  }, [selectTool, setMultiSelectMode]);
+
+  const pressColorTool = useCallback(() => {
+    setMultiSelectMode(false);
+    selectTool('color');
+  }, [selectTool, setMultiSelectMode]);
+
+  const pressBackgroundTool = useCallback(() => {
+    setMultiSelectMode(false);
+    selectTool('background');
+  }, [selectTool, setMultiSelectMode]);
+
   if (!project) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: c.paper }]}>
@@ -1572,35 +1572,40 @@ export function EditorScreen() {
 
         {/* Canvas + gestures */}
         <View style={styles.canvasWrap}>
-          <GestureDetector gesture={gestures}>
-            <View
-              style={[
-                styles.canvasCard,
-                { backgroundColor: c.surface, borderColor: c.border },
-              ]}
-            >
-              <EditorCanvasHost
-                project={project}
-                selectedIds={selectedIds}
-                tapPoint={tapPoint}
-                onTapResult={handleTapResult}
-              />
-            </View>
-          </GestureDetector>
-          {barHead && (
-            <CollectionBar
-              frame={barHead.frame}
-              mode={barHead.mode}
-              text={barHead.text}
-              accessibilityLabel={barHead.label}
-              accessibilityHint={barHead.hint}
-              onPress={barHead.onPress}
-              members={members}
-              activeIndex={activeMemberIndex}
-              onEnterMember={pressMember}
-              onStep={pressStep}
-            />
-          )}
+          {/*
+           * The card keeps the border; the detector wraps the border-less layer
+           * inside it. Gesture x/y are reported against the view the detector is
+           * attached to, while `EditorCanvas` measures — and draws into — the box
+           * *inside* the card's 1pt border. Attaching the detector to the card put
+           * every press 1pt off the drawing, which is a quarter of a handle's touch
+           * radius at a phone's fit zoom.
+           */}
+          <View
+            style={[
+              styles.canvasCard,
+              { backgroundColor: c.surface, borderColor: c.border },
+            ]}
+          >
+            <GestureDetector gesture={gestures}>
+              <View style={styles.canvasGestureLayer}>
+                <EditorCanvasHost
+                  project={project}
+                  selectedIds={selectedIds}
+                  tapPoint={tapPoint}
+                  onTapResult={handleTapResult}
+                />
+              </View>
+            </GestureDetector>
+          </View>
+          <CollectionBarHost
+            selectedIds={selectedIds}
+            members={members}
+            activeIndex={activeMemberIndex}
+            role={collectionBarRole}
+            onExitCollection={exitCollectionForBar}
+            onEnterMember={pressMember}
+            onStep={pressStep}
+          />
           {help.active && (
             <LearnOverlay
               activeKey={help.activeKey}
@@ -1772,13 +1777,7 @@ export function EditorScreen() {
               label={t.editor.select}
               hint={shortcuts.hint(t.editor.select, 'toolSelect')}
               active={tool === 'select' && !multiSelectMode}
-              onPress={() => {
-                // Exit multi-select while keeping the group — the Select
-                // button is the "leave the mode, keep what you picked"
-                // affordance.
-                setMultiSelectMode(false, true);
-                selectTool('select');
-              }}
+              onPress={pressSelectTool}
               icon="pen"
             />
             <ToolBtn
@@ -1788,50 +1787,32 @@ export function EditorScreen() {
                 'toolMultiSelect',
               )}
               active={tool === 'select' && multiSelectMode}
-              onPress={() => {
-                selectTool('select');
-                // Turning the mode off keeps the group (same as Select).
-                setMultiSelectMode(!multiSelectMode, multiSelectMode);
-              }}
+              onPress={pressMultiSelectTool}
               icon="multiSelect"
             />
             <ToolBtn
               label={t.editor.text}
               hint={shortcuts.hint(t.editor.text, 'toolText')}
               active={tool === 'text'}
-              onPress={() => {
-                setMultiSelectMode(false);
-                selectTool('text');
-                openTextSheet();
-              }}
+              onPress={pressTextTool}
               icon="type"
             />
             <ToolBtn
               label={t.editor.glyphs}
               active={tool === 'insert'}
-              onPress={() => {
-                setMultiSelectMode(false);
-                selectTool('insert');
-                setInsertSheetOpen(true);
-              }}
+              onPress={pressInsertTool}
               icon="shapes"
             />
             <ToolBtn
               label={t.editor.colors}
               active={tool === 'color'}
-              onPress={() => {
-                setMultiSelectMode(false);
-                selectTool('color');
-              }}
+              onPress={pressColorTool}
               icon="palette"
             />
             <ToolBtn
               label={t.editor.background}
               active={tool === 'background'}
-              onPress={() => {
-                setMultiSelectMode(false);
-                selectTool('background');
-              }}
+              onPress={pressBackgroundTool}
               icon="image"
             />
           </View>
@@ -2086,7 +2067,7 @@ export function EditorScreen() {
   );
 }
 
-function ToolBtn({
+function ToolBtnRaw({
   label,
   hint,
   active,
@@ -2127,6 +2108,14 @@ function ToolBtn({
     </View>
   );
 }
+
+/**
+ * Memoized: the tool rail is six of these and a drag re-renders the screen every
+ * frame. Their presses are hoisted into `useCallback`s in the component above,
+ * so across a drag not one prop changes and all six subtrees (IconButton + Icon
+ * + label each) are skipped by reconciliation instead of rebuilt.
+ */
+const ToolBtn = memo(ToolBtnRaw);
 
 function TextInputStub({
   value,
@@ -2210,7 +2199,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     // RNGH sets touch-action:none on its wrapper, but style resets or browser
     // default-drags can break pointer capture mid-gesture on web. Belt-and-
-    // suspenders: assert both on the canvas card itself.
+    // suspenders: assert both here and on the gesture layer below.
+    touchAction: 'none',
+    userSelect: 'none',
+  },
+  /**
+   * The view the canvas gestures are attached to, and the only box that carries
+   * them: it is exactly the box `EditorCanvas` measures and draws into, so a
+   * press and a drawn handle can never be a border apart. Never give this layer
+   * a border, padding or margin — that would reintroduce the offset.
+   */
+  canvasGestureLayer: {
+    flex: 1,
     touchAction: 'none',
     userSelect: 'none',
   },

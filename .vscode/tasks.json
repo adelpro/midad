@@ -16,6 +16,13 @@
       "group": "test"
     },
     {
+      "label": "Check handle geometry",
+      "type": "shell",
+      "command": "node scripts/check-handles.mjs",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
       "label": "Check shortcut bindings",
       "type": "shell",
       "command": "node scripts/check-shortcuts.mjs",

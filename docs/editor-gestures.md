@@ -103,29 +103,46 @@ in-flight settle.
 
 ## 3. Handle hit-testing
 
-`hitHandle(obj, p)` maps the point into the object's local frame and tests against
-the same geometry the overlay draws (`resizeHandles`, `rotateHandle`).
+`hitHandle(obj, p, unit)` and `hitFrameHandle(frame, p, unit)` both delegate to the
+single copy of the rule — `pickHandle` in `hit-test.ts` — over the same geometry
+the overlay draws (`resizeHandles`, `rotateHandle`). `unit` is the frame's own
+units → screen pt factor; see `docs/editor-coordinates.md` §6.
 
-Radii are divided by the object's scale (`HANDLE_HIT_PAD / objectScale`) so the
-touch target stays a **constant size on screen** next to the drawn handles,
-regardless of object size — the same conversion that places them. See
-`docs/editor-coordinates.md` §6.
+| Constant              | Screen pt | Role                                                              |
+| --------------------- | --------- | ----------------------------------------------------------------- |
+| `HANDLE_TOUCH_RADIUS` | `22`      | Target around a resize handle — DESIGN.md §89's 44pt, as a radius |
+| `ROTATE_TOUCH_RADIUS` | `26`      | The grip is a lone handle, so it gets a wider target              |
 
-| Constant         | Value                                                                       |
-| ---------------- | --------------------------------------------------------------------------- |
-| `HANDLE_HIT_PAD` | `18 / Math.SQRT2` (≈ 12.73)                                                 |
-| `ROTATE_HIT_PAD` | `HANDLE_HIT_PAD + 8` — the grip is a lone handle, so it gets a wider target |
+Each radius is divided by `unit`, so the target is a **constant size on screen**
+beside the drawn handle — the same conversion that places them.
 
-**The closest target wins.** The rotate grip is considered first with its distance
-recorded, and a resize handle only displaces it if strictly closer — so the grip
-can never shadow a resize handle.
+**This was the cause of "the handles don't respond on Android".** The radii used
+to be design lengths and the pad never divided the view scale out, so a phone (a
+1080-unit canvas fits at ≈0.3) got a ~7pt target drawn 1.2pt off the box corner.
+Web felt perfect because the pointer there is a mouse. Every one of these
+statements is now asserted in screen pt by `scripts/check-handles.mjs`.
 
-**A whole selection is tested the same way, against its frame.** `hitFrameHandle`
-runs the same `pickHandle` over `selectionFrame(selectedIds, sizedObjects)` — the
-frame the overlay draws and the collection bar is anchored to — so there is one handle
-geometry and one box, not three. The frame carries no scale of its own (its
-half-extents are already visual), which is why its radii are not divided by
-anything: the chrome and the touch target are both in design units. See
+**Two further rules make a 44pt target usable**, both inside `pickHandle`:
+
+- The **rim rule** (`RIM_FRACTION` = 0.55): a resize handle is a candidate only
+  when the press falls in the box's outer band,
+  $\max(|l_x|/(w/2), |l_y|/(h/2)) \ge 0.55$. A target that is deliberately larger
+  than the drawn handle covers a _small_ object whole, so without this rule a
+  press in the middle of such an object would resize it instead of moving it —
+  the one thing a generous touch target must not break. It is a fraction, not a
+  length, so it behaves identically at every zoom. The grip sits outside the box
+  and clears the test on its own.
+- **Tier precedence**: rotate → corners → edges, nearest within the winning tier.
+  The grip can never shadow a resize handle, and a corner always beats an edge —
+  otherwise a press on a short object's corner grabs `e` and re-flows its text
+  instead of scaling it.
+
+**A whole selection is tested the same way, against its frame.**
+`hitFrameHandle` runs the same `pickHandle` over
+`selectionFrame(selectedIds, sizedObjects)` — the frame the overlay draws and the
+collection bar is anchored to — so there is one handle geometry and one box, not
+three. The frame carries no scale of its own (its half-extents are already
+visual), so its `unit` is the view scale alone. See
 [`editor-collections.md`](editor-collections.md) §3.
 
 ## 4. Dragging
@@ -290,7 +307,8 @@ state behind.
 | Composition, `useObjectGestures`, `tapRelay`                        | `src/editor/use-object-gestures.ts` |
 | `beginDrag` decision table, `updateDrag`                            | `src/editor/use-object-gestures.ts` |
 | `updateResize`, `resizeFactor`, `anchorFor`, `centerForAnchor`      | `src/editor/use-object-gestures.ts` |
-| `hitHandle`, `HANDLE_HIT_PAD`, `ROTATE_HIT_PAD`                     | `src/editor/use-object-gestures.ts` |
+| `hitHandle`, `hitFrameHandle`                                       | `src/editor/use-object-gestures.ts` |
+| `pickHandle`, `pickObject`, `HANDLE_TOUCH_RADIUS`, `RIM_FRACTION`   | `src/editor/hit-test.ts`            |
 | `settleRotation`, `cancelSettle`, `angleStep`, `snapRotationTarget` | `src/editor/use-object-gestures.ts` |
 | `beginTransform`, `applyPinch`, `applyRotation`, `clearResize`      | `src/editor/use-object-gestures.ts` |
 | `toDesign` (viewport → design)                                      | `src/editor/use-object-gestures.ts` |
@@ -299,3 +317,4 @@ state behind.
 | Shift/Cmd/Ctrl tracking (web)                                       | `src/editor/modifier-keys.web.ts`   |
 | Tap relay destination, hit-test effect                              | `src/editor/EditorCanvas.tsx`       |
 | The press race, multi-select, background flow                       | `docs/editor-selection.md`          |
+| Screen-pt regression checks                                         | `scripts/check-handles.mjs`         |

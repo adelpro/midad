@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -19,6 +19,8 @@ import {
   collectionBarPlacement,
   frameBottomCentre,
   frameTopCentre,
+  selectionCollection,
+  selectionFrame,
   type CollectionFrame,
 } from '@/editor/groups';
 import { useEditorStore } from '@/editor/store';
@@ -27,8 +29,10 @@ import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { rowStyle } from '@/i18n/rtl';
 import {
+  formatCollectionGroup,
   formatMemberLabel,
   formatPartLabel,
+  formatSelectedCount,
   type Language,
 } from '@/i18n/strings';
 import type { DesignObject } from '@/storage/project-schema';
@@ -116,6 +120,113 @@ export interface CollectionBarProps {
   onEnterMember: (id: string) => void;
   /** Step to the neighbouring member, with wraparound. */
   onStep: (direction: 1 | -1) => void;
+}
+
+/**
+ * The collection bar's host: the bar, plus the one thing that needs the canvas's
+ * *measured* geometry — where the frame is.
+ *
+ * **Why the host exists.** `sizedObjects` is published by `EditorCanvas` in an
+ * effect, after the render that produced it, so every frame of a drag writes the
+ * store twice. Reading that field from `EditorScreen` re-rendered the entire
+ * screen a second time per frame — top bar, both rails, four sheets — to move one
+ * label. Subscribed to here, the same write re-renders this subtree alone. Do not
+ * lift `sizedObjects` back up into the screen.
+ *
+ * The head's copy and its way back out arrive already resolved (`role`,
+ * `onExitCollection`) because binding a press belongs to the screen — learn mode
+ * intercepts it — and none of it depends on geometry. Only the frame does, and
+ * `selectionFrame` is the same derivation the canvas draws and the gesture layer
+ * grabs, so the bar can never end up pointing at a box of its own.
+ */
+export function CollectionBarHost({
+  selectedIds,
+  members,
+  activeIndex,
+  role,
+  onExitCollection,
+  onEnterMember,
+  onStep,
+}: {
+  selectedIds: readonly string[];
+  members: readonly DesignObject[];
+  activeIndex: number;
+  /** The bar's role sentence, for the head's accessibility hint. */
+  role: string;
+  /** The way back out of an entered collection, already help-mode bound. */
+  onExitCollection?: () => void;
+  onEnterMember: (id: string) => void;
+  onStep: (direction: 1 | -1) => void;
+}) {
+  const { language } = useT();
+  const sizedObjects = useEditorStore((s) => s.sizedObjects);
+  const project = useEditorStore((s) => s.project);
+
+  const head = useMemo(() => {
+    const selection = selectionFrame(selectedIds, sizedObjects);
+    if (!selection) {
+      return null;
+    }
+    if (selection.state === 'entered') {
+      const index = selection.members.findIndex((m) => m.id === selectedIds[0]);
+      const total = selection.members.length;
+      // The member's own label, not the primary text's: the rule has to hold for
+      // every member of the collection, which is exactly what `collectionMembers`
+      // uses to decide reading order.
+      const primary = members[index];
+      return {
+        frame: selection.frame,
+        mode: 'entered' as const,
+        // Position only: the bar's track names the member, and the head is a
+        // label rather than a sentence.
+        text: `${index + 1}/${total}`,
+        label: primary
+          ? memberLabel(primary, index, total, language)
+          : `${index + 1}/${total}`,
+        hint: role,
+        onPress: onExitCollection,
+      };
+    }
+    const text =
+      selectionCollection(selectedIds, project?.objects ?? []) !== null
+        ? formatCollectionGroup(selection.members.length, language)
+        : formatSelectedCount(selection.members.length, language);
+    return {
+      frame: selection.frame,
+      mode: 'whole' as const,
+      text,
+      label: text,
+      hint: role,
+      // Nothing to go back to: a whole selection already is the whole thing.
+      onPress: undefined,
+    };
+  }, [
+    selectedIds,
+    sizedObjects,
+    project,
+    members,
+    language,
+    role,
+    onExitCollection,
+  ]);
+
+  if (!head) {
+    return null;
+  }
+  return (
+    <CollectionBar
+      frame={head.frame}
+      mode={head.mode}
+      text={head.text}
+      accessibilityLabel={head.label}
+      accessibilityHint={head.hint}
+      onPress={head.onPress}
+      members={members}
+      activeIndex={activeIndex}
+      onEnterMember={onEnterMember}
+      onStep={onStep}
+    />
+  );
 }
 
 /**
