@@ -1,6 +1,7 @@
-# Welcome to your Expo app 👋
+# midad
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+An Arabic calligraphy studio for iOS, Android and the web — built with
+[Expo](https://expo.dev) and [Expo Router](https://docs.expo.dev/router/introduction/).
 
 ## Documentation
 
@@ -9,18 +10,20 @@ what the code cannot tell you on its own — the invariants, the traps, and the
 trade-offs that were decided once. When a document and the code disagree, fix the
 code.
 
-| Document                                                              | Covers                                           |
-| --------------------------------------------------------------------- | ------------------------------------------------ |
-| [`editor-selection.md`](docs/editor-selection.md)                     | Select tool, multi-select, background image flow |
-| [`editor-state-and-history.md`](docs/editor-state-and-history.md)     | Store slices, undo/redo, `sizedObjects`, z-order |
-| [`editor-coordinates.md`](docs/editor-coordinates.md)                 | The four frames, fit-to-view, selection chrome   |
-| [`editor-render-contract.md`](docs/editor-render-contract.md)         | Canvas ↔ PNG ↔ SVG agreement                     |
-| [`editor-text-engine.md`](docs/editor-text-engine.md)                 | Arabic shaping, auto width, paragraph lifetime   |
-| [`editor-split-and-rejoin.md`](docs/editor-split-and-rejoin.md)       | The cluster split/rejoin algorithm               |
-| [`editor-gestures.md`](docs/editor-gestures.md)                       | Tap/pan/pinch/rotate, resize, release settle     |
-| [`editor-selection-bar.md`](docs/editor-selection-bar.md)             | The action rail, width budget, pins              |
-| [`editor-keyboard.md`](docs/editor-keyboard.md)                       | Binding table, matcher, chord text               |
-| [`editor-help-and-learn-mode.md`](docs/editor-help-and-learn-mode.md) | Help catalog, learn mode                         |
+| Document                                                              | Covers                                               |
+| --------------------------------------------------------------------- | ---------------------------------------------------- |
+| [`editor-selection.md`](docs/editor-selection.md)                     | Select tool, multi-select, background image flow     |
+| [`editor-state-and-history.md`](docs/editor-state-and-history.md)     | Store slices, undo/redo, `sizedObjects`, z-order     |
+| [`editor-coordinates.md`](docs/editor-coordinates.md)                 | The four frames, fit-to-view, selection chrome       |
+| [`editor-render-contract.md`](docs/editor-render-contract.md)         | Canvas ↔ PNG ↔ SVG agreement                         |
+| [`editor-text-engine.md`](docs/editor-text-engine.md)                 | Arabic shaping, auto width, paragraph lifetime       |
+| [`editor-split-and-rejoin.md`](docs/editor-split-and-rejoin.md)       | The cluster split/rejoin algorithm                   |
+| [`editor-collections.md`](docs/editor-collections.md)                 | Collections: groups, split words, the collection bar |
+| [`editor-groups.md`](docs/editor-groups.md)                           | Group membership and the whole-groups invariant      |
+| [`editor-gestures.md`](docs/editor-gestures.md)                       | Tap/pan/pinch/rotate, resize, release settle         |
+| [`editor-selection-bar.md`](docs/editor-selection-bar.md)             | The action rail, width budget, pins                  |
+| [`editor-keyboard.md`](docs/editor-keyboard.md)                       | Binding table, matcher, chord text                   |
+| [`editor-help-and-learn-mode.md`](docs/editor-help-and-learn-mode.md) | Help catalog, learn mode                             |
 
 Also:
 
@@ -70,13 +73,14 @@ In the output, you'll find options to open the app in a
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+You can start developing by editing the files inside the **`src/app`** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction/).
 
 ### Other setup steps
 
-- ESLint is already configured — see [Checking your work](#checking-your-work). This project follows Expo's ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/) guide, and `yarn lint:expo` runs `expo lint` itself.
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- ESLint is configured in `eslint.config.js` — the flat config built on
+  `eslint-config-expo` plus `eslint-config-prettier`. Run `yarn lint`.
+- There is no test runner. `yarn verify` is the gate: it runs the typecheck, the
+  lint and four standalone behaviour checks in parallel.
 
 ## Checking your work
 
@@ -92,7 +96,7 @@ node scripts/check-shortcuts.mjs # binding table + matcher + chord text
 node scripts/check-help.mjs      # help catalog ↔ strings.ts ↔ shortcuts.ts
 ```
 
-The first run of each is the slow one: the typecheck writes `tsconfig.tsbuildinfo` and the lint writes `.eslintcache` at the repo root, both gitignored, and later runs only redo what changed. Delete those two files to force a cold run.
+The first run of each is the slow one: the typecheck writes `.cache/tsconfig.tsbuildinfo` and the lint writes `.eslintcache` at the repo root, both gitignored, and later runs only redo what changed. Delete those two to force a cold run.
 
 ## Learn more
 

@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reading order, with prev/next stepping, a text member showing its own glyph, and
   an index caption so two tiles of the same kind can still be told apart. It sits
   above the frame, flipping below it when the frame is at the top of the canvas.
+- **Save to Photos** (native only). The export sheet can write the design straight
+  into the device photo library next to Share image / Export SVG / Export project
+  file. It asks for **add-only** access — saving never needs read permission — and
+  a denied permission reports itself in the sheet instead of failing silently.
+- **The status bar follows the app's own theme**, not the system one. The
+  light/dark choice is an in-app setting here, so the bar now matches it.
 
 ### Changed
 
@@ -43,9 +49,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Learn mode** now teaches the collection gestures — its canvas legend lists the
   collection handles, how to enter a collection and how to leave one — and the
   collection bar's tiles and arrows explain themselves on tap instead of stepping.
+- **The typecheck now fails on an unused local or parameter.**
+  `noUnusedLocals` + `noUnusedParameters` are on in `tsconfig.json`, so dead
+  bindings cannot creep back in. The tree was already clean; the new gate caught
+  one import orphaned during this cleanup.
+
+### Removed
+
+- **`outline` and `locked` are gone from the project schema and every path that
+  carried them.** `outline` was the worse of the two: it was plumbed into the
+  Skia layout and the layout signature, but only the SVG exporter ever rendered
+  it and nothing in the UI ever set it — so canvas, PNG and SVG disagreed about
+  any document that did. A file still carrying either key loads and ignores it.
+- Dead code, found by walking the import graph rather than guessing:
+  `src/storage/storage.ts` (a whole orphaned module), `ui/tag.tsx`,
+  `ui/divider.tsx`, `renderIcon`, `useRegisteredFonts`, the `setName` mutator,
+  `isPinned`, `projectFileUri`, three unused platform flags, nine unused icon
+  variants, one unused `StyleSheet` entry, twelve incidental `export` keywords
+  and the unreferenced barrel re-exports.
+- `expo-device-hub` — a developer LAN-mirroring CLI that had no business in an
+  app's `dependencies`. Removing it also dropped 43 transitive packages.
+- A shadowing two-key `.prettierrc`, which was winning Prettier's config lookup
+  and silently discarding every option in `.prettierrc.json`.
 
 ### Fixed
 
+- **Saving to the photo library threw at runtime.** `photo-library.native.ts`
+  called `MediaLibrary.saveToLibraryAsync` and
+  `MediaLibrary.requestPermissionsAsync` — on SDK 57 those namespace methods are
+  legacy shims that throw and point at `expo-media-library/legacy`. Rewritten
+  against the current top-level `Asset.create` + `requestPermissionsAsync`, and
+  the config plugin is now registered so the permission strings exist at all.
+- `projectFileUri` was declared in the tsc shim and implemented in both platform
+  files but called from nowhere; removed from all three.
+- The cache paths named in `AGENTS.md` and `README.md` did not match the code;
+  both now describe `.cache/tsconfig.tsbuildinfo`.
 - A grouped word could not be edited letter by letter: selecting a part grew back
   to the whole group. A part is now entered individually.
 - The collection chip measured its position against a box one padding-step larger
@@ -316,7 +354,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Removed Expo template demo code, demo assets, and unused dependencies
+- Removed Expo template demo code and unused dependencies. **Correction:** two
+  template leftovers survived that pass — the Expo-branded iOS icon and the
+  `expo-device-hub` dependency — both removed under \[Unreleased\].
 - Migrated package management from npm to yarn
 
 ## [Unreleased] template history

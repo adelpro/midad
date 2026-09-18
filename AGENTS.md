@@ -34,11 +34,12 @@ node scripts/verify.mjs          # everything, in parallel (also `yarn verify`)
 node scripts/verify.mjs --serial # same, one at a time
 ```
 
-Both slow tasks keep a cache at the repo root, so a re-run only redoes what
-changed: `tsconfig.tsbuildinfo` (`"incremental": true` in `tsconfig.json`) and
-`.eslintcache` (`--cache` on eslint). Both are gitignored — delete them to force
-a cold run. A `tsconfig.json`/`eslint.config.js` edit, a `yarn install` or a
-large branch switch invalidates them for you.
+Both slow tasks keep a cache, so a re-run only redoes what changed:
+`.cache/tsconfig.tsbuildinfo` (`"incremental": true` and `tsBuildInfoFile` in
+`tsconfig.json`) and `.eslintcache` (`--cache` on eslint, at the repo root). Both
+are gitignored — delete them to force a cold run. A
+`tsconfig.json`/`eslint.config.js` edit, a `yarn install` or a large branch switch
+invalidates them for you.
 
 Run one on its own when it covers what you touched:
 
@@ -51,18 +52,18 @@ node scripts/check-shortcuts.mjs # binding table + matcher + chord text
 node scripts/check-help.mjs      # help catalog ↔ strings.ts ↔ shortcuts.ts
 ```
 
-`verify` lints `src` alone, the same clean signal as above; `npx eslint src
-scripts` still reports the 2 pre-existing `no-undef` errors for `Buffer` in the
-glyph tooling, which is why it is not the one wired into the suite.
+`verify` lints `src` and `scripts` alike. The two `no-undef` errors for `Buffer`
+in the glyph tooling are gone — `eslint.config.js` declares `Buffer` as a readonly
+global for `scripts/**/*.mjs` — so the suite reports a clean run.
 
-Formatting is not part of that list — `npx prettier --write .` is ad hoc and
-prettier is not a dependency. `.prettierignore` keeps it off `android/`, `ios/`
-and the other generated trees (1235 files under `android/` alone), which is where
-the time went; run it pinned and cached
-(`npx prettier@3 --write . --cache --cache-location .prettiercache`), scoped to
-the files you touched when you can. Note `src/i18n/strings.ts` is CRLF
-in the working tree while prettier defaults to `endOfLine: "lf"`, so a whole-file
-rewrite of that one file is normal.
+Formatting is not part of that list. `prettier` **is** a devDependency, with
+`format` / `format:check` / `format:fix` scripts (and CI runs `format:check`), so
+reach for `yarn format:fix` rather than `npx prettier@3`. `.prettierrc.json` is
+the single config — do not add a second `.prettierrc`, which would win the lookup
+and silently drop every option in it. `.prettierignore` keeps formatting off
+`android/`, `ios/` and the other generated trees (1235 files under `android/`
+alone), which is where the time went; scope to the files you touched when you can.
+`endOfLine` is `"auto"`, so the CRLF in `src/i18n/strings.ts` survives a rewrite.
 
 `src/editor/shortcuts.ts` and `src/editor/help/catalog.ts` must declare **only
 `import type`** (and `src/i18n/strings.ts` no imports at all) — the checks
