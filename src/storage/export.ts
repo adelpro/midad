@@ -1,8 +1,8 @@
 import * as Sharing from 'expo-sharing';
 
 import { downloadBlob } from '@/storage/download';
-import { hasShareSheet } from '@/storage/platform';
 import { saveImageToPhotoLibrary } from '@/storage/photo-library';
+import { hasShareSheet } from '@/storage/platform';
 
 export type ImageExportFormat = 'png' | 'jpeg';
 
@@ -11,11 +11,6 @@ export interface ExportOptions {
   data: string | Blob;
   format: ImageExportFormat;
   fileName?: string;
-}
-
-export interface ExportResult {
-  savedToLibrary: boolean;
-  shared: boolean;
 }
 
 function mimeFor(format: ImageExportFormat): string {

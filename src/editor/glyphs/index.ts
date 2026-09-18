@@ -11,7 +11,6 @@ import {
   type GlyphGroup,
 } from '@/editor/glyphs/catalog';
 
-export { GLYPH_CATALOG } from '@/editor/glyphs/catalog';
 export type {
   GlyphBox,
   GlyphCatalogEntry,

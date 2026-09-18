@@ -85,7 +85,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { formatCollectionGroup, formatSelectedCount } from '@/i18n/strings';
 import { pickBackgroundImage } from '@/storage/background-image';
-import { shareFile, shareImage } from '@/storage/export';
+import { saveImageToLibrary, shareFile, shareImage } from '@/storage/export';
+import { hasMediaLibrary } from '@/storage/platform';
 import type {
   CalligraphyTextObject,
   DesignObject,
@@ -513,7 +514,6 @@ export function EditorScreen() {
       align: first.align,
       color: first.color,
       opacity: first.opacity,
-      outline: first.outline,
       shadows: first.shadows,
       presentation: first.presentation,
       transform: { ...first.transform, x: centre.x, y: centre.y },
@@ -1077,7 +1077,10 @@ export function EditorScreen() {
   }, [project, skiaFonts]);
 
   const runExport = useCallback(
-    async (key: 'image' | 'svg' | 'file', fn: () => Promise<void>) => {
+    async (
+      key: 'image' | 'svg' | 'file' | 'photos',
+      fn: () => Promise<void>,
+    ) => {
       setExporting(key);
       setExportError(null);
       try {
@@ -1137,6 +1140,26 @@ export function EditorScreen() {
       });
     });
   }, [project, exporting, runExport, t]);
+
+  /**
+   * Native only: write the design straight into the device photo library. A
+   * denied permission comes back as `false`, which `runExport` surfaces through
+   * the sheet's own error line rather than a silent no-op.
+   */
+  const exportSaveToPhotos = useCallback(() => {
+    if (!project || exporting) return;
+    void runExport('photos', async () => {
+      const png = renderProjectToPng(project, skiaFonts, { maxWidthPx: 2048 });
+      const saved = await saveImageToLibrary({
+        data: png.base64DataUri,
+        format: 'png',
+        fileName: `${project.name || 'midad-design'}.png`,
+      });
+      if (!saved) {
+        throw new Error(t.editor.saveToPhotosDenied);
+      }
+    });
+  }, [project, exporting, runExport, skiaFonts, t]);
 
   const setBgColor = useCallback((color: string) => {
     useEditorStore.getState().setCanvas({
@@ -2024,6 +2047,14 @@ export function EditorScreen() {
               fullWidth
               variant={exporting === 'image' ? 'secondary' : 'primary'}
             />
+            {hasMediaLibrary && (
+              <Button
+                label={t.editor.exportSaveToPhotos}
+                onPress={exportSaveToPhotos}
+                fullWidth
+                variant="secondary"
+              />
+            )}
             <Button
               label={t.editor.exportSvgAction}
               onPress={exportSvg}
@@ -2068,7 +2099,7 @@ function ToolBtn({
   active: boolean;
   onPress: () => void;
   icon:
-    "pen" | "type" | "sparkle" | "shapes" | "palette" | "image" | "multiSelect";
+    'pen' | 'type' | 'sparkle' | 'shapes' | 'palette' | 'image' | 'multiSelect';
 }) {
   const { colors: c } = useTheme();
   const { language } = useT();
@@ -2236,7 +2267,6 @@ const styles = StyleSheet.create({
   },
   toolBtnWrap: { alignItems: 'center', gap: 2 },
   toolLabel: { fontSize: typeScale.caption.size },
-  toolAction: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   sheetBody: { gap: spacing.md },
   textSheetBody: {
     gap: spacing.lg,
@@ -2244,7 +2274,7 @@ const styles = StyleSheet.create({
   },
   /** The text sheet's confirm button, outside the scrolling body. */
   sheetFooter: { marginTop: spacing.md },
-  fontRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  fontRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   fontBtn: { minWidth: 84 },
   colorStrip: {
     flexDirection: 'row',

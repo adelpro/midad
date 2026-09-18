@@ -8,4 +8,3 @@ export declare function listProjects(): Promise<MidadProject[]>;
 export declare function loadProject(id: string): Promise<MidadProject | null>;
 export declare function saveProject(project: MidadProject): Promise<void>;
 export declare function deleteProject(id: string): Promise<void>;
-export declare function projectFileUri(id: string): Promise<string | null>;

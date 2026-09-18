@@ -108,7 +108,6 @@ export interface CalligraphyTextObject extends GroupMember {
   align: TextAlign;
   color: string;
   opacity: number;
-  outline?: { color: string; width: number };
   /**
    * Drop shadows behind the glyphs, painted in order. Rendered on the canvas and
    * in the PNG export through Skia's text shadows; the SVG export emits an
@@ -121,7 +120,6 @@ export interface CalligraphyTextObject extends GroupMember {
   presentation?: TextPresentation;
   transform: ObjectTransform;
   zIndex: number;
-  locked?: boolean;
 }
 
 export interface GlyphObject extends GroupMember {
@@ -132,7 +130,6 @@ export interface GlyphObject extends GroupMember {
   opacity: number;
   transform: ObjectTransform;
   zIndex: number;
-  locked?: boolean;
 }
 
 /**
@@ -166,7 +163,6 @@ export interface ShapeObject extends GroupMember {
   opacity: number;
   transform: ObjectTransform;
   zIndex: number;
-  locked?: boolean;
 }
 
 export type DesignObject = CalligraphyTextObject | GlyphObject | ShapeObject;

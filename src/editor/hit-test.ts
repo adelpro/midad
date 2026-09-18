@@ -64,7 +64,7 @@ export function selectionPad(objectScale = 1): number {
 }
 
 /** Rotate-grip gap in the object's local frame. See `selectionPad`. */
-export function rotateGap(objectScale = 1): number {
+function rotateGap(objectScale = 1): number {
   return ROTATE_HANDLE_GAP / safeObjectScale(objectScale);
 }
 
@@ -210,7 +210,7 @@ export interface Aabb {
  * use this rather than the raw box, otherwise they would disagree with what the
  * user actually sees on a scaled object.
  */
-export function visualHalfExtents(o: SizedObject): {
+function visualHalfExtents(o: SizedObject): {
   hw: number;
   hh: number;
 } {
@@ -222,7 +222,7 @@ export function visualHalfExtents(o: SizedObject): {
  * Axis-aligned bounding box of one object, widened to contain the object's
  * rotated visual box (the standard rotated-rectangle extent).
  */
-export function objectAabb(o: SizedObject): Aabb {
+function objectAabb(o: SizedObject): Aabb {
   const { hw, hh } = visualHalfExtents(o);
   const rad = (o.transform.rotation * Math.PI) / 180;
   const cos = Math.abs(Math.cos(rad));
@@ -301,17 +301,5 @@ export function frameTransform(frame: SelectionFrame): TransformFrame {
     rotation: frame.rotation,
     flipH: false,
     flipV: false,
-  };
-}
-
-/** One object's own box as a frame — the same box `objectAabb` measures. */
-export function objectFrame(o: SizedObject): SelectionFrame {
-  const { hw, hh } = visualHalfExtents(o);
-  return {
-    x: o.transform.x,
-    y: o.transform.y,
-    hw,
-    hh,
-    rotation: o.transform.rotation,
   };
 }

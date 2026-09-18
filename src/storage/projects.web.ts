@@ -69,8 +69,3 @@ export async function deleteProject(id: string): Promise<void> {
     // ignore missing entry
   }
 }
-
-/** No real file URI exists on web; sharing reads project data directly. */
-export async function projectFileUri(_id: string): Promise<string | null> {
-  return null;
-}

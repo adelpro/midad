@@ -139,7 +139,6 @@ export function renderProjectToPng(
           opacity: obj.opacity,
           wrapWidth: obj.wrapWidth,
           maxWidth: W,
-          outline: obj.outline,
           shadows: obj.shadows,
         },
         fonts as NonNullable<SkTypefaceFontProvider>,
