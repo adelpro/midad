@@ -41,6 +41,9 @@ yarn-error.*
 *.tsbuildinfo
 .cache/
 
+# local EAS build artifacts (eas build --local --output builds/...)
+builds/
+
 # verification caches (see AGENTS.md "Checks")
 .eslintcache
 .prettiercache
