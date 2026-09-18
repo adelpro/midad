@@ -1,10 +1,10 @@
-import { Export, PenNib, TextAa, type IconProps } from "phosphor-react-native";
-import { StyleSheet, View } from "react-native";
+import { Export, PenNib, TextAa, type IconProps } from 'phosphor-react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme } from '@/hooks/use-theme';
 
-export type OnboardingArtVariant = "craft" | "fonts" | "share";
-export type OnboardingArtSize = "sm" | "md" | "lg";
+export type OnboardingArtVariant = 'craft' | 'fonts' | 'share';
+export type OnboardingArtSize = 'sm' | 'md' | 'lg';
 
 /**
  * Professional onboarding illustrations.
@@ -32,7 +32,7 @@ const GEOMETRY: Record<
 
 export function OnboardingArt({
   variant,
-  size = "md",
+  size = 'md',
 }: {
   variant: OnboardingArtVariant;
   size?: OnboardingArtSize;
@@ -74,16 +74,16 @@ export function OnboardingArt({
 
 const styles = StyleSheet.create({
   wrap: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   ring: {
     borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   disk: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

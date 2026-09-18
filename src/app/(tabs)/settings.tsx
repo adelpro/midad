@@ -1,18 +1,18 @@
-import Constants from "expo-constants";
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Toggle } from "@/components/ui";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
+import { Button, Toggle } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import {
   AUTO_SAVE_INTERVALS_MS,
   useSettings,
   type ThemePreference,
-} from "@/storage/settings";
-import { fontRoles, spacing, typeScale } from "@/theme";
+} from '@/storage/settings';
+import { fontRoles, spacing, typeScale } from '@/theme';
 
 function SectionLabel({ children }: { children: string }) {
   const { colors: c } = useTheme();
@@ -41,7 +41,7 @@ function ChoiceButton({
   return (
     <Button
       label={label}
-      variant={active ? "primary" : "secondary"}
+      variant={active ? 'primary' : 'secondary'}
       onPress={onPress}
       style={styles.choiceBtn}
     />
@@ -65,7 +65,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [languageJustChanged, setLanguageJustChanged] = useState(false);
 
-  const changeLanguage = (next: "ar" | "en") => {
+  const changeLanguage = (next: 'ar' | 'en') => {
     if (next !== lang) {
       setLanguage(next);
       setLanguageJustChanged(true);
@@ -73,9 +73,9 @@ export default function SettingsScreen() {
   };
 
   const themeOptions: { key: ThemePreference; label: string }[] = [
-    { key: "system", label: t.settings.themeSystem },
-    { key: "light", label: t.settings.themeLight },
-    { key: "dark", label: t.settings.themeDark },
+    { key: 'system', label: t.settings.themeSystem },
+    { key: 'light', label: t.settings.themeLight },
+    { key: 'dark', label: t.settings.themeDark },
   ];
 
   return (
@@ -88,7 +88,7 @@ export default function SettingsScreen() {
         // own transient indicator, so the gutter would only cost width.
         // NB: on web react-native-web turns `false` into `scrollbar-width:
         // none`, so the condition has to be `=== "web"`, not `!== "web"`.
-        showsVerticalScrollIndicator={Platform.OS === "web"}
+        showsVerticalScrollIndicator={Platform.OS === 'web'}
       >
         <Text
           style={[styles.title, { fontFamily: fonts.uiBold, color: c.ink }]}
@@ -111,13 +111,13 @@ export default function SettingsScreen() {
           <View style={styles.choiceRow}>
             <ChoiceButton
               label="العربية"
-              active={lang === "ar"}
-              onPress={() => changeLanguage("ar")}
+              active={lang === 'ar'}
+              onPress={() => changeLanguage('ar')}
             />
             <ChoiceButton
               label="English"
-              active={lang === "en"}
-              onPress={() => changeLanguage("en")}
+              active={lang === 'en'}
+              onPress={() => changeLanguage('en')}
             />
           </View>
         </View>
@@ -252,8 +252,8 @@ export default function SettingsScreen() {
               variant="secondary"
               onPress={() =>
                 router.push({
-                  pathname: "/onboarding",
-                  params: { from: "settings" },
+                  pathname: '/onboarding',
+                  params: { from: 'settings' },
                 })
               }
               style={styles.choiceBtn}
@@ -287,7 +287,7 @@ export default function SettingsScreen() {
                 { fontFamily: fonts.ui, color: c.muted },
               ]}
             >
-              {t.settings.version} {Constants.expoConfig?.version ?? "1.0.0"}
+              {t.settings.version} {Constants.expoConfig?.version ?? '1.0.0'}
             </Text>
           </View>
           <View
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: typeScale.caption.size,
-    textTransform: "uppercase",
+    textTransform: 'uppercase',
     letterSpacing: 0.05,
     marginTop: spacing.sm,
   },
@@ -354,9 +354,9 @@ const styles = StyleSheet.create({
     lineHeight: typeScale.caption.lineHeight,
   },
   choiceRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.sm,
-    flexWrap: "wrap",
+    flexWrap: 'wrap',
   },
   choiceBtn: {
     flex: 1,

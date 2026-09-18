@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 import {
   layoutArabicText,
   useParagraphFonts,
   type RenderedParagraph,
-} from "@/editor/skia/text";
-import type { CalligraphyTextObject } from "@/storage/project-schema";
+} from '@/editor/skia/text';
+import type { CalligraphyTextObject } from '@/storage/project-schema';
 
 export interface TextLayouts {
   [id: string]: RenderedParagraph;
@@ -30,14 +30,14 @@ function layoutSignature(
   for (const obj of objects) {
     const outline = obj.outline
       ? `${obj.outline.color}:${obj.outline.width}`
-      : "";
+      : '';
     const shadows = obj.shadows
       ? obj.shadows
           .map((s) => `${s.color}:${s.offsetX}:${s.offsetY}:${s.blur}`)
-          .join(",")
-      : "";
+          .join(',')
+      : '';
     signature +=
-      "\u0000" +
+      '\u0000' +
       [
         obj.id,
         obj.text,
@@ -45,11 +45,11 @@ function layoutSignature(
         obj.fontSize,
         obj.lineHeight,
         obj.align,
-        obj.wrapWidth ?? "",
+        obj.wrapWidth ?? '',
         obj.color,
         outline,
         shadows,
-      ].join("\u0001");
+      ].join('\u0001');
   }
   return signature;
 }

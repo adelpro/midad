@@ -1,7 +1,11 @@
 import { Platform } from 'react-native';
 
 /** Trigger a browser download for a Blob (or data URI). */
-export function downloadBlob(data: string | Blob, fileName: string, mimeType: string): void {
+export function downloadBlob(
+  data: string | Blob,
+  fileName: string,
+  mimeType: string,
+): void {
   if (Platform.OS !== 'web' || typeof document === 'undefined') {
     return;
   }

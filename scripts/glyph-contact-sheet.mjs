@@ -10,18 +10,18 @@
  *
  * Output: `glyph-contact-sheet.png` in the OS temp directory.
  */
-import { readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import sharp from "sharp";
+import sharp from 'sharp';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const CATALOG = join(ROOT, "src", "editor", "glyphs", "catalog.ts");
-const OUT = join(tmpdir(), "glyph-contact-sheet.png");
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const CATALOG = join(ROOT, 'src', 'editor', 'glyphs', 'catalog.ts');
+const OUT = join(tmpdir(), 'glyph-contact-sheet.png');
 
-const src = readFileSync(CATALOG, "utf8");
+const src = readFileSync(CATALOG, 'utf8');
 
 // The generated file is machine-written and regular, so a targeted pattern is safe here.
 const ENTRY =
@@ -41,7 +41,7 @@ for (const m of src.matchAll(ENTRY)) {
 }
 if (!entries.length)
   throw new Error(
-    "no catalog entries parsed — did the generated format change?",
+    'no catalog entries parsed — did the generated format change?',
   );
 
 const COLS = 8;
@@ -53,7 +53,7 @@ const width = COLS * TILE;
 const height = rows * (TILE + LABEL);
 
 const escape = (s) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const parts = [
   `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
   `<rect width="${width}" height="${height}" fill="#ffffff"/>`,
@@ -72,18 +72,18 @@ entries.forEach((e, i) => {
   );
   parts.push(
     `<text x="${x + TILE / 2}" y="${y + TILE + 16}" font-family="monospace" font-size="10" ` +
-      `fill="#666666" text-anchor="middle">${escape(e.labelEn)}${e.contours > 1 ? ` [${e.contours}]` : ""}</text>`,
+      `fill="#666666" text-anchor="middle">${escape(e.labelEn)}${e.contours > 1 ? ` [${e.contours}]` : ''}</text>`,
   );
 });
-parts.push("</svg>");
+parts.push('</svg>');
 
-const svg = parts.join("\n");
-writeFileSync(OUT.replace(/\.png$/, ".svg"), svg, "utf8");
+const svg = parts.join('\n');
+writeFileSync(OUT.replace(/\.png$/, '.svg'), svg, 'utf8');
 await sharp(Buffer.from(svg), { density: 96 }).png().toFile(OUT);
 
 console.log(`entries: ${entries.length}`);
 console.log(`wrote  : ${OUT}`);
-for (const group of ["mark", "letter"]) {
+for (const group of ['mark', 'letter']) {
   const list = entries.filter((e) => e.group === group);
   console.log(`\n[${group}] ${list.length}`);
   for (const e of list) {

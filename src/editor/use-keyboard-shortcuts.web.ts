@@ -1,11 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
 import {
   buildShortcutHints,
   matchShortcut,
   type EditorShortcutHints,
   type EditorShortcutsOptions,
-} from "@/editor/shortcuts";
+} from '@/editor/shortcuts';
 
 /**
  * Web implementation: one `keydown` listener on the document.
@@ -22,7 +22,7 @@ import {
 
 /** True when macOS-style modifier glyphs are the ones the user's keys show. */
 function detectMacPlatform(): boolean {
-  if (typeof navigator === "undefined") {
+  if (typeof navigator === 'undefined') {
     return false;
   }
   return /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -40,7 +40,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
     return true;
   }
   const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 }
 
 /** Chords never change during a session, so they are built once. */
@@ -58,7 +58,7 @@ export function useKeyboardShortcuts(
   }, [options]);
 
   useEffect(() => {
-    if (typeof document === "undefined") {
+    if (typeof document === 'undefined') {
       return;
     }
     const onKeyDown = (event: KeyboardEvent) => {
@@ -91,8 +91,8 @@ export function useKeyboardShortcuts(
       event.preventDefault();
       run({ shift: event.shiftKey, repeat: event.repeat });
     };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
   return HINTS;

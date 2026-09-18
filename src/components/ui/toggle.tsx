@@ -1,7 +1,7 @@
-import { Host, Switch } from "@expo/ui";
-import type { StyleProp, ViewStyle } from "react-native";
+import { Host, Switch } from '@expo/ui';
+import type { StyleProp, ViewStyle } from 'react-native';
 
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme } from '@/hooks/use-theme';
 
 export interface ToggleProps {
   value: boolean;
@@ -39,7 +39,7 @@ export function Toggle({
     <Host
       matchContents
       seedColor={c.accent}
-      colorScheme={isDark ? "dark" : "light"}
+      colorScheme={isDark ? 'dark' : 'light'}
       style={style}
       // RN maps `aria-label` onto `accessibilityLabel` natively; on web it lands
       // on the host element wrapping the real `role="switch"` input.

@@ -30,7 +30,11 @@ function extensionFor(format: ImageExportFormat): string {
  * Save an image. On native, writes to the photo library (with permission).
  * On web, triggers a browser download of the image.
  */
-export async function saveImageToLibrary({ data, format, fileName }: ExportOptions): Promise<boolean> {
+export async function saveImageToLibrary({
+  data,
+  format,
+  fileName,
+}: ExportOptions): Promise<boolean> {
   // Native: photo library (with permission). Web: browser download.
   return saveImageToPhotoLibrary({ data, format, fileName });
 }
@@ -39,7 +43,11 @@ export async function saveImageToLibrary({ data, format, fileName }: ExportOptio
  * Share an image. On native, opens the system share sheet. On web, uses the
  * Web Share API when available, otherwise falls back to a download.
  */
-export async function shareImage({ data, format, fileName }: ExportOptions): Promise<boolean> {
+export async function shareImage({
+  data,
+  format,
+  fileName,
+}: ExportOptions): Promise<boolean> {
   if (hasShareSheet) {
     return writeTempAndShare({
       data,
@@ -53,9 +61,13 @@ export async function shareImage({ data, format, fileName }: ExportOptions): Pro
   // Web share API.
   if (typeof navigator !== 'undefined' && 'share' in navigator) {
     try {
-      const file = new File([data], `${fileName ?? 'midad-design'}.${extensionFor(format)}`, {
-        type: mimeFor(format),
-      });
+      const file = new File(
+        [data],
+        `${fileName ?? 'midad-design'}.${extensionFor(format)}`,
+        {
+          type: mimeFor(format),
+        },
+      );
       const shareData = { files: [file] } as ShareData;
       if (navigator.canShare?.(shareData)) {
         await navigator.share(shareData);
@@ -66,7 +78,11 @@ export async function shareImage({ data, format, fileName }: ExportOptions): Pro
     }
   }
 
-  downloadBlob(data, `${fileName ?? 'midad-design'}.${extensionFor(format)}`, mimeFor(format));
+  downloadBlob(
+    data,
+    `${fileName ?? 'midad-design'}.${extensionFor(format)}`,
+    mimeFor(format),
+  );
   return true;
 }
 
@@ -83,7 +99,13 @@ export interface FileShareOptions {
  * Share an arbitrary file (SVG, JSON, ...). Same platform behavior as
  * `shareImage`: native share sheet, Web Share API, or browser download.
  */
-export async function shareFile({ data, fileName, mimeType, uti, dialogTitle }: FileShareOptions): Promise<boolean> {
+export async function shareFile({
+  data,
+  fileName,
+  mimeType,
+  uti,
+  dialogTitle,
+}: FileShareOptions): Promise<boolean> {
   if (hasShareSheet) {
     return writeTempAndShare({ data, fileName, mimeType, uti, dialogTitle });
   }
@@ -111,7 +133,13 @@ interface SharePayload {
   dialogTitle?: string;
 }
 
-async function writeTempAndShare({ data, fileName, mimeType, uti, dialogTitle }: SharePayload): Promise<boolean> {
+async function writeTempAndShare({
+  data,
+  fileName,
+  mimeType,
+  uti,
+  dialogTitle,
+}: SharePayload): Promise<boolean> {
   const { File, Paths } = await import('expo-file-system');
   const tmp = new File(Paths.cache, `share-${Date.now()}-${fileName}`);
   if (tmp.exists) {

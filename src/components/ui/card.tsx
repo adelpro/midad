@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -8,12 +8,12 @@ import {
   type AccessibilityState,
   type StyleProp,
   type ViewStyle,
-} from "react-native";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+} from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
-import { usePressFeedback } from "@/hooks/use-press-feedback";
-import { useTheme } from "@/hooks/use-theme";
-import { elevationStyle, radius, shadows } from "@/theme";
+import { usePressFeedback } from '@/hooks/use-press-feedback';
+import { useTheme } from '@/hooks/use-theme';
+import { elevationStyle, radius, shadows } from '@/theme';
 
 export interface CardProps extends PropsWithChildren {
   onPress?: () => void;

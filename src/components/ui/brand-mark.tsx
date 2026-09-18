@@ -23,7 +23,12 @@ export function BrandMark({ height = 32, color }: BrandMarkProps) {
   const { colors: c } = useTheme();
   const width = (height * VIEW_W) / VIEW_H;
   return (
-    <Svg width={width} height={height} viewBox="0 0 735 957" accessibilityLabel="midad">
+    <Svg
+      width={width}
+      height={height}
+      viewBox="0 0 735 957"
+      accessibilityLabel="midad"
+    >
       <Path d={D} fill={color ?? c.ink} fillRule="evenodd" clipRule="evenodd" />
     </Svg>
   );

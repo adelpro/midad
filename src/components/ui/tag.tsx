@@ -4,7 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
 import { radius, tagType, type MidadPalette } from '@/theme';
 
-export type TagTone = 'neutral' | 'red' | 'blue' | 'green' | 'yellow' | 'accent';
+export type TagTone =
+  'neutral' | 'red' | 'blue' | 'green' | 'yellow' | 'accent';
 
 function tones(c: MidadPalette): Record<TagTone, { bg: string; text: string }> {
   return {

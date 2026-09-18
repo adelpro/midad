@@ -16,7 +16,9 @@ export function saveThumb(id: string, base64DataUri: string): Promise<void> {
     const f = new File(Paths.cache, fileName(id));
     if (f.exists) f.delete();
     f.create();
-    const raw = base64DataUri.includes(',') ? base64DataUri.split(',')[1]! : base64DataUri;
+    const raw = base64DataUri.includes(',')
+      ? base64DataUri.split(',')[1]!
+      : base64DataUri;
     f.write(raw, { encoding: 'base64' });
   })();
 }

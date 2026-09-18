@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo } from 'react';
 
 import {
   Skia,
@@ -8,10 +8,10 @@ import {
   type SkParagraph,
   type SkTextStyle,
   type SkTypefaceFontProvider,
-} from "@shopify/react-native-skia";
+} from '@shopify/react-native-skia';
 
-import type { MidadProject } from "@/storage/project-schema";
-import { fontAssets } from "@/theme";
+import type { MidadProject } from '@/storage/project-schema';
+import { fontAssets } from '@/theme';
 
 /**
  * Arabic text rendering via the Skia Paragraph API.
@@ -29,7 +29,7 @@ import { fontAssets } from "@/theme";
  * wrap it in a { uri } asset object (MetroAsset shape).
  */
 function toFontSource(asset: unknown): DataModule {
-  if (typeof asset === "string") {
+  if (typeof asset === 'string') {
     return { uri: asset, width: 0, height: 0 };
   }
   return asset as DataModule;
@@ -52,7 +52,7 @@ export interface TextLayoutSpec {
   fontKey: string; // family name as registered (e.g. 'Amiri')
   fontSize: number;
   lineHeight: number;
-  align: "left" | "center" | "right";
+  align: 'left' | 'center' | 'right';
   color: string;
   opacity: number;
   /**
@@ -91,11 +91,11 @@ function buildParagraph(
   fonts: SkTypefaceFontProvider,
   width: number,
 ): SkParagraph {
-  const family = spec.fontKey in fontAssets ? spec.fontKey : "Amiri";
+  const family = spec.fontKey in fontAssets ? spec.fontKey : 'Amiri';
   const isArabic = /[\u0600-\u06FF]/.test(spec.text);
 
   // TextAlign enum: Left=0, Right=1, Center=2, Justify=3, Start=4, End=5
-  const align = spec.align === "center" ? 2 : spec.align === "right" ? 1 : 0;
+  const align = spec.align === 'center' ? 2 : spec.align === 'right' ? 1 : 0;
   // TextDirection enum: RTL=0, LTR=1
   const direction = isArabic ? 0 : 1;
 
@@ -211,8 +211,8 @@ export function paragraphLines(
     const lines = metrics.map((m) =>
       text.slice(m.startIndex, m.endExcludingWhitespaces ?? m.endIndex),
     );
-    const strip = (s: string) => s.replace(/\s+/g, "");
-    if (strip(lines.join("")) !== strip(text)) {
+    const strip = (s: string) => s.replace(/\s+/g, '');
+    if (strip(lines.join('')) !== strip(text)) {
       return null;
     }
     return lines.map((line) => line.trim()).filter((line) => line.length > 0);
@@ -231,7 +231,7 @@ export function textLineBreaks(
 ): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   for (const obj of project.objects) {
-    if (obj.type !== "text") {
+    if (obj.type !== 'text') {
       continue;
     }
     const rendered = layoutArabicText(

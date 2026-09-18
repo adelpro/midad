@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useT } from "@/i18n";
-import { formatDeletedNotice } from "@/i18n/strings";
-import { usePins } from "@/storage/pins";
-import type { MidadProject } from "@/storage/project-schema";
-import { deleteProject } from "@/storage/projects";
-import { deleteThumb } from "@/storage/thumbs";
+import { useT } from '@/i18n';
+import { formatDeletedNotice } from '@/i18n/strings';
+import { usePins } from '@/storage/pins';
+import type { MidadProject } from '@/storage/project-schema';
+import { deleteProject } from '@/storage/projects';
+import { deleteThumb } from '@/storage/thumbs';
 
 /** The user-visible undo contract. */
 export const UNDO_WINDOW_MS = 5_000;
@@ -135,7 +135,7 @@ export function useDeferredDelete(onUndo: () => void): DeferredDelete {
 
   return {
     pending,
-    notice: pending ? formatDeletedNotice(pending.name, language) : "",
+    notice: pending ? formatDeletedNotice(pending.name, language) : '',
     requestDelete,
     undo,
     flush,

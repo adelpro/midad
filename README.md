@@ -41,6 +41,28 @@ Also:
    npx expo start
    ```
 
+### Code quality and commits
+
+This project uses Yarn, Prettier, ESLint, TypeScript, Husky, and Commitlint.
+The format check covers repository configuration and documentation while the
+pre-commit hook formats every staged source file.
+Install [Gitleaks](https://github.com/gitleaks/gitleaks#installation) locally
+before committing; the pre-commit hook scans staged changes for secrets.
+
+```bash
+yarn format
+yarn format:check
+yarn lint
+yarn type-check
+yarn build:check
+yarn secrets:check
+```
+
+Commit messages must follow the Conventional Commits format, for example:
+`feat(editor): add snap guides`. GitHub Actions runs the same checks, rejects
+competing lockfiles, validates pull-request commit messages, and scans the
+repository for secrets.
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

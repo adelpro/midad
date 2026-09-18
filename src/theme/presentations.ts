@@ -1,13 +1,13 @@
 import type {
   CalligraphyTextObject,
   TextShadow,
-} from "@/storage/project-schema";
+} from '@/storage/project-schema';
 import {
   ENGRAVE_HIGHLIGHT,
   ENGRAVE_SHADOW,
   SHADOW_INK,
-} from "@/theme/content-palette";
-import { fontAssets } from "@/theme/fonts";
+} from '@/theme/content-palette';
+import { fontAssets } from '@/theme/fonts';
 
 /**
  * Presentation presets — the looks the Style navigator cycles through.
@@ -45,7 +45,7 @@ export interface PresentationPreset {
   resolve: (obj: CalligraphyTextObject) => PresentationPatch;
 }
 
-const BOLD_SUFFIX = "-Bold";
+const BOLD_SUFFIX = '-Bold';
 
 /**
  * The registered bold sibling of a font key, or null when the app ships none.
@@ -53,7 +53,7 @@ const BOLD_SUFFIX = "-Bold";
  * swap rather than a font-feature toggle.
  */
 export function boldSiblingForKey(fontKey: string): string | null {
-  const base = fontKey.replace(/-Bold$/, "");
+  const base = fontKey.replace(/-Bold$/, '');
   const bold = `${base}${BOLD_SUFFIX}`;
   return bold in fontAssets ? bold : null;
 }
@@ -69,9 +69,9 @@ export function regularSiblingForKey(fontKey: string): string | null {
 
 export const presentations: readonly PresentationPreset[] = [
   {
-    key: "classic",
-    labelAr: "أصلي",
-    labelEn: "Classic",
+    key: 'classic',
+    labelAr: 'أصلي',
+    labelEn: 'Classic',
     // The escape hatch: undoes every other preset, including weight.
     resolve: (obj) => ({
       fontKey: regularSiblingForKey(obj.fontKey) ?? obj.fontKey,
@@ -81,9 +81,9 @@ export const presentations: readonly PresentationPreset[] = [
     }),
   },
   {
-    key: "bold",
-    labelAr: "عريض",
-    labelEn: "Bold",
+    key: 'bold',
+    labelAr: 'عريض',
+    labelEn: 'Bold',
     // The only preset that changes the *glyph forms* of the same typeface.
     resolve: (obj) => {
       const bold = boldSiblingForKey(obj.fontKey);
@@ -91,27 +91,27 @@ export const presentations: readonly PresentationPreset[] = [
     },
   },
   {
-    key: "airy",
-    labelAr: "فسيح",
-    labelEn: "Airy",
+    key: 'airy',
+    labelAr: 'فسيح',
+    labelEn: 'Airy',
     resolve: (obj) => ({ lineHeight: Math.round(obj.fontSize * 1.9) }),
   },
   {
-    key: "tight",
-    labelAr: "مضغوط",
-    labelEn: "Tight",
+    key: 'tight',
+    labelAr: 'مضغوط',
+    labelEn: 'Tight',
     resolve: (obj) => ({ lineHeight: Math.round(obj.fontSize * 1.0) }),
   },
   {
-    key: "soft",
-    labelAr: "باهت",
-    labelEn: "Soft",
+    key: 'soft',
+    labelAr: 'باهت',
+    labelEn: 'Soft',
     resolve: () => ({ opacity: 0.6 }),
   },
   {
-    key: "shadow",
-    labelAr: "ظلّ",
-    labelEn: "Shadow",
+    key: 'shadow',
+    labelAr: 'ظلّ',
+    labelEn: 'Shadow',
     resolve: (obj) => ({
       shadows: [
         {
@@ -124,9 +124,9 @@ export const presentations: readonly PresentationPreset[] = [
     }),
   },
   {
-    key: "engraved",
-    labelAr: "محفور",
-    labelEn: "Engraved",
+    key: 'engraved',
+    labelAr: 'محفور',
+    labelEn: 'Engraved',
     resolve: (obj) => ({
       shadows: [
         {

@@ -9,7 +9,10 @@ export interface ThemeValue {
   colors: MidadPalette;
 }
 
-function resolveScheme(preference: ThemePreference, system: string | null): ColorScheme {
+function resolveScheme(
+  preference: ThemePreference,
+  system: string | null,
+): ColorScheme {
   if (preference === 'light') {
     return 'light';
   }

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Gesture, type ComposedGesture } from "react-native-gesture-handler";
-import { runOnJS, useReducedMotion } from "react-native-reanimated";
+import { useEffect, useMemo, useState } from 'react';
+import { Gesture, type ComposedGesture } from 'react-native-gesture-handler';
+import { runOnJS, useReducedMotion } from 'react-native-reanimated';
 
 import {
   memberOrigins,
@@ -8,7 +8,7 @@ import {
   rotateCollection,
   scaleCollection,
   selectionFrame,
-} from "@/editor/groups";
+} from '@/editor/groups';
 import {
   frameBox,
   frameTransform,
@@ -22,14 +22,14 @@ import {
   type ResizeHandle,
   type SelectionFrame,
   type SizedObject,
-} from "@/editor/hit-test";
+} from '@/editor/hit-test';
 import {
   isAdditiveSelectionModifier,
   useModifierKeys,
-} from "@/editor/modifier-keys";
-import { useEditorStore, type DragOrigin } from "@/editor/store";
-import { hapticTick } from "@/haptics";
-import type { DesignObject, ObjectTransform } from "@/storage/project-schema";
+} from '@/editor/modifier-keys';
+import { useEditorStore, type DragOrigin } from '@/editor/store';
+import { hapticTick } from '@/haptics';
+import type { DesignObject, ObjectTransform } from '@/storage/project-schema';
 
 /** Hit radius around a resize handle, in the object's local frame (design units). */
 const HANDLE_HIT_PAD = 18 / Math.SQRT2;
@@ -80,7 +80,7 @@ let tapRelay: ((p: { x: number; y: number }) => void) | null = null;
 /** The bits of an object transform needed to map to/from its local frame. */
 type Frame = Pick<
   ObjectTransform,
-  "x" | "y" | "scale" | "rotation" | "flipH" | "flipV"
+  'x' | 'y' | 'scale' | 'rotation' | 'flipH' | 'flipV'
 >;
 
 /**
@@ -128,16 +128,16 @@ function anchorFor(
 ): { x: number; y: number } {
   if (isCornerHandle(handle)) {
     return {
-      x: handle.includes("e") ? -hw : hw,
-      y: handle.includes("s") ? -hh : hh,
+      x: handle.includes('e') ? -hw : hw,
+      y: handle.includes('s') ? -hh : hh,
     };
   }
   switch (handle) {
-    case "e":
+    case 'e':
       return { x: -hw, y: 0 };
-    case "w":
+    case 'w':
       return { x: hw, y: 0 };
-    case "n":
+    case 'n':
       return { x: 0, y: hh };
     default: // 's'
       return { x: 0, y: -hh };
@@ -157,14 +157,14 @@ function resizeFactor(
   hh: number,
 ): number {
   if (isCornerHandle(handle)) {
-    const sx = handle.includes("e") ? 1 : -1;
-    const sy = handle.includes("s") ? 1 : -1;
+    const sx = handle.includes('e') ? 1 : -1;
+    const sy = handle.includes('s') ? 1 : -1;
     const ax = 2 * sx * hw;
     const ay = 2 * sy * hh;
     const denom = ax * ax + ay * ay;
     return denom > 0 ? 1 + (dx * ax + dy * ay) / denom : 1;
   }
-  const dir = handle === "e" || handle === "s" ? 1 : -1;
+  const dir = handle === 'e' || handle === 's' ? 1 : -1;
   const horizontal = isHorizontalHandle(handle);
   const half = Math.max(1, horizontal ? hw : hh);
   const delta = horizontal ? dx : dy;
@@ -194,7 +194,7 @@ function pickHandle(
   const grip = rotateHandle(box, objectScale);
   const gripDist = Math.hypot(local.x - grip.x, local.y - grip.y);
   if (gripDist <= ROTATE_HIT_PAD / objectScale) {
-    best = "rotate";
+    best = 'rotate';
     bestDist = gripDist;
   }
 
@@ -295,7 +295,7 @@ function collectionTarget(
   // selection is the one whose handles are live, so an entered collection's context
   // box can never steal a press from the member inside it.
   const selection = selectionFrame(store.selectedIds, store.sizedObjects);
-  return selection?.state === "whole" ? selection : null;
+  return selection?.state === 'whole' ? selection : null;
 }
 
 /**
@@ -783,8 +783,8 @@ function updateResize(
     hh,
   );
 
-  if (obj.type === "text" && isHorizontalHandle(handle)) {
-    const dir = handle === "e" ? 1 : -1;
+  if (obj.type === 'text' && isHorizontalHandle(handle)) {
+    const dir = handle === 'e' ? 1 : -1;
     const wrapWidth = Math.min(
       MAX_WRAP_WIDTH,
       Math.max(MIN_WRAP_WIDTH, gs.resizeOriginBoxW * factor),
@@ -944,7 +944,7 @@ function updateCollectionResize(
 function endDrag(reduceMotion: boolean) {
   const store = useEditorStore.getState();
   const { gs } = store;
-  if (gs.resizeTargetId && gs.resizeHandle === "rotate") {
+  if (gs.resizeTargetId && gs.resizeHandle === 'rotate') {
     const obj = store.project?.objects.find((o) => o.id === gs.resizeTargetId);
     if (obj) {
       const snapped = snapRotationTarget(obj.transform.rotation);
@@ -961,7 +961,7 @@ function endDrag(reduceMotion: boolean) {
   // A collection rotation settles the same way, on the frame's own angle — which
   // is the angle the members' shared rotation reads back as, so the frame the
   // user sees lands exactly on the multiple.
-  if (gs.collectionOrigins.length > 0 && gs.resizeHandle === "rotate") {
+  if (gs.collectionOrigins.length > 0 && gs.resizeHandle === 'rotate') {
     const snapped = snapRotationTarget(
       gs.resizeOriginRotation + gs.collectionDelta,
     );

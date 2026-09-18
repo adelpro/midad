@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * Pinned designs — a **device-local** preference, deliberately not part of
@@ -60,7 +60,7 @@ export const usePins = create<PinsState>()(
         }),
     }),
     {
-      name: "midad:pins",
+      name: 'midad:pins',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

@@ -1,10 +1,10 @@
-import { Slider as ExpoSlider, Host } from "@expo/ui";
-import { useCallback, useEffect, useInsertionEffect, useRef } from "react";
-import { Platform, type StyleProp, type ViewStyle } from "react-native";
+import { Slider as ExpoSlider, Host } from '@expo/ui';
+import { useCallback, useEffect, useInsertionEffect, useRef } from 'react';
+import { Platform, type StyleProp, type ViewStyle } from 'react-native';
 
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme } from '@/hooks/use-theme';
 
-export type SliderScale = "linear" | "log";
+export type SliderScale = 'linear' | 'log';
 
 export interface SliderProps {
   value: number;
@@ -44,7 +44,7 @@ function valueToPosition(
   scale: SliderScale,
 ): number {
   const t =
-    scale === "log"
+    scale === 'log'
       ? Math.log(value / min) / Math.log(max / min)
       : (value - min) / (max - min);
   return Math.min(1, Math.max(0, t));
@@ -63,7 +63,7 @@ function positionToValue(
   step: number,
 ): number {
   const raw =
-    scale === "log"
+    scale === 'log'
       ? min * Math.pow(max / min, position)
       : min + position * (max - min);
   const snapped = Math.round(raw / step) * step;
@@ -78,7 +78,7 @@ function positionToValue(
  */
 const SESSION_IDLE_MS = 300;
 
-const WEB_STYLE_ID = "midad-slider-web-css";
+const WEB_STYLE_ID = 'midad-slider-web-css';
 
 /**
  * Corrections for `@expo/ui`'s web slider, which is a real `<input type="range">`
@@ -119,13 +119,13 @@ const WEB_CSS = `
 /** Injects {@link WEB_CSS} once per document. Web only — a no-op elsewhere. */
 function useWebSliderFixes() {
   useInsertionEffect(() => {
-    if (Platform.OS !== "web" || typeof document === "undefined") {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
       return;
     }
     if (document.getElementById(WEB_STYLE_ID)) {
       return;
     }
-    const style = document.createElement("style");
+    const style = document.createElement('style');
     style.id = WEB_STYLE_ID;
     style.textContent = WEB_CSS;
     document.head.appendChild(style);
@@ -159,7 +159,7 @@ export function Slider({
   min,
   max,
   step = 1,
-  scale = "linear",
+  scale = 'linear',
   onChange,
   onSlidingStart,
   onSlidingComplete,
@@ -171,7 +171,7 @@ export function Slider({
   const { colors: c, isDark } = useTheme();
   useWebSliderFixes();
 
-  const isLog = scale === "log";
+  const isLog = scale === 'log';
   /** What the control itself is driven with — its own units, always linear. */
   const position = isLog ? valueToPosition(value, min, max, scale) : value;
 
@@ -220,9 +220,9 @@ export function Slider({
     <Host
       // Pinned rather than inherited: the host also sets the direction for the
       // native control, and this is the one place that knows the intent.
-      layoutDirection={rtl ? "rightToLeft" : "leftToRight"}
+      layoutDirection={rtl ? 'rightToLeft' : 'leftToRight'}
       seedColor={c.accent}
-      colorScheme={isDark ? "dark" : "light"}
+      colorScheme={isDark ? 'dark' : 'light'}
       style={style}
       // RN maps `aria-label` onto `accessibilityLabel` natively. On web it lands
       // on the host element rather than the range input, which already carries

@@ -1,22 +1,17 @@
-import { useCallback, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  type LayoutChangeEvent,
-} from "react-native";
+import { useCallback, useState } from 'react';
+import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
-import { Icon, IconButton, Slider } from "@/components/ui";
-import { hapticTick } from "@/haptics";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
+import { Icon, IconButton, Slider } from '@/components/ui';
+import { hapticTick } from '@/haptics';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import {
   DEFAULT_LEADING_RATIO,
   fontRoles,
   radius,
   spacing,
   typeScale,
-} from "@/theme";
+} from '@/theme';
 
 /**
  * Typography controls for the editor's text sheets, split out of
@@ -249,10 +244,7 @@ export function TextPreview({
     <View style={styles.preview}>
       <View style={styles.previewHead}>
         <Text
-          style={[
-            styles.previewCaption,
-            { color: c.muted, fontFamily: font },
-          ]}
+          style={[styles.previewCaption, { color: c.muted, fontFamily: font }]}
         >
           {t.editor.preview}
         </Text>
@@ -279,8 +271,8 @@ export function TextPreview({
             fontSize: previewFontSize,
             lineHeight: previewFontSize * leadingRatio,
             color: blank ? c.faint : c.ink,
-            textAlign: "center",
-            writingDirection: isRTL ? "rtl" : "ltr",
+            textAlign: 'center',
+            writingDirection: isRTL ? 'rtl' : 'ltr',
           }}
         >
           {blank ? t.editor.previewSample : draft}
@@ -292,29 +284,29 @@ export function TextPreview({
 
 const styles = StyleSheet.create({
   numberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.sm,
   },
   numberLabel: { fontSize: typeScale.body.size },
   numberControls: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   numberValue: {
     minWidth: 56,
-    textAlign: "center",
+    textAlign: 'center',
     fontSize: typeScale.body.size,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   gauge: { gap: spacing.xs },
   preview: { gap: spacing.xs },
   previewHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.sm,
   },
   previewCaption: {
@@ -324,9 +316,9 @@ const styles = StyleSheet.create({
   previewBox: {
     borderWidth: 1,
     borderRadius: radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
     paddingHorizontal: spacing.md,
   },
 });

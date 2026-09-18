@@ -8,7 +8,12 @@ import { radius, spacing } from '@/theme';
 export function Kbd({ children }: PropsWithChildren) {
   const { colors: c } = useTheme();
   return (
-    <View style={[styles.base, { backgroundColor: c.surfaceAlt, borderColor: c.border }]}>
+    <View
+      style={[
+        styles.base,
+        { backgroundColor: c.surfaceAlt, borderColor: c.border },
+      ]}
+    >
       <Text style={[styles.label, { color: c.inkSoft }]}>{children}</Text>
     </View>
   );

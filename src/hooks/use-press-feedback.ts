@@ -3,9 +3,9 @@ import {
   useSharedValue,
   withSpring,
   type SharedValue,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { springs } from "@/theme";
+import { springs } from '@/theme';
 
 /**
  * Press feedback scale (DESIGN.md §4). Subtle enough to read as material

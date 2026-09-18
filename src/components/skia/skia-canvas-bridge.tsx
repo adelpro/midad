@@ -1,7 +1,7 @@
-import { WithSkiaWeb } from "@shopify/react-native-skia/lib/module/web";
-import { Platform } from "react-native";
+import { WithSkiaWeb } from '@shopify/react-native-skia/lib/module/web';
+import { Platform } from 'react-native';
 
-import { canvaskitWasmUrl } from "@/storage/platform";
+import { canvaskitWasmUrl } from '@/storage/platform';
 
 export interface SkiaCanvasBridgeProps {
   /**
@@ -19,7 +19,7 @@ export interface SkiaCanvasBridgeProps {
  * True inside Expo's static render, which runs in Node. `Platform.OS` is still
  * `"web"` there, so a DOM check is the only reliable way to detect the server.
  */
-const isServerRender = typeof window === "undefined";
+const isServerRender = typeof window === 'undefined';
 
 /**
  * Web-only entry point for Skia content.
@@ -35,7 +35,7 @@ export function SkiaCanvasBridge({
   fallback,
   componentProps,
 }: SkiaCanvasBridgeProps) {
-  if (Platform.OS !== "web") {
+  if (Platform.OS !== 'web') {
     return null;
   }
   // `WithSkiaWeb` renders a `lazy()` whose factory awaits CanvasKit's loader.

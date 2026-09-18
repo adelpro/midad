@@ -9,14 +9,14 @@ import {
   GLYPH_CATALOG,
   type GlyphCatalogEntry,
   type GlyphGroup,
-} from "@/editor/glyphs/catalog";
+} from '@/editor/glyphs/catalog';
 
-export { GLYPH_CATALOG } from "@/editor/glyphs/catalog";
+export { GLYPH_CATALOG } from '@/editor/glyphs/catalog';
 export type {
   GlyphBox,
   GlyphCatalogEntry,
   GlyphGroup,
-} from "@/editor/glyphs/catalog";
+} from '@/editor/glyphs/catalog';
 
 /** Lookup index, built once — the generated catalog is a static array. */
 const BY_KEY: ReadonlyMap<string, GlyphCatalogEntry> = new Map(

@@ -1,14 +1,14 @@
-import type { PropsWithChildren } from "react";
-import { useEffect } from "react";
-import type { StyleProp, ViewStyle } from "react-native";
+import type { PropsWithChildren } from 'react';
+import { useEffect } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSpring,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { springs } from "@/theme";
+import { springs } from '@/theme';
 
 /** Rise distance at the start of the entry, in dp. */
 const RISE = 8;

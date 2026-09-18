@@ -4,7 +4,7 @@
  * future migrations can upgrade saved projects.
  */
 
-export const PROJECT_FILE_EXT = "midad";
+export const PROJECT_FILE_EXT = 'midad';
 export const PROJECT_FILE_VERSION = 1;
 
 /** Transform of an object on the canvas (design units). */
@@ -21,13 +21,13 @@ export interface CanvasConfig {
   width: number;
   height: number;
   background: {
-    type: "paper" | "transparent" | "image";
+    type: 'paper' | 'transparent' | 'image';
     color?: string;
     imageUri?: string;
   };
 }
 
-export type TextAlign = "left" | "center" | "right";
+export type TextAlign = 'left' | 'center' | 'right';
 
 /**
  * Identifies a text object as one part of a word that was split into
@@ -93,7 +93,7 @@ export interface GroupMember {
 
 export interface CalligraphyTextObject extends GroupMember {
   id: string;
-  type: "text";
+  type: 'text';
   text: string;
   fontKey: string; // one of calligraphyFonts keys
   fontSize: number;
@@ -126,7 +126,7 @@ export interface CalligraphyTextObject extends GroupMember {
 
 export interface GlyphObject extends GroupMember {
   id: string;
-  type: "glyph";
+  type: 'glyph';
   glyphKey: string; // one of the decorative ornament keys
   color: string;
   opacity: number;
@@ -143,22 +143,22 @@ export interface GlyphObject extends GroupMember {
  * library UI all switch on it, and they must never disagree about the set.
  */
 export type ShapeKey =
-  | "circle"
-  | "square"
-  | "line"
-  | "star"
-  | "triangle"
-  | "ring"
-  | "diamond"
-  | "pentagon"
-  | "hexagon"
-  | "octagon"
-  | "crescent"
-  | "arch";
+  | 'circle'
+  | 'square'
+  | 'line'
+  | 'star'
+  | 'triangle'
+  | 'ring'
+  | 'diamond'
+  | 'pentagon'
+  | 'hexagon'
+  | 'octagon'
+  | 'crescent'
+  | 'arch';
 
 export interface ShapeObject extends GroupMember {
   id: string;
-  type: "shape";
+  type: 'shape';
   shapeKey: ShapeKey;
   color: string;
   fill: boolean;

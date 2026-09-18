@@ -1,18 +1,18 @@
-import { Asset } from "expo-asset";
+import { Asset } from 'expo-asset';
 
-import { getGlyphEntry, glyphPlacement } from "@/editor/glyphs";
+import { getGlyphEntry, glyphPlacement } from '@/editor/glyphs';
 import {
   SHAPE_BASE_SIZE,
   SHAPE_INSET,
   SHAPE_PATH_BUILDERS,
-} from "@/editor/skia/shape-geometry";
+} from '@/editor/skia/shape-geometry';
 import type {
   CalligraphyTextObject,
   GlyphObject,
   MidadProject,
   ShapeObject,
-} from "@/storage/project-schema";
-import { calligraphyFonts, fontAssets } from "@/theme";
+} from '@/storage/project-schema';
+import { calligraphyFonts, fontAssets } from '@/theme';
 
 export interface SvgFontFace {
   family: string;
@@ -21,22 +21,22 @@ export interface SvgFontFace {
 
 function escapeXml(s: string): string {
   return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 function familyForKey(fontKey: string): string {
   const entry = calligraphyFonts.find((f) => f.key === fontKey);
-  return entry ? entry.family : "Amiri";
+  return entry ? entry.family : 'Amiri';
 }
 
 /** XML id for an object's drop-shadow filter. */
 function shadowFilterId(objectId: string): string {
   // Object ids are not guaranteed to be id-safe, so anything unusual is folded.
-  return `shadow-${objectId.replace(/[^A-Za-z0-9_-]/g, "-")}`;
+  return `shadow-${objectId.replace(/[^A-Za-z0-9_-]/g, '-')}`;
 }
 
 /**
@@ -52,7 +52,7 @@ function splitShadowColor(color: string): {
   if (!match) {
     return { color };
   }
-  const parts = match[1].split(",").map((p) => p.trim());
+  const parts = match[1].split(',').map((p) => p.trim());
   if (parts.length !== 4) {
     return { color };
   }
@@ -72,13 +72,13 @@ function textFilterFor(obj: CalligraphyTextObject, id: string): string {
   const primitives = (obj.shadows ?? [])
     .map((s) => {
       const { color, opacity } = splitShadowColor(s.color);
-      const alpha = opacity === undefined ? "" : ` flood-opacity="${opacity}"`;
+      const alpha = opacity === undefined ? '' : ` flood-opacity="${opacity}"`;
       return (
         `<feDropShadow dx="${s.offsetX}" dy="${s.offsetY}"` +
         ` stdDeviation="${s.blur}" flood-color="${escapeXml(color)}"${alpha} />`
       );
     })
-    .join("");
+    .join('');
   // A generous region keeps large blurs from being clipped at the text box.
   return (
     `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%">` +
@@ -90,7 +90,7 @@ function textFilterFor(obj: CalligraphyTextObject, id: string): string {
 export function collectUsedFamilies(project: MidadProject): string[] {
   const set = new Set<string>();
   for (const obj of project.objects) {
-    if (obj.type === "text") {
+    if (obj.type === 'text') {
       set.add(familyForKey(obj.fontKey));
     }
   }
@@ -98,7 +98,7 @@ export function collectUsedFamilies(project: MidadProject): string[] {
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
+  let binary = '';
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
@@ -119,7 +119,7 @@ export async function collectSvgFontFaces(
   for (const family of families) {
     try {
       const asset = (fontAssets as Record<string, unknown>)[family];
-      if (typeof asset === "string") {
+      if (typeof asset === 'string') {
         const res = await fetch(asset);
         if (!res.ok) continue;
         const buf = await res.arrayBuffer();
@@ -133,7 +133,7 @@ export async function collectSvgFontFaces(
           await a.downloadAsync();
         }
         if (!a.localUri) continue;
-        const { File } = await import("expo-file-system");
+        const { File } = await import('expo-file-system');
         const f = new File(a.localUri);
         const raw = await f.bytes();
         out.push({
@@ -191,21 +191,21 @@ function shapeToSvg(shape: ShapeObject): string | null {
 /** Shape geometry inside a `0..size` box, mirrored by the Skia renderer. */
 function shapeGeometryToSvg(shape: ShapeObject, size: number): string | null {
   switch (shape.shapeKey) {
-    case "circle": {
+    case 'circle': {
       const attrs = shapePaintAttrs(shape);
       if (!attrs) return null;
       return `<circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - SHAPE_INSET}" ${attrs} />`;
     }
-    case "square": {
+    case 'square': {
       const attrs = shapePaintAttrs(shape);
       if (!attrs) return null;
       return `<rect x="${SHAPE_INSET}" y="${SHAPE_INSET}" width="${size - SHAPE_INSET * 2}" height="${size - SHAPE_INSET * 2}" ${attrs} />`;
     }
-    case "ring": {
+    case 'ring': {
       const attrs = shapePaintAttrs(shape, (shape.strokeWidth ?? 2) * 2);
       return `<circle cx="${size / 2}" cy="${size / 2}" r="${size / 3}" ${attrs} />`;
     }
-    case "line": {
+    case 'line': {
       const attrs = shapePaintAttrs(shape, (shape.strokeWidth ?? 2) * 2);
       return `<line x1="2" y1="${size / 2}" x2="${size - 2}" y2="${size / 2}" ${attrs} />`;
     }
@@ -216,7 +216,7 @@ function shapeGeometryToSvg(shape: ShapeObject, size: number): string | null {
       if (!attrs) return null;
       const join = attrs.includes('fill="none"')
         ? ' stroke-linejoin="round"'
-        : "";
+        : '';
       return `<path d="${build(size)}"${join} ${attrs} />`;
     }
   }
@@ -258,20 +258,20 @@ function textToSvg(
   outline?: { color: string; width: number },
   filterId?: string,
 ): string {
-  const sample = lines.join(" ");
+  const sample = lines.join(' ');
   const isArabic = /[\u0600-\u06FF]/.test(sample);
-  const rtl = isArabic ? ' direction="rtl" unicode-bidi="plaintext"' : "";
+  const rtl = isArabic ? ' direction="rtl" unicode-bidi="plaintext"' : '';
   const outlineAttrs = outline
     ? ` stroke="${escapeXml(outline.color)}" stroke-width="${outline.width}" paint-order="stroke"`
-    : "";
-  const filterAttr = filterId ? ` filter="url(#${filterId})"` : "";
+    : '';
+  const filterAttr = filterId ? ` filter="url(#${filterId})"` : '';
   const dy0 = -((lines.length - 1) * lineHeight) / 2;
   const spans = lines
     .map(
       (line, i) =>
         `<tspan x="0" dy="${i === 0 ? dy0 : lineHeight}">${escapeXml(line)}</tspan>`,
     )
-    .join("");
+    .join('');
   return (
     `<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"` +
     ` font-size="${fontSize}" fill="${escapeXml(color)}"${outlineAttrs}${filterAttr}${rtl}>${spans}</text>`
@@ -305,54 +305,54 @@ export function projectToSvg(
             (f) =>
               `@font-face{font-family:'${f.family}';src:url("${f.dataUri}") format("truetype");}`,
           )
-          .join("")}</style>`
-      : "";
+          .join('')}</style>`
+      : '';
 
   const bg = project.canvas.background;
   const bgRect =
-    bg.type === "transparent"
-      ? ""
-      : bg.type === "image" && bg.imageUri
+    bg.type === 'transparent'
+      ? ''
+      : bg.type === 'image' && bg.imageUri
         ? `<image href="${escapeXml(bg.imageUri)}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice" />`
-        : `<rect width="${W}" height="${H}" fill="${bg.type === "paper" ? escapeXml(bg.color ?? "#F7F6F3") : "#FFFFFF"}" />`;
+        : `<rect width="${W}" height="${H}" fill="${bg.type === 'paper' ? escapeXml(bg.color ?? '#F7F6F3') : '#FFFFFF'}" />`;
 
   const sorted = [...project.objects].sort((a, b) => a.zIndex - b.zIndex);
   const body: string[] = [];
   const filters: string[] = [];
   for (const obj of sorted) {
     let inner: string | null;
-    if (obj.type === "text") {
+    if (obj.type === 'text') {
       let filterId: string | undefined;
       if (obj.shadows?.length) {
         filterId = shadowFilterId(obj.id);
         filters.push(textFilterFor(obj, filterId));
       }
       inner = textToSvg(
-        lineBreaks[obj.id] ?? obj.text.split("\n"),
+        lineBreaks[obj.id] ?? obj.text.split('\n'),
         obj.fontSize,
         obj.lineHeight,
         obj.color,
         obj.outline,
         filterId,
       );
-    } else if (obj.type === "shape") {
+    } else if (obj.type === 'shape') {
       inner = shapeToSvg(obj);
     } else {
       inner = glyphToSvg(obj);
     }
     if (!inner) continue;
     const opacity = obj.opacity ?? 1;
-    const opacityAttr = opacity < 1 ? ` opacity="${opacity}"` : "";
+    const opacityAttr = opacity < 1 ? ` opacity="${opacity}"` : '';
     body.push(
       `<g transform="${transformAttr(obj.transform)}"${opacityAttr}>${inner}</g>`,
     );
   }
 
-  const defsBody = `${styleSheet}${filters.join("")}`;
+  const defsBody = `${styleSheet}${filters.join('')}`;
 
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
-    `${defsBody ? `<defs>${defsBody}</defs>` : ""}${bgRect}${body.join("")}</svg>\n`
+    `${defsBody ? `<defs>${defsBody}</defs>` : ''}${bgRect}${body.join('')}</svg>\n`
   );
 }

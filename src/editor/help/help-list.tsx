@@ -1,11 +1,11 @@
-import type { PropsWithChildren } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import type { PropsWithChildren } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Icon, Kbd, type IconName } from "@/components/ui";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { rowStyle } from "@/i18n/rtl";
-import { fontRoles, radius, spacing, typeScale } from "@/theme";
+import { Icon, Kbd, type IconName } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { rowStyle } from '@/i18n/rtl';
+import { fontRoles, radius, spacing, typeScale } from '@/theme';
 
 export interface HelpRowProps {
   /** The control's name, already resolved for the current language. */
@@ -110,10 +110,10 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: radius.lg,
     borderWidth: 1,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   row: {
-    alignItems: "flex-start",
+    alignItems: 'flex-start',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -123,11 +123,11 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: radius.md,
     borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rowBody: { flex: 1, gap: 2 },
-  rowHead: { alignItems: "center", gap: spacing.sm, flexWrap: "wrap" },
+  rowHead: { alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   rowLabel: {
     flexShrink: 1,
     fontSize: typeScale.small.size,

@@ -1,9 +1,9 @@
-import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, useState } from 'react';
 
-import { useSettings } from "@/storage/settings";
-import { fontAssets } from "@/theme";
+import { useSettings } from '@/storage/settings';
+import { fontAssets } from '@/theme';
 
 /** How long the launch waits for the settings store before using defaults. */
 const HYDRATION_GRACE_MS = 1_500;

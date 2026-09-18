@@ -36,7 +36,8 @@ export default function TabsLayout() {
           ...dir,
         },
         sceneStyle: { backgroundColor: c.paper },
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="gallery"
         options={{

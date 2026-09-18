@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef } from "react";
-import { AppState, Platform } from "react-native";
+import { useCallback, useEffect, useRef } from 'react';
+import { AppState, Platform } from 'react-native';
 
-import { useEditorStore } from "@/editor/store";
-import { saveProject } from "@/storage/projects";
-import { AUTO_SAVE_DEBOUNCE_MS, useSettings } from "@/storage/settings";
+import { useEditorStore } from '@/editor/store';
+import { saveProject } from '@/storage/projects';
+import { AUTO_SAVE_DEBOUNCE_MS, useSettings } from '@/storage/settings';
 
 /**
  * Persists the JSON project after a quiet edit period and periodically while
@@ -15,7 +15,7 @@ export function useAutoSave() {
   const intervalMs = useSettings((s) => s.autoSaveIntervalMs);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest =
-    useRef<ReturnType<typeof useEditorStore.getState>["project"]>(null);
+    useRef<ReturnType<typeof useEditorStore.getState>['project']>(null);
   const dirty = useRef(false);
   const saving = useRef(false);
   const pending = useRef(false);
@@ -85,23 +85,23 @@ export function useAutoSave() {
     }, intervalMs);
 
     const flushOnBackground = () => {
-      if (AppState.currentState !== "active") {
+      if (AppState.currentState !== 'active') {
         void flush();
       }
     };
-    const subscription = AppState.addEventListener("change", flushOnBackground);
+    const subscription = AppState.addEventListener('change', flushOnBackground);
 
-    if (Platform.OS === "web" && typeof document !== "undefined") {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
       const handleVisibility = () => {
-        if (document.visibilityState === "hidden") {
+        if (document.visibilityState === 'hidden') {
           void flush();
         }
       };
-      document.addEventListener("visibilitychange", handleVisibility);
+      document.addEventListener('visibilitychange', handleVisibility);
       return () => {
         clearInterval(interval);
         subscription.remove();
-        document.removeEventListener("visibilitychange", handleVisibility);
+        document.removeEventListener('visibilitychange', handleVisibility);
       };
     }
 

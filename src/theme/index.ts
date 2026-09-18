@@ -6,9 +6,9 @@ export {
   inkSwatches,
   paperSwatches,
   SHADOW_INK,
-} from "./content-palette";
-export { calligraphyFonts, fontAssets, fontRoles } from "./fonts";
-export type { FontKey, FontRoles } from "./fonts";
+} from './content-palette';
+export { calligraphyFonts, fontAssets, fontRoles } from './fonts';
+export type { FontKey, FontRoles } from './fonts';
 export {
   boldSiblingForKey,
   DEFAULT_LEADING_RATIO,
@@ -16,8 +16,8 @@ export {
   presentations,
   presetPatch,
   regularSiblingForKey,
-} from "./presentations";
-export type { PresentationPatch, PresentationPreset } from "./presentations";
+} from './presentations';
+export type { PresentationPatch, PresentationPreset } from './presentations';
 export {
   breakpoint,
   colors,
@@ -33,10 +33,10 @@ export {
   tagType,
   typeScale,
   withAlpha,
-} from "./tokens";
+} from './tokens';
 export type {
   ColorScheme,
   MidadPalette,
   ShadowSpec,
   TypeVariant,
-} from "./tokens";
+} from './tokens';

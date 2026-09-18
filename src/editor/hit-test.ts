@@ -1,4 +1,4 @@
-import type { DesignObject } from "@/storage/project-schema";
+import type { DesignObject } from '@/storage/project-schema';
 
 export interface SizedObject {
   id: string;
@@ -7,7 +7,7 @@ export interface SizedObject {
    * resolve a whole selection's frame without walking the document again.
    */
   groupId?: string;
-  transform: DesignObject["transform"];
+  transform: DesignObject['transform'];
   zIndex: number;
   box: { width: number; height: number };
 }
@@ -17,15 +17,7 @@ export interface SizedObject {
  * grip that sits above it.
  */
 export type ResizeHandle =
-  | "nw"
-  | "n"
-  | "ne"
-  | "w"
-  | "e"
-  | "sw"
-  | "s"
-  | "se"
-  | "rotate";
+  'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se' | 'rotate';
 
 /** Distance (design units) between a box edge and its handle center. */
 export const SELECTION_HANDLE_PAD = 4;
@@ -95,32 +87,32 @@ export function resizeHandles(
   const hw = box.width / 2 + pad;
   const hh = box.height / 2 + pad;
   return [
-    { handle: "nw", x: -hw, y: -hh },
-    { handle: "w", x: -hw, y: 0 },
-    { handle: "sw", x: -hw, y: hh },
-    { handle: "n", x: 0, y: -hh },
-    { handle: "s", x: 0, y: hh },
-    { handle: "ne", x: hw, y: -hh },
-    { handle: "e", x: hw, y: 0 },
-    { handle: "se", x: hw, y: hh },
+    { handle: 'nw', x: -hw, y: -hh },
+    { handle: 'w', x: -hw, y: 0 },
+    { handle: 'sw', x: -hw, y: hh },
+    { handle: 'n', x: 0, y: -hh },
+    { handle: 's', x: 0, y: hh },
+    { handle: 'ne', x: hw, y: -hh },
+    { handle: 'e', x: hw, y: 0 },
+    { handle: 'se', x: hw, y: hh },
   ];
 }
 
 /** True for the four corner handles, which resize proportionally. */
 export function isCornerHandle(handle: ResizeHandle): boolean {
   return (
-    handle === "nw" || handle === "ne" || handle === "sw" || handle === "se"
+    handle === 'nw' || handle === 'ne' || handle === 'sw' || handle === 'se'
   );
 }
 
 /** True for the east/west edge handles, which drive horizontal resize. */
 export function isHorizontalHandle(handle: ResizeHandle): boolean {
-  return handle === "e" || handle === "w";
+  return handle === 'e' || handle === 'w';
 }
 
 /** True for the rotation grip. */
 export function isRotateHandle(handle: ResizeHandle): boolean {
-  return handle === "rotate";
+  return handle === 'rotate';
 }
 
 /**
@@ -140,8 +132,8 @@ export function rotateHandle(
 
 /** The transform fields needed to map between design space and an object's frame. */
 export type TransformFrame = Pick<
-  DesignObject["transform"],
-  "x" | "y" | "scale" | "rotation" | "flipH" | "flipV"
+  DesignObject['transform'],
+  'x' | 'y' | 'scale' | 'rotation' | 'flipH' | 'flipV'
 >;
 
 /**

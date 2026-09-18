@@ -6,7 +6,14 @@ import { spacing } from '@/theme';
 /** 1px hairline divider. */
 export function Divider({ inset = 0 }: { inset?: number }) {
   const { colors: c } = useTheme();
-  return <View style={[styles.line, { backgroundColor: c.border, marginHorizontal: inset }]} />;
+  return (
+    <View
+      style={[
+        styles.line,
+        { backgroundColor: c.border, marginHorizontal: inset },
+      ]}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

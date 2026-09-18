@@ -1,6 +1,6 @@
-import * as ImagePicker from "expo-image-picker";
+import * as ImagePicker from 'expo-image-picker';
 
-import { isWeb } from "@/storage/platform";
+import { isWeb } from '@/storage/platform';
 
 /**
  * Background image helpers.
@@ -17,7 +17,7 @@ import { isWeb } from "@/storage/platform";
  * base64 payload. Pure string logic — no imports, so it stays harness-testable.
  */
 export function dataUriToBase64(dataUri: string): string {
-  const comma = dataUri.indexOf(",");
+  const comma = dataUri.indexOf(',');
   return comma === -1 ? dataUri : dataUri.slice(comma + 1);
 }
 
@@ -39,7 +39,7 @@ export async function pickBackgroundImage(): Promise<string | null> {
       }
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ['images'],
       quality: 0.8,
       base64: true,
     });
@@ -50,7 +50,7 @@ export async function pickBackgroundImage(): Promise<string | null> {
     if (!asset?.base64) {
       return null;
     }
-    const mime = asset.mimeType ?? "image/jpeg";
+    const mime = asset.mimeType ?? 'image/jpeg';
     return `data:${mime};base64,${asset.base64}`;
   } catch {
     return null;

@@ -1,6 +1,6 @@
-import { Redirect } from "expo-router";
+import { Redirect } from 'expo-router';
 
-import { useSettings } from "@/storage/settings";
+import { useSettings } from '@/storage/settings';
 
 /**
  * The launch gate — the one thing `/` does.
@@ -21,7 +21,7 @@ export default function LaunchGate() {
 
   return (
     <Redirect
-      href={hasCompletedOnboarding ? "/(tabs)/gallery" : "/onboarding"}
+      href={hasCompletedOnboarding ? '/(tabs)/gallery' : '/onboarding'}
     />
   );
 }

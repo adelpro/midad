@@ -14,9 +14,13 @@ import { I18nManager, Platform } from 'react-native';
 export function rowStyle(isRTL: boolean) {
   const mirrorsAutomatically =
     Platform.OS === 'web'
-      ? typeof document !== 'undefined' && document.documentElement.dir === 'rtl'
+      ? typeof document !== 'undefined' &&
+        document.documentElement.dir === 'rtl'
       : I18nManager.isRTL;
   return {
-    flexDirection: isRTL && !mirrorsAutomatically ? ('row-reverse' as const) : ('row' as const),
+    flexDirection:
+      isRTL && !mirrorsAutomatically
+        ? ('row-reverse' as const)
+        : ('row' as const),
   };
 }

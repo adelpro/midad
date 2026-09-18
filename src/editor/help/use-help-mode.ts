@@ -1,8 +1,8 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState } from 'react';
 
-import { hapticTick } from "@/haptics";
+import { hapticTick } from '@/haptics';
 
-import type { HelpKey } from "./catalog";
+import type { HelpKey } from './catalog';
 
 export interface HelpMode {
   /** Whether learn mode is on. */

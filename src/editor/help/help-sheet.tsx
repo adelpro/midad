@@ -1,10 +1,10 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Sheet } from "@/components/ui";
-import type { ShortcutId } from "@/editor/shortcuts";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { fontRoles, spacing, typeScale } from "@/theme";
+import { Button, Sheet } from '@/components/ui';
+import type { ShortcutId } from '@/editor/shortcuts';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { fontRoles, spacing, typeScale } from '@/theme';
 
 import {
   HELP_GROUPS,
@@ -13,8 +13,8 @@ import {
   helpGroupLabel,
   helpLabel,
   helpRole,
-} from "./catalog";
-import { HelpCard, HelpRow } from "./help-list";
+} from './catalog';
+import { HelpCard, HelpRow } from './help-list';
 
 export interface HelpSheetProps {
   visible: boolean;
@@ -43,7 +43,7 @@ export function HelpSheet({
   const { t, language } = useT();
   const { colors: c } = useTheme();
   const fonts = fontRoles[language];
-  const learn = helpEntry("topBar.learn");
+  const learn = helpEntry('topBar.learn');
 
   return (
     <Sheet
@@ -90,7 +90,7 @@ export function HelpSheet({
                   // Deliberately through `chord` rather than off the binding
                   // table: the native stub returns "" so this surface can never
                   // advertise a key it cannot press.
-                  keys={entry.shortcutId ? chord(entry.shortcutId) : ""}
+                  keys={entry.shortcutId ? chord(entry.shortcutId) : ''}
                   divided={index > 0}
                 />
               ))}

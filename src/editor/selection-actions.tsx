@@ -29,8 +29,8 @@
  * its labels from honest.
  */
 
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useAnimatedStyle } from "react-native-reanimated";
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useAnimatedStyle } from 'react-native-reanimated';
 
 import {
   AnimatedPressable,
@@ -39,7 +39,7 @@ import {
   IconButton,
   Kbd,
   type IconName,
-} from "@/components/ui";
+} from '@/components/ui';
 import {
   HelpCard,
   HelpRow,
@@ -48,42 +48,42 @@ import {
   helpRole,
   type HelpKey,
   type HelpMode,
-} from "@/editor/help";
-import type { EditorShortcutHints } from "@/editor/shortcuts";
-import { usePressFeedback } from "@/hooks/use-press-feedback";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { rowStyle } from "@/i18n/rtl";
-import type { Language, Translation } from "@/i18n/strings";
-import { fontRoles, radius, spacing, typeScale } from "@/theme";
+} from '@/editor/help';
+import type { EditorShortcutHints } from '@/editor/shortcuts';
+import { usePressFeedback } from '@/hooks/use-press-feedback';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { rowStyle } from '@/i18n/rtl';
+import type { Language, Translation } from '@/i18n/strings';
+import { fontRoles, radius, spacing, typeScale } from '@/theme';
 
 /** Every action the selection bar can carry. `sel.<id>` is its help key. */
 export type SelectionActionId =
-  | "styleOpen"
-  | "stylePrev"
-  | "styleNext"
-  | "scaleUp"
-  | "scaleDown"
-  | "rotateCcw"
-  | "rotateCw"
-  | "flipH"
-  | "fitText"
-  | "split"
-  | "rejoin"
-  | "group"
-  | "ungroup"
-  | "duplicate"
-  | "bringToFront"
-  | "sendToBack"
-  | "delete"
-  | "alignLeft"
-  | "alignCenterH"
-  | "alignRight"
-  | "alignTop"
-  | "alignMiddleV"
-  | "alignBottom"
-  | "centerH"
-  | "centerV";
+  | 'styleOpen'
+  | 'stylePrev'
+  | 'styleNext'
+  | 'scaleUp'
+  | 'scaleDown'
+  | 'rotateCcw'
+  | 'rotateCw'
+  | 'flipH'
+  | 'fitText'
+  | 'split'
+  | 'rejoin'
+  | 'group'
+  | 'ungroup'
+  | 'duplicate'
+  | 'bringToFront'
+  | 'sendToBack'
+  | 'delete'
+  | 'alignLeft'
+  | 'alignCenterH'
+  | 'alignRight'
+  | 'alignTop'
+  | 'alignMiddleV'
+  | 'alignBottom'
+  | 'centerH'
+  | 'centerV';
 
 /**
  * The rail also renders the `⋯` control through the same descriptor, so it
@@ -91,7 +91,7 @@ export type SelectionActionId =
  * *press* is the one that differs: it is resolved as a disclosure, so learn
  * mode leaves it working while every other press explains instead.
  */
-export type SelectionCommandId = SelectionActionId | "more";
+export type SelectionCommandId = SelectionActionId | 'more';
 
 /**
  * What the current selection is capable of. Only these four facts decide which
@@ -129,16 +129,16 @@ export interface SelectionShape {
  * a full preset navigator (arrows + name) used to take out of the same row.
  */
 const RAIL_SLOTS: readonly (readonly SelectionActionId[])[] = [
-  ["styleOpen"],
-  ["scaleUp"],
-  ["scaleDown"],
-  ["fitText"],
-  ["split", "rejoin"],
-  ["group", "ungroup"],
-  ["duplicate"],
-  ["bringToFront"],
-  ["sendToBack"],
-  ["delete"],
+  ['styleOpen'],
+  ['scaleUp'],
+  ['scaleDown'],
+  ['fitText'],
+  ['split', 'rejoin'],
+  ['group', 'ungroup'],
+  ['duplicate'],
+  ['bringToFront'],
+  ['sendToBack'],
+  ['delete'],
 ];
 
 /**
@@ -156,23 +156,23 @@ const RAIL_SLOTS: readonly (readonly SelectionActionId[])[] = [
  * errand now; picking one from the panel is still one.
  */
 const OVERFLOW_ACTIONS: readonly SelectionActionId[] = [
-  "rotateCcw",
-  "rotateCw",
-  "flipH",
-  "alignLeft",
-  "alignCenterH",
-  "alignRight",
-  "alignTop",
-  "alignMiddleV",
-  "alignBottom",
-  "centerH",
-  "centerV",
-  "stylePrev",
-  "styleNext",
+  'rotateCcw',
+  'rotateCw',
+  'flipH',
+  'alignLeft',
+  'alignCenterH',
+  'alignRight',
+  'alignTop',
+  'alignMiddleV',
+  'alignBottom',
+  'centerH',
+  'centerV',
+  'stylePrev',
+  'styleNext',
 ];
 
 /** Destructive actions wear the danger fill in the sheet. */
-const DANGER_ACTIONS: readonly SelectionActionId[] = ["delete"];
+const DANGER_ACTIONS: readonly SelectionActionId[] = ['delete'];
 
 /**
  * Which slot each id belongs to, as an index into `RAIL_SLOTS`.
@@ -213,25 +213,25 @@ export function defaultSelectionBar(): SelectionActionId[] {
 
 function isAvailable(id: SelectionActionId, shape: SelectionShape): boolean {
   switch (id) {
-    case "styleOpen":
-    case "stylePrev":
-    case "styleNext":
-    case "fitText":
+    case 'styleOpen':
+    case 'stylePrev':
+    case 'styleNext':
+    case 'fitText':
       return shape.isText;
-    case "split":
+    case 'split':
       return shape.canSplit;
-    case "rejoin":
+    case 'rejoin':
       return shape.canRejoin;
-    case "group":
+    case 'group':
       return shape.canGroup;
-    case "ungroup":
+    case 'ungroup':
       return shape.canUngroup;
-    case "alignLeft":
-    case "alignCenterH":
-    case "alignRight":
-    case "alignTop":
-    case "alignMiddleV":
-    case "alignBottom":
+    case 'alignLeft':
+    case 'alignCenterH':
+    case 'alignRight':
+    case 'alignTop':
+    case 'alignMiddleV':
+    case 'alignBottom':
       return shape.isMulti;
     default:
       return true;
@@ -333,7 +333,7 @@ export interface SelectionActionSources {
   readonly t: Translation;
   readonly language: Language;
   /** Learn-mode binder: while it is on, a press explains instead of acting. */
-  readonly press: HelpMode["press"];
+  readonly press: HelpMode['press'];
   /** Blank chords on native, real ones on web (`EditorShortcutHints`). */
   readonly shortcuts: EditorShortcutHints;
   /** What each id does. A `Record`, so a new id cannot be left unhandled. */
@@ -390,14 +390,14 @@ export function resolveSelectionActions(
       : action;
     // `⋯` is a command, not an action: it never enters `bar`, so it has no pin
     // to read — which is also what keeps `bar` a list of actions.
-    const pinnable = id !== "more";
+    const pinnable = id !== 'more';
     const pinned = inBar.has(id as SelectionActionId);
     return {
       id,
       key,
       label,
       hint: entry.shortcutId ? shortcuts.hint(label, entry.shortcutId) : label,
-      chord: entry.shortcutId ? shortcuts.chord(entry.shortcutId) : "",
+      chord: entry.shortcutId ? shortcuts.chord(entry.shortcutId) : '',
       role: helpRole(entry, language),
       icon: entry.icon,
       danger: DANGER_ACTIONS.includes(id as SelectionActionId),
@@ -408,7 +408,7 @@ export function resolveSelectionActions(
             // The name is the *other* state's, so a press reads as what it will
             // do: an action in the bar offers to take itself out.
             label: helpLabel(
-              helpEntry(pinned ? "sel.unpinFromBar" : "sel.pinToBar").label,
+              helpEntry(pinned ? 'sel.unpinFromBar' : 'sel.pinToBar').label,
               t,
               language,
             ),
@@ -553,7 +553,7 @@ export function SelectionRailActions({
         accessibilityHint={more.role}
         hint={more.hint}
       >
-        <Icon name={more.icon ?? "more"} size={16} />
+        <Icon name={more.icon ?? 'more'} size={16} />
       </IconButton>
     </View>
   );
@@ -574,9 +574,9 @@ const PIN_HIT_SLOP = { top: 6, bottom: 6, left: 6, right: 6 };
  * The tile supplies it, pointing the same way the collection bar's own
  * previous/next buttons do.
  */
-const STEP_DIRECTION: Partial<Record<SelectionActionId, "prev" | "next">> = {
-  stylePrev: "prev",
-  styleNext: "next",
+const STEP_DIRECTION: Partial<Record<SelectionActionId, 'prev' | 'next'>> = {
+  stylePrev: 'prev',
+  styleNext: 'next',
 };
 
 /**
@@ -619,7 +619,7 @@ function SelectionActionRow({
   const press = usePressFeedback();
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: press.scale.value }],
-    backgroundColor: press.pressed.value ? c.surfacePressed : "transparent",
+    backgroundColor: press.pressed.value ? c.surfacePressed : 'transparent',
   }));
   const ink = action.danger ? c.danger : c.ink;
   const step = STEP_DIRECTION[action.id as SelectionActionId];
@@ -648,10 +648,10 @@ function SelectionActionRow({
           ]}
         >
           {action.icon || !step ? (
-            <Icon name={action.icon ?? "more"} size={16} color={ink} />
+            <Icon name={action.icon ?? 'more'} size={16} color={ink} />
           ) : (
             <DirectionIcon
-              isRTL={step === "prev" ? !isRTL : isRTL}
+              isRTL={step === 'prev' ? !isRTL : isRTL}
               size={16}
               color={ink}
             />
@@ -677,7 +677,7 @@ function SelectionActionRow({
           <Icon
             name="pin"
             size={14}
-            weight={pin.pinned ? "fill" : "regular"}
+            weight={pin.pinned ? 'fill' : 'regular'}
             color={pin.pinned ? c.accentText : c.faint}
           />
         </Pressable>
@@ -756,7 +756,7 @@ export function SelectionOverflowActions({
               { color: c.muted, fontFamily: fontRoles[language].ui },
             ]}
           >
-            {helpRole(helpEntry("sel.pinToBar"), language)}
+            {helpRole(helpEntry('sel.pinToBar'), language)}
           </Text>
 
           <HelpCard>
@@ -777,7 +777,7 @@ const styles = StyleSheet.create({
   // No `flexDirection` here on purpose: direction is the caller's to decide
   // through `rowStyle`, so the row can never be hardcoded one way.
   rail: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: RAIL_GAP,
   },
   scroll: { flexShrink: 1 },
@@ -796,14 +796,14 @@ const styles = StyleSheet.create({
    * press is `flex: 1` so the whole row is the target and only the pin is not.
    */
   row: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
   },
   rowAction: {
     flex: 1,
     minHeight: 44,
-    alignItems: "center",
+    alignItems: 'center',
     gap: spacing.sm,
   },
   /** The catalog's glyph, in the same box `HelpRow` draws for it. */
@@ -812,8 +812,8 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: radius.md,
     borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rowLabel: {
     flex: 1,
@@ -828,7 +828,7 @@ const styles = StyleSheet.create({
   pin: {
     width: 32,
     height: 32,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

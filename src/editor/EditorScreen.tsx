@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,21 +8,21 @@ import {
   StyleSheet,
   Text,
   View,
-} from "react-native";
+} from 'react-native';
 import {
   GestureDetector,
   GestureHandlerRootView,
-} from "react-native-gesture-handler";
-import { SafeAreaView } from "react-native-safe-area-context";
+} from 'react-native-gesture-handler';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Icon, IconButton, Reveal, Sheet } from "@/components/ui";
-import { EditorCanvasHost } from "@/editor/EditorCanvasHost";
-import { CollectionBar, memberLabel } from "@/editor/collection-bar";
+import { Button, Icon, IconButton, Reveal, Sheet } from '@/components/ui';
+import { EditorCanvasHost } from '@/editor/EditorCanvasHost';
+import { CollectionBar, memberLabel } from '@/editor/collection-bar';
 import {
   collectSvgFontFaces,
   collectUsedFamilies,
   projectToSvg,
-} from "@/editor/export/svg";
+} from '@/editor/export/svg';
 import {
   canGroup,
   canUngroup,
@@ -35,16 +35,16 @@ import {
   selectionCollection,
   selectionFrame,
   unitCount,
-} from "@/editor/groups";
+} from '@/editor/groups';
 import {
   helpEntry,
   helpRole,
   HelpSheet,
   LearnOverlay,
   useHelpMode,
-} from "@/editor/help";
-import { InsertSheet, type ShapeKey } from "@/editor/insert-sheet";
-import { renderProjectToPng } from "@/editor/render/offscreen";
+} from '@/editor/help';
+import { InsertSheet, type ShapeKey } from '@/editor/insert-sheet';
+import { renderProjectToPng } from '@/editor/render/offscreen';
 import {
   defaultSelectionBar,
   overflowActionIds,
@@ -57,46 +57,46 @@ import {
   type SelectionActionSources,
   type SelectionCommandId,
   type SelectionShape,
-} from "@/editor/selection-actions";
+} from '@/editor/selection-actions';
 import {
   NUDGE_STEP,
   NUDGE_STEP_LARGE,
   type ShortcutContext,
-} from "@/editor/shortcuts";
-import { textLineBreaks, useParagraphFonts } from "@/editor/skia/text";
-import { useEditorStore } from "@/editor/store";
+} from '@/editor/shortcuts';
+import { textLineBreaks, useParagraphFonts } from '@/editor/skia/text';
+import { useEditorStore } from '@/editor/store';
 import {
   FontSizeGauge,
   NumberStepper,
   TextPreview,
-} from "@/editor/text-style-controls";
-import { canSplitIntoClusters } from "@/editor/text/clusters";
+} from '@/editor/text-style-controls';
+import { canSplitIntoClusters } from '@/editor/text/clusters';
 import {
   mergePartTexts,
   splitTextObject,
   type SplitFailure,
-} from "@/editor/text/split";
-import { useAutoSave } from "@/editor/use-auto-save";
-import { useKeyboardShortcuts } from "@/editor/use-keyboard-shortcuts";
-import { useObjectGestures } from "@/editor/use-object-gestures";
-import { hapticDelete, hapticSuccess, hapticTick } from "@/haptics";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { formatCollectionGroup, formatSelectedCount } from "@/i18n/strings";
-import { pickBackgroundImage } from "@/storage/background-image";
-import { shareFile, shareImage } from "@/storage/export";
+} from '@/editor/text/split';
+import { useAutoSave } from '@/editor/use-auto-save';
+import { useKeyboardShortcuts } from '@/editor/use-keyboard-shortcuts';
+import { useObjectGestures } from '@/editor/use-object-gestures';
+import { hapticDelete, hapticSuccess, hapticTick } from '@/haptics';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { formatCollectionGroup, formatSelectedCount } from '@/i18n/strings';
+import { pickBackgroundImage } from '@/storage/background-image';
+import { shareFile, shareImage } from '@/storage/export';
 import type {
   CalligraphyTextObject,
   DesignObject,
   ObjectTransform,
   TextAlign,
-} from "@/storage/project-schema";
+} from '@/storage/project-schema';
 import {
   loadProject as loadProjectFile,
   saveProject,
-} from "@/storage/projects";
-import { useSettings } from "@/storage/settings";
-import { saveThumb, THUMB_MAX_WIDTH_PX } from "@/storage/thumbs";
+} from '@/storage/projects';
+import { useSettings } from '@/storage/settings';
+import { saveThumb, THUMB_MAX_WIDTH_PX } from '@/storage/thumbs';
 import {
   calligraphyFonts,
   fontRoles,
@@ -104,21 +104,21 @@ import {
   radius,
   spacing,
   typeScale,
-} from "@/theme";
+} from '@/theme';
 import {
   DEFAULT_INK,
   DEFAULT_PAPER,
   inkSwatches,
   paperSwatches,
-} from "@/theme/content-palette";
+} from '@/theme/content-palette';
 import {
   DEFAULT_LEADING_RATIO,
   presentationByKey,
   presentations,
   presetPatch,
-} from "@/theme/presentations";
+} from '@/theme/presentations';
 
-type ActiveTool = "select" | "text" | "insert" | "color" | "background";
+type ActiveTool = 'select' | 'text' | 'insert' | 'color' | 'background';
 
 /**
  * The current selection, in document order, read fresh from the store.
@@ -242,7 +242,7 @@ export function EditorScreen() {
   const exitCollection = useEditorStore((s) => s.exitCollection);
   const sizedObjects = useEditorStore((s) => s.sizedObjects);
 
-  const [tool, setTool] = useState<ActiveTool>("select");
+  const [tool, setTool] = useState<ActiveTool>('select');
   /**
    * Choosing a tool is a detent — tick, then switch. Programmatic resets (e.g.
    * after committing text) call `setTool` directly so they stay silent.
@@ -252,7 +252,7 @@ export function EditorScreen() {
     setTool(next);
   }, []);
   const [textSheetOpen, setTextSheetOpen] = useState(false);
-  const [draftText, setDraftText] = useState("");
+  const [draftText, setDraftText] = useState('');
   const [draftFont, setDraftFont] = useState<string>(calligraphyFonts[0].key);
   const [draftFontSize, setDraftFontSize] = useState(DEFAULT_FONT_SIZE);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -302,7 +302,7 @@ export function EditorScreen() {
   // (see `handleTapResult`). Learn mode turns the canvas inert too — there is
   // nothing to grab while every press is an explanation.
   const { gestures, tapPoint } = useObjectGestures(
-    tool === "select" && !help.active,
+    tool === 'select' && !help.active,
   );
 
   // Loaded once for offscreen rendering (thumbnails, exports).
@@ -348,7 +348,7 @@ export function EditorScreen() {
 
   /** The selection, narrowed to text objects for the typography controls. */
   const selectedText = useMemo(
-    () => (selectedObject?.type === "text" ? selectedObject : undefined),
+    () => (selectedObject?.type === 'text' ? selectedObject : undefined),
     [selectedObject],
   );
 
@@ -369,7 +369,7 @@ export function EditorScreen() {
     return (project?.objects ?? [])
       .filter(
         (o): o is CalligraphyTextObject =>
-          o.type === "text" && o.part?.rootId === rootId,
+          o.type === 'text' && o.part?.rootId === rootId,
       )
       .sort((a, b) => (a.part?.index ?? 0) - (b.part?.index ?? 0));
   }, [project, selectedText]);
@@ -402,7 +402,7 @@ export function EditorScreen() {
   /** Only meaningful when the text has more than one visual line to align. */
   const showAlign =
     !!selectedText &&
-    (selectedText.wrapWidth != null || selectedText.text.includes("\n"));
+    (selectedText.wrapWidth != null || selectedText.text.includes('\n'));
 
   /** The preset the selection is currently wearing (falling back to the first). */
   const activePresentation =
@@ -412,7 +412,7 @@ export function EditorScreen() {
   const draftFontMeta =
     calligraphyFonts.find((f) => f.key === draftFont) ?? calligraphyFonts[0];
   const draftFontLabel =
-    language === "ar" ? draftFontMeta.labelAr : draftFontMeta.labelEn;
+    language === 'ar' ? draftFontMeta.labelAr : draftFontMeta.labelEn;
 
   // The refusal message is transient — it explains a rejected action rather than
   // describing persistent state.
@@ -427,9 +427,9 @@ export function EditorScreen() {
   const splitFailureMessage = useCallback(
     (reason: SplitFailure): string => {
       switch (reason) {
-        case "too-few-clusters":
+        case 'too-few-clusters':
           return t.editor.splitNeedsTwoParts;
-        case "cluster-wrapped":
+        case 'cluster-wrapped':
           return t.editor.splitWrapped;
         default:
           return t.editor.splitFailed;
@@ -444,7 +444,7 @@ export function EditorScreen() {
     const obj = store.project?.objects.find(
       (o) => o.id === store.selectedIds[0],
     );
-    return obj?.type === "text" ? obj : undefined;
+    return obj?.type === 'text' ? obj : undefined;
   }, []);
 
   const splitSelected = useCallback(() => {
@@ -490,7 +490,7 @@ export function EditorScreen() {
     );
     const merged: CalligraphyTextObject = {
       id: `t_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
-      type: "text",
+      type: 'text',
       text,
       fontKey: first.fontKey,
       fontSize: first.fontSize,
@@ -539,13 +539,13 @@ export function EditorScreen() {
    * mode. The bar stays presentational and calls these like any other handler.
    */
   const pressMember = useCallback(
-    (id: string) => helpPress("sel.memberTile", () => enterMember(id)),
+    (id: string) => helpPress('sel.memberTile', () => enterMember(id)),
     [helpPress, enterMember],
   );
 
   const pressStep = useCallback(
     (direction: 1 | -1) =>
-      helpPress(direction < 0 ? "sel.partPrev" : "sel.partNext", () =>
+      helpPress(direction < 0 ? 'sel.partPrev' : 'sel.partNext', () =>
         stepMember(direction),
       ),
     [helpPress, stepMember],
@@ -560,7 +560,7 @@ export function EditorScreen() {
   const cyclePresentation = useCallback(
     (direction: 1 | -1) => {
       const primary = liveText();
-      const texts = currentSelection().filter((o) => o.type === "text");
+      const texts = currentSelection().filter((o) => o.type === 'text');
       if (!primary || texts.length === 0) {
         return;
       }
@@ -592,7 +592,7 @@ export function EditorScreen() {
    */
   const applyPresentation = useCallback((key: string) => {
     const preset = presentationByKey(key);
-    const texts = currentSelection().filter((o) => o.type === "text");
+    const texts = currentSelection().filter((o) => o.type === 'text');
     if (!preset || texts.length === 0) {
       return;
     }
@@ -641,7 +641,7 @@ export function EditorScreen() {
    */
   const patchStyle = useCallback((patch: Partial<CalligraphyTextObject>) => {
     const store = useEditorStore.getState();
-    const texts = currentSelection().filter((o) => o.type === "text");
+    const texts = currentSelection().filter((o) => o.type === 'text');
     if (texts.length === 0) {
       return;
     }
@@ -662,7 +662,7 @@ export function EditorScreen() {
     const store = useEditorStore.getState();
     const patches: { id: string; patch: Partial<DesignObject> }[] = [];
     for (const obj of currentSelection()) {
-      if (obj.type !== "text" || fontSize === obj.fontSize) {
+      if (obj.type !== 'text' || fontSize === obj.fontSize) {
         continue;
       }
       // Scale the leading with the size so the text does not reflow as it
@@ -844,7 +844,7 @@ export function EditorScreen() {
    * and only turn each letter backwards.
    */
   const flipSelection = useCallback(
-    (axis: "h" | "v") => {
+    (axis: 'h' | 'v') => {
       const store = useEditorStore.getState();
       const objects = currentSelection();
       if (objects.length === 0) {
@@ -856,8 +856,8 @@ export function EditorScreen() {
         store.updateObject(obj.id, {
           transform: {
             ...obj.transform,
-            flipH: axis === "h" ? !obj.transform.flipH : obj.transform.flipH,
-            flipV: axis === "v" ? !obj.transform.flipV : obj.transform.flipV,
+            flipH: axis === 'h' ? !obj.transform.flipH : obj.transform.flipH,
+            flipV: axis === 'v' ? !obj.transform.flipV : obj.transform.flipV,
           },
         });
         return;
@@ -888,7 +888,7 @@ export function EditorScreen() {
     const obj = store.project?.objects.find(
       (o) => o.id === store.selectedIds[0],
     );
-    if (!obj || obj.type !== "text") {
+    if (!obj || obj.type !== 'text') {
       return;
     }
     store.snapshot();
@@ -901,13 +901,13 @@ export function EditorScreen() {
     const obj = store.project?.objects.find(
       (o) => o.id === store.selectedIds[0],
     );
-    if (obj && obj.type === "text") {
+    if (obj && obj.type === 'text') {
       setDraftText(obj.text);
       setDraftFont(obj.fontKey);
       setDraftFontSize(obj.fontSize);
       setEditingId(obj.id);
     } else {
-      setDraftText("");
+      setDraftText('');
       setDraftFont(calligraphyFonts[0].key);
       setDraftFontSize(DEFAULT_FONT_SIZE);
       setEditingId(null);
@@ -922,7 +922,7 @@ export function EditorScreen() {
     const canvas = project.canvas;
     const existing =
       editingId && project.objects.find((o) => o.id === editingId);
-    if (existing && existing.type === "text") {
+    if (existing && existing.type === 'text') {
       const store = useEditorStore.getState();
       store.snapshot();
       // Keep the object's own leading ratio: re-opening the sheet to retype a
@@ -940,12 +940,12 @@ export function EditorScreen() {
     } else {
       addObject({
         id: `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        type: "text",
+        type: 'text',
         text: draftText.trim(),
         fontKey: draftFont,
         fontSize: draftFontSize,
         lineHeight: Math.round(draftFontSize * DEFAULT_LEADING_RATIO),
-        align: "center",
+        align: 'center',
         color: DEFAULT_INK,
         opacity: 1,
         transform: {
@@ -960,9 +960,9 @@ export function EditorScreen() {
       });
     }
     setTextSheetOpen(false);
-    setDraftText("");
+    setDraftText('');
     setEditingId(null);
-    setTool("select");
+    setTool('select');
   }, [project, draftText, draftFont, draftFontSize, editingId, addObject]);
 
   /**
@@ -980,7 +980,7 @@ export function EditorScreen() {
       }
       addObject({
         id: `g_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        type: "glyph",
+        type: 'glyph',
         glyphKey,
         color: DEFAULT_INK,
         opacity: 1,
@@ -994,7 +994,7 @@ export function EditorScreen() {
         },
         zIndex: (project.objects.length + 1) * 10,
       });
-      setTool("select");
+      setTool('select');
     },
     [project, addObject],
   );
@@ -1006,7 +1006,7 @@ export function EditorScreen() {
       }
       addObject({
         id: `s_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        type: "shape",
+        type: 'shape',
         shapeKey,
         color: DEFAULT_INK,
         // Stroked to match the library's previews and the ornament idiom —
@@ -1024,7 +1024,7 @@ export function EditorScreen() {
         },
         zIndex: (project.objects.length + 1) * 10,
       });
-      setTool("select");
+      setTool('select');
     },
     [project, addObject],
   );
@@ -1063,7 +1063,7 @@ export function EditorScreen() {
   }, [project, skiaFonts]);
 
   const runExport = useCallback(
-    async (key: "image" | "svg" | "file", fn: () => Promise<void>) => {
+    async (key: 'image' | 'svg' | 'file', fn: () => Promise<void>) => {
       setExporting(key);
       setExportError(null);
       try {
@@ -1081,12 +1081,12 @@ export function EditorScreen() {
 
   const exportImage = useCallback(() => {
     if (!project || exporting) return;
-    void runExport("image", async () => {
+    void runExport('image', async () => {
       const png = renderProjectToPng(project, skiaFonts, { maxWidthPx: 2048 });
       await shareImage({
         data: png.base64DataUri,
-        format: "png",
-        fileName: `${project.name || "midad-design"}.png`,
+        format: 'png',
+        fileName: `${project.name || 'midad-design'}.png`,
       });
     });
   }, [project, exporting, runExport, skiaFonts]);
@@ -1094,7 +1094,7 @@ export function EditorScreen() {
   const exportSvg = useCallback(() => {
     if (!project || exporting) return;
     const dialogTitle = t.editor.exportSvgAction;
-    void runExport("svg", async () => {
+    void runExport('svg', async () => {
       const faces = await collectSvgFontFaces(collectUsedFamilies(project));
       // SVG cannot re-flow Arabic text itself, so resolve the visual line
       // breaks from the same layout the canvas uses.
@@ -1102,9 +1102,9 @@ export function EditorScreen() {
       const svg = projectToSvg(project, faces, lineBreaks);
       await shareFile({
         data: svg,
-        fileName: `${project.name || "midad-design"}.svg`,
-        mimeType: "image/svg+xml",
-        uti: "public.svg-image",
+        fileName: `${project.name || 'midad-design'}.svg`,
+        mimeType: 'image/svg+xml',
+        uti: 'public.svg-image',
         dialogTitle,
       });
     });
@@ -1113,12 +1113,12 @@ export function EditorScreen() {
   const exportFile = useCallback(() => {
     if (!project || exporting) return;
     const dialogTitle = t.editor.exportProjectFile;
-    void runExport("file", async () => {
+    void runExport('file', async () => {
       await shareFile({
         data: JSON.stringify(project),
-        fileName: `${project.name || "midad"}.midad.json`,
-        mimeType: "application/json",
-        uti: "public.json",
+        fileName: `${project.name || 'midad'}.midad.json`,
+        mimeType: 'application/json',
+        uti: 'public.json',
         dialogTitle,
       });
     });
@@ -1126,7 +1126,7 @@ export function EditorScreen() {
 
   const setBgColor = useCallback((color: string) => {
     useEditorStore.getState().setCanvas({
-      background: { type: "paper", color },
+      background: { type: 'paper', color },
     });
   }, []);
 
@@ -1139,19 +1139,19 @@ export function EditorScreen() {
     const uri = await pickBackgroundImage();
     if (uri) {
       useEditorStore.getState().setCanvas({
-        background: { type: "image", imageUri: uri },
+        background: { type: 'image', imageUri: uri },
       });
       // The picker is a modal flow; return to Select so the canvas is
       // immediately draggable again. Silent (`setTool`, not `selectTool`) —
       // the picker already gave the user feedback.
-      setTool("select");
+      setTool('select');
     }
   }, []);
 
   /** Revert an image background to the default paper colour. */
   const clearBgImage = useCallback(() => {
     useEditorStore.getState().setCanvas({
-      background: { type: "paper", color: DEFAULT_PAPER },
+      background: { type: 'paper', color: DEFAULT_PAPER },
     });
   }, []);
 
@@ -1183,8 +1183,8 @@ export function EditorScreen() {
       nudgeDown: (context) => nudgeSelected(0, nudgeStep(context)),
       // Flip and rotation mirror the selection-bar buttons exactly: one object
       // turns or mirrors in place, a whole selection turns about its frame centre.
-      flipH: () => flipSelection("h"),
-      flipV: () => flipSelection("v"),
+      flipH: () => flipSelection('h'),
+      flipV: () => flipSelection('v'),
       rotateCcw: () => rotateSelection(-90),
       rotateCw: () => rotateSelection(90),
       bringToFront: () => {
@@ -1203,15 +1203,15 @@ export function EditorScreen() {
       ungroup: ungroupSelected,
       toolSelect: () => {
         setMultiSelectMode(false, true);
-        selectTool("select");
+        selectTool('select');
       },
       toolMultiSelect: () => {
-        selectTool("select");
+        selectTool('select');
         setMultiSelectMode(!multiSelectMode, multiSelectMode);
       },
       toolText: () => {
         setMultiSelectMode(false);
-        selectTool("text");
+        selectTool('text');
         openTextSheet();
       },
       toggleGrid: () => setGrid(!gridEnabled),
@@ -1277,8 +1277,8 @@ export function EditorScreen() {
     if (!selection) {
       return null;
     }
-    const role = helpRole(helpEntry("sel.collectionBar"), language);
-    if (selection.state === "entered") {
+    const role = helpRole(helpEntry('sel.collectionBar'), language);
+    if (selection.state === 'entered') {
       const index = selection.members.findIndex((m) => m.id === selectedIds[0]);
       const total = selection.members.length;
       // The member's own label, not the primary text's: the rule has to hold for
@@ -1287,7 +1287,7 @@ export function EditorScreen() {
       const primary = members[index];
       return {
         frame: selection.frame,
-        mode: "entered" as const,
+        mode: 'entered' as const,
         // Position only: the bar's track names the member, and the head is a
         // label rather than a sentence.
         text: `${index + 1}/${total}`,
@@ -1295,7 +1295,7 @@ export function EditorScreen() {
           ? memberLabel(primary, index, total, language)
           : `${index + 1}/${total}`,
         hint: role,
-        onPress: helpPress("sel.collectionBar", exitCollection),
+        onPress: helpPress('sel.collectionBar', exitCollection),
       };
     }
     const text =
@@ -1304,7 +1304,7 @@ export function EditorScreen() {
         : formatSelectedCount(selection.members.length, language);
     return {
       frame: selection.frame,
-      mode: "whole" as const,
+      mode: 'whole' as const,
       text,
       label: text,
       hint: role,
@@ -1331,7 +1331,7 @@ export function EditorScreen() {
       scaleDown: () => scaleSelection(0.9),
       rotateCcw: () => rotateSelection(-90),
       rotateCw: () => rotateSelection(90),
-      flipH: () => flipSelection("h"),
+      flipH: () => flipSelection('h'),
       fitText: fitTextToContent,
       split: splitSelected,
       rejoin: rejoinSelected,
@@ -1352,14 +1352,14 @@ export function EditorScreen() {
         }
       },
       delete: deleteSelected,
-      alignLeft: () => alignSelected("left"),
-      alignCenterH: () => alignSelected("centerH"),
-      alignRight: () => alignSelected("right"),
-      alignTop: () => alignSelected("top"),
-      alignMiddleV: () => alignSelected("middleV"),
-      alignBottom: () => alignSelected("bottom"),
-      centerH: () => alignSelected("canvasCenterH"),
-      centerV: () => alignSelected("canvasCenterV"),
+      alignLeft: () => alignSelected('left'),
+      alignCenterH: () => alignSelected('centerH'),
+      alignRight: () => alignSelected('right'),
+      alignTop: () => alignSelected('top'),
+      alignMiddleV: () => alignSelected('middleV'),
+      alignBottom: () => alignSelected('bottom'),
+      centerH: () => alignSelected('canvasCenterH'),
+      centerV: () => alignSelected('canvasCenterV'),
       more: () => setMoreOpen(true),
     }),
     [
@@ -1414,8 +1414,8 @@ export function EditorScreen() {
    */
   const hasContext =
     splitNotice !== null ||
-    tool === "background" ||
-    (tool === "color" && !!selectedObject);
+    tool === 'background' ||
+    (tool === 'color' && !!selectedObject);
 
   const railIds = railActionIds(shape, bar);
   const visibleCount = visibleActionCount({
@@ -1431,7 +1431,7 @@ export function EditorScreen() {
   const railActions = resolveSelectionActions(railIds, sources);
   // `⋯` is resolved on its own with `disclosure`, so learn mode leaves it
   // working — it is the only route to the actions the rail had no room for.
-  const moreAction = resolveSelectionActions(["more"], {
+  const moreAction = resolveSelectionActions(['more'], {
     ...sources,
     disclosure: true,
   })[0];
@@ -1454,7 +1454,7 @@ export function EditorScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView
         style={[styles.safe, { backgroundColor: c.paper }]}
-        edges={["top", "bottom"]}
+        edges={['top', 'bottom']}
       >
         {/* Top bar */}
         <View style={[styles.topBar, { borderColor: c.border }]}>
@@ -1465,7 +1465,7 @@ export function EditorScreen() {
               hint={t.editor.hints.back}
             >
               <Icon
-                name={language === "ar" ? "chevronRight" : "chevronLeft"}
+                name={language === 'ar' ? 'chevronRight' : 'chevronLeft'}
                 size={20}
               />
             </IconButton>
@@ -1480,7 +1480,7 @@ export function EditorScreen() {
                 onPress={undo}
                 disabled={!canUndo}
                 accessibilityLabel={t.editor.hints.undo}
-                hint={shortcuts.hint(t.editor.hints.undo, "undo")}
+                hint={shortcuts.hint(t.editor.hints.undo, 'undo')}
               >
                 <Icon name="undo" size={18} color={canUndo ? c.ink : c.faint} />
               </IconButton>
@@ -1488,15 +1488,15 @@ export function EditorScreen() {
                 onPress={redo}
                 disabled={!canRedo}
                 accessibilityLabel={t.editor.hints.redo}
-                hint={shortcuts.hint(t.editor.hints.redo, "redo")}
+                hint={shortcuts.hint(t.editor.hints.redo, 'redo')}
               >
                 <Icon name="redo" size={18} color={canRedo ? c.ink : c.faint} />
               </IconButton>
               <IconButton
                 onPress={() => setGrid(!gridEnabled)}
-                variant={gridEnabled ? "ink" : "ghost"}
+                variant={gridEnabled ? 'ink' : 'ghost'}
                 accessibilityLabel={t.editor.hints.grid}
-                hint={shortcuts.hint(t.editor.hints.grid, "toggleGrid")}
+                hint={shortcuts.hint(t.editor.hints.grid, 'toggleGrid')}
               >
                 <Icon
                   name="grid"
@@ -1508,7 +1508,7 @@ export function EditorScreen() {
                 onPress={save}
                 accessibilityLabel={t.editor.hints.save}
                 accessibilityHint={t.editor.hints.save}
-                hint={shortcuts.hint(t.editor.hints.save, "save")}
+                hint={shortcuts.hint(t.editor.hints.save, 'save')}
               >
                 <Icon name="download" size={18} />
               </IconButton>
@@ -1523,9 +1523,9 @@ export function EditorScreen() {
                 <Icon name="export" size={18} />
               </IconButton>
               <IconButton
-                onPress={help.press("topBar.help", () => setHelpOpen(true))}
+                onPress={help.press('topBar.help', () => setHelpOpen(true))}
                 accessibilityLabel={t.editor.helpTitle}
-                hint={shortcuts.hint(t.editor.helpTitle, "openHelp")}
+                hint={shortcuts.hint(t.editor.helpTitle, 'openHelp')}
               >
                 <Icon name="help" size={18} />
               </IconButton>
@@ -1646,7 +1646,7 @@ export function EditorScreen() {
 
               {/* Colour picker for the 'color' tool — in the rail, so switching
               tools cannot resize the canvas either. */}
-              {tool === "color" && selectedObject && (
+              {tool === 'color' && selectedObject && (
                 <View
                   style={[
                     styles.colorStrip,
@@ -1669,7 +1669,7 @@ export function EditorScreen() {
               )}
 
               {/* Background tool */}
-              {tool === "background" && (
+              {tool === 'background' && (
                 <View style={styles.bgToolWrap}>
                   <View
                     style={[
@@ -1695,7 +1695,7 @@ export function EditorScreen() {
                       style={[
                         styles.bgImageBtn,
                         { borderColor: c.border, backgroundColor: c.surface },
-                        project.canvas.background.type === "image" && {
+                        project.canvas.background.type === 'image' && {
                           borderColor: c.accentText,
                           backgroundColor: c.accentSoft,
                         },
@@ -1703,7 +1703,7 @@ export function EditorScreen() {
                     >
                       <Icon name="image" size={16} color={c.ink} />
                     </Pressable>
-                    {project.canvas.background.type === "image" && (
+                    {project.canvas.background.type === 'image' && (
                       <Pressable
                         onPress={clearBgImage}
                         accessibilityRole="button"
@@ -1733,14 +1733,14 @@ export function EditorScreen() {
           <View style={[styles.barInner, styles.toolRailInner]}>
             <ToolBtn
               label={t.editor.select}
-              hint={shortcuts.hint(t.editor.select, "toolSelect")}
-              active={tool === "select" && !multiSelectMode}
+              hint={shortcuts.hint(t.editor.select, 'toolSelect')}
+              active={tool === 'select' && !multiSelectMode}
               onPress={() => {
                 // Exit multi-select while keeping the group — the Select
                 // button is the "leave the mode, keep what you picked"
                 // affordance.
                 setMultiSelectMode(false, true);
-                selectTool("select");
+                selectTool('select');
               }}
               icon="pen"
             />
@@ -1748,11 +1748,11 @@ export function EditorScreen() {
               label={t.editor.hints.multiSelect}
               hint={shortcuts.hint(
                 t.editor.hints.multiSelect,
-                "toolMultiSelect",
+                'toolMultiSelect',
               )}
-              active={tool === "select" && multiSelectMode}
+              active={tool === 'select' && multiSelectMode}
               onPress={() => {
-                selectTool("select");
+                selectTool('select');
                 // Turning the mode off keeps the group (same as Select).
                 setMultiSelectMode(!multiSelectMode, multiSelectMode);
               }}
@@ -1760,40 +1760,40 @@ export function EditorScreen() {
             />
             <ToolBtn
               label={t.editor.text}
-              hint={shortcuts.hint(t.editor.text, "toolText")}
-              active={tool === "text"}
+              hint={shortcuts.hint(t.editor.text, 'toolText')}
+              active={tool === 'text'}
               onPress={() => {
                 setMultiSelectMode(false);
-                selectTool("text");
+                selectTool('text');
                 openTextSheet();
               }}
               icon="type"
             />
             <ToolBtn
               label={t.editor.glyphs}
-              active={tool === "insert"}
+              active={tool === 'insert'}
               onPress={() => {
                 setMultiSelectMode(false);
-                selectTool("insert");
+                selectTool('insert');
                 setInsertSheetOpen(true);
               }}
               icon="shapes"
             />
             <ToolBtn
               label={t.editor.colors}
-              active={tool === "color"}
+              active={tool === 'color'}
               onPress={() => {
                 setMultiSelectMode(false);
-                selectTool("color");
+                selectTool('color');
               }}
               icon="palette"
             />
             <ToolBtn
               label={t.editor.background}
-              active={tool === "background"}
+              active={tool === 'background'}
               onPress={() => {
                 setMultiSelectMode(false);
-                selectTool("background");
+                selectTool('background');
               }}
               icon="image"
             />
@@ -1837,8 +1837,8 @@ export function EditorScreen() {
               {calligraphyFonts.map((f) => (
                 <Button
                   key={f.key}
-                  label={language === "ar" ? f.labelAr : f.labelEn}
-                  variant={draftFont === f.key ? "primary" : "secondary"}
+                  label={language === 'ar' ? f.labelAr : f.labelEn}
+                  variant={draftFont === f.key ? 'primary' : 'secondary'}
                   onPress={() => setDraftFont(f.key)}
                   style={styles.fontBtn}
                 />
@@ -1869,13 +1869,13 @@ export function EditorScreen() {
                   {presentations.map((preset) => {
                     const active = activePresentation.key === preset.key;
                     const label =
-                      language === "ar" ? preset.labelAr : preset.labelEn;
+                      language === 'ar' ? preset.labelAr : preset.labelEn;
                     return (
                       <Button
                         key={preset.key}
                         label={label}
                         accessibilityLabel={label}
-                        variant={active ? "primary" : "secondary"}
+                        variant={active ? 'primary' : 'secondary'}
                         selected={active}
                         onPress={() => applyPresentation(preset.key)}
                         style={styles.presetBtn}
@@ -1914,9 +1914,9 @@ export function EditorScreen() {
                   <View style={styles.alignRow}>
                     {(
                       [
-                        ["left", t.editor.alignLeft],
-                        ["center", t.editor.alignCenter],
-                        ["right", t.editor.alignRight],
+                        ['left', t.editor.alignLeft],
+                        ['center', t.editor.alignCenter],
+                        ['right', t.editor.alignRight],
                       ] as const
                     ).map(([value, label]) => (
                       <Button
@@ -1924,7 +1924,7 @@ export function EditorScreen() {
                         label={label}
                         accessibilityLabel={label}
                         variant={
-                          selectedText.align === value ? "primary" : "secondary"
+                          selectedText.align === value ? 'primary' : 'secondary'
                         }
                         selected={selectedText.align === value}
                         onPress={() =>
@@ -1992,7 +1992,7 @@ export function EditorScreen() {
               label={t.editor.exportShareImage}
               onPress={exportImage}
               fullWidth
-              variant={exporting === "image" ? "secondary" : "primary"}
+              variant={exporting === 'image' ? 'secondary' : 'primary'}
             />
             <Button
               label={t.editor.exportSvgAction}
@@ -2038,13 +2038,7 @@ function ToolBtn({
   active: boolean;
   onPress: () => void;
   icon:
-    | "pen"
-    | "type"
-    | "sparkle"
-    | "shapes"
-    | "palette"
-    | "image"
-    | "multiSelect";
+    'pen' | 'type' | 'sparkle' | 'shapes' | 'palette' | 'image' | 'multiSelect';
 }) {
   const { colors: c } = useTheme();
   const { language } = useT();
@@ -2052,7 +2046,7 @@ function ToolBtn({
     <View style={styles.toolBtnWrap}>
       <IconButton
         onPress={onPress}
-        variant={active ? "ink" : "ghost"}
+        variant={active ? 'ink' : 'ghost'}
         accessibilityLabel={label}
         hint={hint ?? label}
       >
@@ -2109,7 +2103,7 @@ function TextInputStub({
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notice: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -2120,9 +2114,9 @@ const styles = StyleSheet.create({
     fontSize: typeScale.small.size,
     lineHeight: typeScale.small.lineHeight,
   },
-  presetRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
-  presetBtn: { flexGrow: 1, flexBasis: "30%" },
-  alignRow: { flexDirection: "row", gap: spacing.xs },
+  presetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  presetBtn: { flexGrow: 1, flexBasis: '30%' },
+  alignRow: { flexDirection: 'row', gap: spacing.xs },
   alignBtn: { flex: 1 },
   topBar: {
     paddingHorizontal: spacing.md,
@@ -2133,15 +2127,15 @@ const styles = StyleSheet.create({
   // *content* is capped and centred so the controls stay together on a wide
   // display instead of scattering across the window (DESIGN.md §5).
   barInner: {
-    width: "100%",
+    width: '100%',
     maxWidth: layout.maxToolbar,
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
-  title: { flex: 1, fontSize: typeScale.subheading.size, fontWeight: "600" },
-  topActions: { flexDirection: "row", gap: spacing.xs },
+  title: { flex: 1, fontSize: typeScale.subheading.size, fontWeight: '600' },
+  topActions: { flexDirection: 'row', gap: spacing.xs },
   /**
    * The canvas owns the leftover height. It sits in the normal column flow now:
    * the rail below it is a fixed height, so its box is constant and the
@@ -2152,12 +2146,12 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     borderWidth: 1,
-    overflow: "hidden",
+    overflow: 'hidden',
     // RNGH sets touch-action:none on its wrapper, but style resets or browser
     // default-drags can break pointer capture mid-gesture on web. Belt-and-
     // suspenders: assert both on the canvas card itself.
-    touchAction: "none",
-    userSelect: "none",
+    touchAction: 'none',
+    userSelect: 'none',
   },
   /**
    * The context rail — the strip above the tool rail holding whatever the
@@ -2177,19 +2171,19 @@ const styles = StyleSheet.create({
    * measured for the rail's truncation budget (`visibleActionCount`).
    */
   contextRow: {
-    width: "100%",
+    width: '100%',
     maxWidth: layout.maxToolbar,
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   /**
    * The selection rail never scrolls: it truncates to what fits and the rest
    * live in the `⋯` sheet.
    */
   selectionRail: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
   },
@@ -2197,8 +2191,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contextTrack: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.md,
   },
@@ -2207,26 +2201,26 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   toolRailInner: {
-    justifyContent: "space-around",
+    justifyContent: 'space-around',
     paddingHorizontal: spacing.md,
   },
-  toolBtnWrap: { alignItems: "center", gap: 2 },
+  toolBtnWrap: { alignItems: 'center', gap: 2 },
   toolLabel: { fontSize: typeScale.caption.size },
   toolAction: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   sheetBody: { gap: spacing.md },
-  fontRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  fontRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   fontBtn: { minWidth: 84 },
   colorStrip: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   colorSwatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 1 },
-  colorSwatchActive: { borderWidth: 3, borderColor: "#B0894F" },
+  colorSwatchActive: { borderWidth: 3, borderColor: '#B0894F' },
   /** The background toolbox sits at the start of the scrollable context zone. */
   bgToolWrap: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   /** Circle image button, sized to sit flush with the paper swatches. */
   bgImageBtn: {
@@ -2234,8 +2228,8 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     borderWidth: 1,

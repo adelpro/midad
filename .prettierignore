@@ -1,0 +1,14 @@
+node_modules/
+.yarn/
+.expo/
+dist/
+web-build/
+ios/
+android/
+assets/
+public/
+docs/
+*.lock
+*.lockb
+expo-env.d.ts
+.cache/

@@ -66,17 +66,31 @@ async function makeCanvas({ size, onPaper = false, availRatio = 0.7 }) {
 
 async function main() {
   // 1. icon.png — 1024, logo on warm paper
-  const icon = await makeCanvas({ size: 1024, onPaper: true, availRatio: 0.85 });
+  const icon = await makeCanvas({
+    size: 1024,
+    onPaper: true,
+    availRatio: 0.85,
+  });
   await sharp(icon).toFile(path.join(outDir, 'icon.png'));
   console.log('icon.png (1024, paper)');
 
   // 2. splash-icon.png — 512, transparent, centered, smaller
-  const splash = await makeCanvas({ size: 1024, onPaper: false, availRatio: 0.56 });
-  await sharp(splash).resize(512, 512).toFile(path.join(outDir, 'splash-icon.png'));
+  const splash = await makeCanvas({
+    size: 1024,
+    onPaper: false,
+    availRatio: 0.56,
+  });
+  await sharp(splash)
+    .resize(512, 512)
+    .toFile(path.join(outDir, 'splash-icon.png'));
   console.log('splash-icon.png (512, transparent)');
 
   // 3. favicon.png — 48, transparent background (blends into the browser tab)
-  const favicon = await makeCanvas({ size: 64, onPaper: false, availRatio: 0.92 });
+  const favicon = await makeCanvas({
+    size: 64,
+    onPaper: false,
+    availRatio: 0.92,
+  });
   await sharp(favicon).resize(48, 48).toFile(path.join(outDir, 'favicon.png'));
   console.log('favicon.png (48, transparent)');
 
@@ -93,7 +107,12 @@ async function main() {
     .png()
     .toBuffer();
   await sharp({
-    create: { width: 1024, height: 1024, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+    create: {
+      width: 1024,
+      height: 1024,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
   })
     .composite([{ input: monoPng, gravity: 'center' }])
     .png()

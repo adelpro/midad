@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
 import {
   AccessibilityInfo,
   Platform,
@@ -6,18 +6,18 @@ import {
   StyleSheet,
   Text,
   View,
-} from "react-native";
+} from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { rowStyle } from "@/i18n/rtl";
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { rowStyle } from '@/i18n/rtl';
 import {
   elevationStyle,
   fontRoles,
@@ -28,7 +28,7 @@ import {
   spacing,
   springs,
   typeScale,
-} from "@/theme";
+} from '@/theme';
 
 export interface SnackbarProps {
   visible: boolean;
@@ -84,7 +84,7 @@ export function Snackbar({
   // `accessibilityLiveRegion` covers Android; iOS needs an explicit
   // announcement, and doing both would double-speak.
   useEffect(() => {
-    if (visible && Platform.OS === "ios") {
+    if (visible && Platform.OS === 'ios') {
       AccessibilityInfo.announceForAccessibility(message);
     }
   }, [visible, message]);
@@ -103,7 +103,7 @@ export function Snackbar({
         styles.anchor,
         { bottom: bottomOffset },
         animStyle,
-        { pointerEvents: visible ? "box-none" : "none" },
+        { pointerEvents: visible ? 'box-none' : 'none' },
       ]}
       accessibilityLiveRegion="polite"
     >
@@ -146,17 +146,17 @@ export function Snackbar({
 
 const styles = StyleSheet.create({
   anchor: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
-    alignItems: "center",
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     zIndex: 20,
   },
   bar: {
-    width: "100%",
+    width: '100%',
     maxWidth: layout.maxContent,
-    alignItems: "center",
+    alignItems: 'center',
     gap: spacing.md,
     borderWidth: 1,
     borderRadius: radius.xl,
@@ -171,10 +171,10 @@ const styles = StyleSheet.create({
   action: {
     // 44pt minimum target via hit-slop rather than padding, so the bar stays thin.
     minHeight: 24,
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   actionLabel: {
     fontSize: typeScale.small.size,
-    fontWeight: "600",
+    fontWeight: '600',
   },
 });

@@ -37,9 +37,15 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
+    "prettier": "^3.9.8",
     "sharp": "^0.35.3",
     "typescript": "~6.0.3"
   },
@@ -50,7 +56,23 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "prebuild": "expo prebuild",
-    "lint": "expo lint"
+    "lint": "eslint src --cache --cache-location .cache/eslint --max-warnings=0",
+    "lint:fix": "eslint src --cache --cache-location .cache/eslint --fix",
+    "format": "prettier --write src scripts package.json app.json tsconfig.json eslint.config.js commitlint.config.js .prettierrc.json README.md .github",
+    "format:check": "prettier --check src scripts package.json app.json tsconfig.json eslint.config.js commitlint.config.js .prettierrc.json README.md .github",
+    "type-check": "tsc --noEmit",
+    "build:check": "expo export --platform web",
+    "secrets:check": "gitleaks protect --staged --redact",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "private": true,
   "packageManager": "yarn@4.13.0+sha512.5c20ba010c99815433e5c8453112165e673f1c7948d8d2b267f4b5e52097538658388ebc9f9580656d9b75c5cc996f990f611f99304a2197d4c56d21eea370e7"
