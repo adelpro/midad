@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "midad",
-    "slug": "midad",
+    "slug": "midad-arabic-calligraphy",
     "version": "0.2.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
@@ -26,7 +26,14 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.adelpro.midad",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES"
+      ]
     },
     "web": {
       "output": "static",
@@ -66,6 +73,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "df234965-3913-4a40-8d6e-dcef842ed175"
+      }
+    },
+    "owner": "adelpro"
   }
 }
