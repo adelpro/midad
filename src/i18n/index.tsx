@@ -1,5 +1,11 @@
 import type { PropsWithChildren } from 'react';
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+} from 'react';
 import { I18nManager, Platform } from 'react-native';
 
 import * as Localization from 'expo-localization';

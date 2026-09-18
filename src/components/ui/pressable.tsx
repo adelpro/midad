@@ -1,5 +1,5 @@
-import { Pressable } from "react-native";
-import Animated from "react-native-reanimated";
+import { Pressable } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 /**
  * `Pressable` as a Reanimated component.

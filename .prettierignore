@@ -19,3 +19,4 @@ assets/fonts/
 *.tsbuildinfo
 .eslintcache
 .prettiercache
+.cache/

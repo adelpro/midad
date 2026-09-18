@@ -8,16 +8,16 @@
  *
  * Run: node scripts/check-clusters.mjs
  */
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import ts from "typescript";
+import ts from 'typescript';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(
-  join(here, "..", "src", "editor", "text", "clusters.ts"),
-  "utf8",
+  join(here, '..', 'src', 'editor', 'text', 'clusters.ts'),
+  'utf8',
 );
 
 const { outputText } = ts.transpileModule(source, {
@@ -28,65 +28,65 @@ const { outputText } = ts.transpileModule(source, {
 });
 
 const moduleShim = { exports: {} };
-new Function("exports", "module", outputText)(moduleShim.exports, moduleShim);
+new Function('exports', 'module', outputText)(moduleShim.exports, moduleShim);
 const { segmentClusters, canSplitIntoClusters } = moduleShim.exports;
 
 /** @type {{name: string, text: string, expect: string[]}[]} */
 const cases = [
   {
-    name: "the reference word: م+د join, ر alone, س+ة join",
-    text: "مدرسة",
-    expect: ["مد", "ر", "سة"],
+    name: 'the reference word: م+د join, ر alone, س+ة join',
+    text: 'مدرسة',
+    expect: ['مد', 'ر', 'سة'],
   },
   {
-    name: "lam-alef forms a single connected ligature",
-    text: "لا",
-    expect: ["لا"],
+    name: 'lam-alef forms a single connected ligature',
+    text: 'لا',
+    expect: ['لا'],
   },
   {
-    name: "a fully connected word stays whole",
-    text: "كتب",
-    expect: ["كتب"],
+    name: 'a fully connected word stays whole',
+    text: 'كتب',
+    expect: ['كتب'],
   },
   {
-    name: "spaces separate clusters and are carried as gapBefore",
-    text: "بسم الله",
-    expect: ["بسم", "ا", "لله"],
+    name: 'spaces separate clusters and are carried as gapBefore',
+    text: 'بسم الله',
+    expect: ['بسم', 'ا', 'لله'],
   },
   {
-    name: "harakat travel with the letter they decorate",
-    text: "مَدْرَسَة",
-    expect: ["مَدْ", "رَ", "سَة"],
+    name: 'harakat travel with the letter they decorate',
+    text: 'مَدْرَسَة',
+    expect: ['مَدْ', 'رَ', 'سَة'],
   },
   {
-    name: "tatweel is join-causing, so it merges its neighbours",
-    text: "مـد",
-    expect: ["مـد"],
+    name: 'tatweel is join-causing, so it merges its neighbours',
+    text: 'مـد',
+    expect: ['مـد'],
   },
   {
-    name: "ZWNJ forces a break",
-    text: "م\u200cد",
-    expect: ["م", "د"],
+    name: 'ZWNJ forces a break',
+    text: 'م\u200cد',
+    expect: ['م', 'د'],
   },
   {
-    name: "hamza never joins",
-    text: "سمء",
-    expect: ["سم", "ء"],
+    name: 'hamza never joins',
+    text: 'سمء',
+    expect: ['سم', 'ء'],
   },
   {
-    name: "Latin has no joining, so letters split individually",
-    text: "hello",
-    expect: ["h", "e", "l", "l", "o"],
+    name: 'Latin has no joining, so letters split individually',
+    text: 'hello',
+    expect: ['h', 'e', 'l', 'l', 'o'],
   },
   {
-    name: "a combining mark stays with its base",
-    text: "e\u0301x",
-    expect: ["e\u0301", "x"],
+    name: 'a combining mark stays with its base',
+    text: 'e\u0301x',
+    expect: ['e\u0301', 'x'],
   },
   {
-    name: "digits are non-joining",
-    text: "٢٠٢٦",
-    expect: ["٢", "٠", "٢", "٦"],
+    name: 'digits are non-joining',
+    text: '٢٠٢٦',
+    expect: ['٢', '٠', '٢', '٦'],
   },
 ];
 
@@ -109,11 +109,11 @@ for (const { name, text, expect } of cases) {
 
 // Rejoin must reproduce the source exactly, which is what makes the split
 // reversible from the saved parts alone.
-const roundTrip = ["مدرسة", "بسم الله", "مَدْرَسَة", "hello world", "كتب"];
+const roundTrip = ['مدرسة', 'بسم الله', 'مَدْرَسَة', 'hello world', 'كتب'];
 for (const text of roundTrip) {
   const rebuilt = segmentClusters(text)
     .map((c) => c.gapBefore + c.text)
-    .join("");
+    .join('');
   if (rebuilt !== text) {
     failures += 1;
     console.log(
@@ -126,10 +126,10 @@ for (const text of roundTrip) {
 
 // A single cluster (or none) must not offer a split.
 const splitGuard = [
-  ["كتب", false],
-  ["لا", false],
-  ["   ", false],
-  ["مدرسة", true],
+  ['كتب', false],
+  ['لا', false],
+  ['   ', false],
+  ['مدرسة', true],
 ];
 for (const [text, expected] of splitGuard) {
   const got = canSplitIntoClusters(text);

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
 /**
  * Shift / Cmd / Ctrl, tracked as a live flag rather than as React state.
@@ -36,7 +36,7 @@ export function isAdditiveSelectionModifier(): boolean {
  */
 export function useModifierKeys(): void {
   useEffect(() => {
-    if (typeof document === "undefined") {
+    if (typeof document === 'undefined') {
       return;
     }
     const onKey = (event: KeyboardEvent) => {
@@ -45,15 +45,15 @@ export function useModifierKeys(): void {
     const clear = () => {
       additive = false;
     };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("keyup", onKey);
-    window.addEventListener("blur", clear);
-    document.addEventListener("visibilitychange", clear);
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('keyup', onKey);
+    window.addEventListener('blur', clear);
+    document.addEventListener('visibilitychange', clear);
     return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("keyup", onKey);
-      window.removeEventListener("blur", clear);
-      document.removeEventListener("visibilitychange", clear);
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('keyup', onKey);
+      window.removeEventListener('blur', clear);
+      document.removeEventListener('visibilitychange', clear);
       clear();
     };
   }, []);

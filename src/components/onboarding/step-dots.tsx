@@ -1,8 +1,8 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View } from 'react-native';
 
-import { useTheme } from "@/hooks/use-theme";
-import { rowStyle } from "@/i18n/rtl";
-import { radius, spacing } from "@/theme";
+import { useTheme } from '@/hooks/use-theme';
+import { rowStyle } from '@/i18n/rtl';
+import { radius, spacing } from '@/theme';
 
 const DOT_HEIGHT = 7;
 /** Current step: elongated pill so progress reads at a glance. */
@@ -48,11 +48,11 @@ export function StepDots({
 
 const styles = StyleSheet.create({
   wrap: {
-    alignItems: "center",
+    alignItems: 'center',
   },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   dot: {

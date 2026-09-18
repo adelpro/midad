@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -6,32 +6,32 @@ import {
   Text,
   View,
   type LayoutChangeEvent,
-} from "react-native";
-import { useAnimatedStyle } from "react-native-reanimated";
+} from 'react-native';
+import { useAnimatedStyle } from 'react-native-reanimated';
 
 import {
   AnimatedPressable,
   DirectionIcon,
   Icon,
   IconButton,
-} from "@/components/ui";
+} from '@/components/ui';
 import {
   collectionBarPlacement,
   frameBottomCentre,
   frameTopCentre,
   type CollectionFrame,
-} from "@/editor/groups";
-import { useEditorStore } from "@/editor/store";
-import { usePressFeedback } from "@/hooks/use-press-feedback";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { rowStyle } from "@/i18n/rtl";
+} from '@/editor/groups';
+import { useEditorStore } from '@/editor/store';
+import { usePressFeedback } from '@/hooks/use-press-feedback';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { rowStyle } from '@/i18n/rtl';
 import {
   formatMemberLabel,
   formatPartLabel,
   type Language,
-} from "@/i18n/strings";
-import type { DesignObject } from "@/storage/project-schema";
+} from '@/i18n/strings';
+import type { DesignObject } from '@/storage/project-schema';
 import {
   elevationStyle,
   fontRoles,
@@ -40,7 +40,7 @@ import {
   spacing,
   typeScale,
   withAlpha,
-} from "@/theme";
+} from '@/theme';
 
 /** Clearance (view px) between the bar and the frame edge it sits beside. */
 const BAR_GAP = 8;
@@ -83,7 +83,7 @@ export function memberLabel(
   total: number,
   language: Language,
 ): string {
-  return member.type === "text" && member.part !== undefined
+  return member.type === 'text' && member.part !== undefined
     ? formatPartLabel(index, total, language)
     : formatMemberLabel(index, total, language);
 }
@@ -104,7 +104,7 @@ export interface CollectionBarProps {
    */
   onPress?: () => void;
   /** Which glyph leads the head. */
-  mode: "whole" | "entered";
+  mode: 'whole' | 'entered';
   /**
    * The members the track navigates, in reading order. Two or more render it;
    * a loose multi-selection has none, so the bar is a bare head.
@@ -207,18 +207,18 @@ export function CollectionBar({
         <Pressable
           onPress={onPress}
           disabled={!onPress}
-          accessibilityRole={onPress ? "button" : "text"}
+          accessibilityRole={onPress ? 'button' : 'text'}
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
           style={[styles.head, rowStyle(isRTL)]}
         >
           <Icon
             name={
-              mode === "entered"
+              mode === 'entered'
                 ? isRTL
-                  ? "chevronRight"
-                  : "chevronLeft"
-                : "group"
+                  ? 'chevronRight'
+                  : 'chevronLeft'
+                : 'group'
             }
             size={HEAD_ICON_SIZE}
             color={c.muted}
@@ -332,7 +332,7 @@ function MemberTile({
         animStyle,
       ]}
     >
-      {member.type === "text" ? (
+      {member.type === 'text' ? (
         // The member's own font, so the tile shows the glyph exactly as the
         // canvas does.
         <Text
@@ -346,7 +346,7 @@ function MemberTile({
         </Text>
       ) : (
         <Icon
-          name={member.type === "shape" ? "shapes" : "sparkle"}
+          name={member.type === 'shape' ? 'shapes' : 'sparkle'}
           size={TILE_GLYPH_SIZE}
           color={c.ink}
         />
@@ -372,22 +372,22 @@ const styles = StyleSheet.create({
    * box, so the inset has to be explicit.
    */
   layer: {
-    position: "absolute",
+    position: 'absolute',
     top: spacing.md,
     left: spacing.md,
     right: spacing.md,
     bottom: spacing.md,
   },
   bar: {
-    position: "absolute",
-    alignItems: "center",
+    position: 'absolute',
+    alignItems: 'center',
     gap: spacing.xs,
     padding: spacing.xxs,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
   },
   head: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: spacing.xs,
     height: BAR_CONTROL_SIZE,
     paddingHorizontal: spacing.sm,
@@ -404,14 +404,14 @@ const styles = StyleSheet.create({
    * would push the next arrow out of the bar instead of scrolling.
    */
   trackScroll: { flexShrink: 1, minWidth: 0 },
-  track: { alignItems: "center", gap: spacing.xs },
+  track: { alignItems: 'center', gap: spacing.xs },
   tile: {
     minWidth: TILE_MIN_WIDTH,
     height: TILE_HEIGHT,
     borderRadius: radius.lg,
     borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: spacing.sm,
     gap: spacing.xxs,
   },

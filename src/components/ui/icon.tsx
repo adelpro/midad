@@ -1,4 +1,4 @@
-import { type ComponentType, type ReactElement } from "react";
+import { type ComponentType, type ReactElement } from 'react';
 
 import {
   AlignBottom,
@@ -55,9 +55,9 @@ import {
   X,
   type IconWeight,
   type IconProps as PhosphorIconProps,
-} from "phosphor-react-native";
+} from 'phosphor-react-native';
 
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme } from '@/hooks/use-theme';
 
 /**
  * Phosphor is the single icon source for the whole app — one identity across
@@ -65,58 +65,58 @@ import { useTheme } from "@/hooks/use-theme";
  */
 
 export type IconName =
-  | "plus"
-  | "minus"
-  | "grid"
-  | "chevronLeft"
-  | "chevronRight"
-  | "close"
-  | "check"
-  | "type"
-  | "sparkle"
-  | "shapes"
-  | "square"
-  | "palette"
-  | "image"
-  | "download"
-  | "share"
-  | "trash"
-  | "duplicate"
-  | "undo"
-  | "redo"
-  | "lock"
-  | "unlock"
-  | "settings"
-  | "globe"
-  | "flip"
-  | "flipV"
-  | "rotateCw"
-  | "rotateCcw"
-  | "layerUp"
-  | "layerDown"
-  | "layers"
-  | "fitText"
-  | "split"
-  | "rejoin"
-  | "edit"
-  | "more"
-  | "export"
-  | "pen"
-  | "pin"
-  | "language"
-  | "gallery"
-  | "help"
-  | "multiSelect"
-  | "group"
-  | "ungroup"
-  | "alignLeft"
-  | "alignCenterH"
-  | "alignRight"
-  | "alignTop"
-  | "alignMiddleV"
-  | "alignBottom"
-  | "centerH"
-  | "centerV";
+  | 'plus'
+  | 'minus'
+  | 'grid'
+  | 'chevronLeft'
+  | 'chevronRight'
+  | 'close'
+  | 'check'
+  | 'type'
+  | 'sparkle'
+  | 'shapes'
+  | 'square'
+  | 'palette'
+  | 'image'
+  | 'download'
+  | 'share'
+  | 'trash'
+  | 'duplicate'
+  | 'undo'
+  | 'redo'
+  | 'lock'
+  | 'unlock'
+  | 'settings'
+  | 'globe'
+  | 'flip'
+  | 'flipV'
+  | 'rotateCw'
+  | 'rotateCcw'
+  | 'layerUp'
+  | 'layerDown'
+  | 'layers'
+  | 'fitText'
+  | 'split'
+  | 'rejoin'
+  | 'edit'
+  | 'more'
+  | 'export'
+  | 'pen'
+  | 'pin'
+  | 'language'
+  | 'gallery'
+  | 'help'
+  | 'multiSelect'
+  | 'group'
+  | 'ungroup'
+  | 'alignLeft'
+  | 'alignCenterH'
+  | 'alignRight'
+  | 'alignTop'
+  | 'alignMiddleV'
+  | 'alignBottom'
+  | 'centerH'
+  | 'centerV';
 
 const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   plus: Plus,
@@ -188,7 +188,7 @@ export function Icon({
   name,
   size = 20,
   color,
-  weight = "regular",
+  weight = 'regular',
 }: IconProps) {
   const { colors: c } = useTheme();
   const Cmp = ICONS[name];
@@ -207,7 +207,7 @@ export function DirectionIcon({
 }) {
   return (
     <Icon
-      name={isRTL ? "chevronLeft" : "chevronRight"}
+      name={isRTL ? 'chevronLeft' : 'chevronRight'}
       color={color}
       size={size}
     />
@@ -217,7 +217,7 @@ export function DirectionIcon({
 /** Convenience renderer for embedding an icon inline. */
 export function renderIcon(
   name: IconName,
-  props?: Omit<IconProps, "name">,
+  props?: Omit<IconProps, 'name'>,
 ): ReactElement {
   return <Icon name={name} {...props} />;
 }

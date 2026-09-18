@@ -14,30 +14,30 @@
 
 /** Every editor action reachable from the keyboard. */
 export type ShortcutId =
-  | "delete"
-  | "undo"
-  | "redo"
-  | "duplicate"
-  | "selectAll"
-  | "save"
-  | "clearSelection"
-  | "nudgeLeft"
-  | "nudgeRight"
-  | "nudgeUp"
-  | "nudgeDown"
-  | "flipH"
-  | "flipV"
-  | "rotateCcw"
-  | "rotateCw"
-  | "bringToFront"
-  | "sendToBack"
-  | "group"
-  | "ungroup"
-  | "toolSelect"
-  | "toolMultiSelect"
-  | "toolText"
-  | "toggleGrid"
-  | "openHelp";
+  | 'delete'
+  | 'undo'
+  | 'redo'
+  | 'duplicate'
+  | 'selectAll'
+  | 'save'
+  | 'clearSelection'
+  | 'nudgeLeft'
+  | 'nudgeRight'
+  | 'nudgeUp'
+  | 'nudgeDown'
+  | 'flipH'
+  | 'flipV'
+  | 'rotateCcw'
+  | 'rotateCw'
+  | 'bringToFront'
+  | 'sendToBack'
+  | 'group'
+  | 'ungroup'
+  | 'toolSelect'
+  | 'toolMultiSelect'
+  | 'toolText'
+  | 'toggleGrid'
+  | 'openHelp';
 
 /** Nudge distance in design units. Shift moves ten times as far. */
 export const NUDGE_STEP = 1;
@@ -52,7 +52,7 @@ export const NUDGE_STEP_LARGE = 10;
 export const NUDGE_COALESCE_MS = 400;
 
 /** `true` requires Shift, `false`/absent require it released, `"any"` allows both. */
-type ShiftRequirement = boolean | "any";
+type ShiftRequirement = boolean | 'any';
 
 export interface ShortcutBinding {
   id: ShortcutId;
@@ -87,49 +87,49 @@ export interface ShortcutBinding {
 export const SHORTCUT_BINDINGS: readonly ShortcutBinding[] = [
   // Delete is the labelled key on full keyboards and Backspace on laptop ones;
   // both are expected to remove the selection.
-  { id: "delete", key: "Delete" },
-  { id: "delete", key: "Backspace" },
+  { id: 'delete', key: 'Delete' },
+  { id: 'delete', key: 'Backspace' },
 
-  { id: "undo", code: "KeyZ", mod: true },
-  { id: "redo", code: "KeyZ", mod: true, shift: true },
+  { id: 'undo', code: 'KeyZ', mod: true },
+  { id: 'redo', code: 'KeyZ', mod: true, shift: true },
   // Ctrl+Y is the Windows habit for redo; it is not advertised in the tooltip.
-  { id: "redo", code: "KeyY", mod: true },
+  { id: 'redo', code: 'KeyY', mod: true },
 
-  { id: "duplicate", code: "KeyD", mod: true },
-  { id: "selectAll", code: "KeyA", mod: true },
-  { id: "save", code: "KeyS", mod: true },
+  { id: 'duplicate', code: 'KeyD', mod: true },
+  { id: 'selectAll', code: 'KeyA', mod: true },
+  { id: 'save', code: 'KeyS', mod: true },
 
   // Sheets close on Escape through react-native-web's own Modal listener, so
   // this binding only ever runs while no sheet is open.
-  { id: "clearSelection", key: "Escape" },
+  { id: 'clearSelection', key: 'Escape' },
 
-  { id: "nudgeLeft", key: "ArrowLeft", shift: "any", repeat: true },
-  { id: "nudgeRight", key: "ArrowRight", shift: "any", repeat: true },
-  { id: "nudgeUp", key: "ArrowUp", shift: "any", repeat: true },
-  { id: "nudgeDown", key: "ArrowDown", shift: "any", repeat: true },
+  { id: 'nudgeLeft', key: 'ArrowLeft', shift: 'any', repeat: true },
+  { id: 'nudgeRight', key: 'ArrowRight', shift: 'any', repeat: true },
+  { id: 'nudgeUp', key: 'ArrowUp', shift: 'any', repeat: true },
+  { id: 'nudgeDown', key: 'ArrowDown', shift: 'any', repeat: true },
 
-  { id: "flipH", code: "KeyH", shift: true },
-  { id: "flipV", code: "KeyV", shift: true },
-  { id: "rotateCcw", code: "KeyE", shift: true },
-  { id: "rotateCw", code: "KeyR", shift: true },
+  { id: 'flipH', code: 'KeyH', shift: true },
+  { id: 'flipV', code: 'KeyV', shift: true },
+  { id: 'rotateCcw', code: 'KeyE', shift: true },
+  { id: 'rotateCw', code: 'KeyR', shift: true },
 
-  { id: "bringToFront", code: "BracketRight", mod: true },
-  { id: "sendToBack", code: "BracketLeft", mod: true },
+  { id: 'bringToFront', code: 'BracketRight', mod: true },
+  { id: 'sendToBack', code: 'BracketLeft', mod: true },
 
   // Grouping: the modified chord joins the selection into one element, the
   // shifted one dissolves it again. Declared shifted-first, like every other
   // pair in this table.
-  { id: "ungroup", code: "KeyG", mod: true, shift: true },
-  { id: "group", code: "KeyG", mod: true },
+  { id: 'ungroup', code: 'KeyG', mod: true, shift: true },
+  { id: 'group', code: 'KeyG', mod: true },
 
-  { id: "toolSelect", code: "KeyV" },
-  { id: "toolMultiSelect", code: "KeyM" },
-  { id: "toolText", code: "KeyT" },
-  { id: "toggleGrid", code: "KeyG" },
+  { id: 'toolSelect', code: 'KeyV' },
+  { id: 'toolMultiSelect', code: 'KeyM' },
+  { id: 'toolText', code: 'KeyT' },
+  { id: 'toggleGrid', code: 'KeyG' },
 
   // Shift+/ is the question mark on every layout — "?" on Latin, "؟" on
   // Arabic — so it is bound by physical key rather than by character.
-  { id: "openHelp", code: "Slash", shift: true },
+  { id: 'openHelp', code: 'Slash', shift: true },
 ];
 
 /** The slice of `KeyboardEvent` the matcher reads. Keeps this module testable. */
@@ -178,7 +178,7 @@ export function matchShortcut(event: ShortcutKeyEvent): ShortcutBinding | null {
     if (!!binding.mod !== mod) {
       continue;
     }
-    if (binding.shift !== "any" && !!binding.shift !== event.shiftKey) {
+    if (binding.shift !== 'any' && !!binding.shift !== event.shiftKey) {
       continue;
     }
     if (event.repeat && !binding.repeat) {
@@ -217,28 +217,28 @@ export interface EditorShortcutHints {
 
 /** Key names that read better as symbols than as words. */
 const NAMED_KEY_LABELS: Record<string, string> = {
-  ArrowLeft: "←",
-  ArrowRight: "→",
-  ArrowUp: "↑",
-  ArrowDown: "↓",
-  Delete: "Delete",
-  Backspace: "⌫",
-  Escape: "Esc",
+  ArrowLeft: '←',
+  ArrowRight: '→',
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  Delete: 'Delete',
+  Backspace: '⌫',
+  Escape: 'Esc',
 };
 
 /** `KeyZ` → "Z", `BracketRight` → "]", anything else left as-is. */
 function codeLabel(code: string): string {
-  if (code.startsWith("Key")) {
-    return code.slice("Key".length);
+  if (code.startsWith('Key')) {
+    return code.slice('Key'.length);
   }
-  if (code === "BracketLeft") {
-    return "[";
+  if (code === 'BracketLeft') {
+    return '[';
   }
-  if (code === "BracketRight") {
-    return "]";
+  if (code === 'BracketRight') {
+    return ']';
   }
-  if (code === "Slash") {
-    return "?";
+  if (code === 'Slash') {
+    return '?';
   }
   return code;
 }
@@ -252,7 +252,7 @@ export function bindingKeyLabel(binding: ShortcutBinding): string {
   if (binding.code !== undefined) {
     return codeLabel(binding.code);
   }
-  return keyLabel(binding.key ?? "");
+  return keyLabel(binding.key ?? '');
 }
 
 /**
@@ -268,24 +268,24 @@ export function formatChord(binding: ShortcutBinding, isMac: boolean): string {
     return key;
   }
   if (isMac) {
-    const shift = binding.shift === true ? "⇧" : "";
-    const mod = binding.mod ? "⌘" : "";
+    const shift = binding.shift === true ? '⇧' : '';
+    const mod = binding.mod ? '⌘' : '';
     return `${shift}${mod}${key}`;
   }
   const parts: string[] = [];
   if (binding.mod) {
-    parts.push("Ctrl");
+    parts.push('Ctrl');
   }
   if (binding.shift === true) {
-    parts.push("Shift");
+    parts.push('Shift');
   }
-  return [...parts, key].join("+");
+  return [...parts, key].join('+');
 }
 
 /** The chord advertised for an action — its first declared binding. */
 export function chordFor(id: ShortcutId, isMac: boolean): string {
   const binding = SHORTCUT_BINDINGS.find((b) => b.id === id);
-  return binding ? formatChord(binding, isMac) : "";
+  return binding ? formatChord(binding, isMac) : '';
 }
 
 /**
@@ -311,6 +311,6 @@ export function buildShortcutHints(isMac: boolean): EditorShortcutHints {
  * returns this so native tooltips never promise a key that cannot be pressed.
  */
 export const NO_SHORTCUT_HINTS: EditorShortcutHints = {
-  chord: () => "",
+  chord: () => '',
   hint: (label) => label,
 };

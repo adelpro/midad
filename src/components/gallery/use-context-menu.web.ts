@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Web implementation: react-native-web renders `View` to a real DOM node, so
@@ -32,8 +32,8 @@ export function useContextMenu(onOpen: () => void): (node: unknown) => void {
       event.preventDefault();
       onOpenRef.current();
     };
-    node.addEventListener("contextmenu", handler);
-    return () => node.removeEventListener("contextmenu", handler);
+    node.addEventListener('contextmenu', handler);
+    return () => node.removeEventListener('contextmenu', handler);
   }, [node]);
 
   return ref;

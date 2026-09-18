@@ -1,19 +1,19 @@
-import type { SkTypefaceFontProvider } from "@shopify/react-native-skia";
+import type { SkTypefaceFontProvider } from '@shopify/react-native-skia';
 
-import { layoutArabicText, type TextLayoutSpec } from "@/editor/skia/text";
-import { segmentClusters } from "@/editor/text/clusters";
-import type { CalligraphyTextObject } from "@/storage/project-schema";
+import { layoutArabicText, type TextLayoutSpec } from '@/editor/skia/text';
+import { segmentClusters } from '@/editor/text/clusters';
+import type { CalligraphyTextObject } from '@/storage/project-schema';
 
 /** Why a text object could not be turned into parts. */
 export type SplitFailure =
   /** Fewer than two connected clusters — nothing to separate. */
-  | "too-few-clusters"
+  | 'too-few-clusters'
   /** Already a part of a split word. */
-  | "already-a-part"
+  | 'already-a-part'
   /** A cluster soft-wrapped across lines, so it cannot stand alone. */
-  | "cluster-wrapped"
+  | 'cluster-wrapped'
   /** The paragraph could not be laid out (fonts missing). */
-  | "layout-failed";
+  | 'layout-failed';
 
 export type SplitOutcome =
   | { ok: true; parts: CalligraphyTextObject[] }
@@ -70,12 +70,12 @@ export function splitTextObject(
   canvasWidth: number,
 ): SplitOutcome {
   if (source.part) {
-    return { ok: false, reason: "already-a-part" };
+    return { ok: false, reason: 'already-a-part' };
   }
 
   const clusters = segmentClusters(source.text);
   if (clusters.length < 2) {
-    return { ok: false, reason: "too-few-clusters" };
+    return { ok: false, reason: 'too-few-clusters' };
   }
 
   const sourceLayout = layoutArabicText(
@@ -83,7 +83,7 @@ export function splitTextObject(
     fonts,
   );
   if (!sourceLayout) {
-    return { ok: false, reason: "layout-failed" };
+    return { ok: false, reason: 'layout-failed' };
   }
 
   const {
@@ -111,7 +111,7 @@ export function splitTextObject(
       if (sourceRects.length !== 1) {
         // The cluster straddles a soft wrap; it has no single position to move
         // to, so refuse rather than produce a misplaced part.
-        return { ok: false, reason: "cluster-wrapped" };
+        return { ok: false, reason: 'cluster-wrapped' };
       }
 
       const partLayout = layoutArabicText(
@@ -120,7 +120,7 @@ export function splitTextObject(
         fonts,
       );
       if (!partLayout) {
-        return { ok: false, reason: "layout-failed" };
+        return { ok: false, reason: 'layout-failed' };
       }
 
       let offsetX: number;
@@ -131,7 +131,7 @@ export function splitTextObject(
           cluster.text.length,
         );
         if (partRects.length !== 1) {
-          return { ok: false, reason: "cluster-wrapped" };
+          return { ok: false, reason: 'cluster-wrapped' };
         }
 
         const sourceRect = sourceRects[0];
@@ -160,7 +160,7 @@ export function splitTextObject(
 
       parts.push({
         id: makePartId(),
-        type: "text",
+        type: 'text',
         text: cluster.text,
         fontKey: source.fontKey,
         fontSize: source.fontSize,
@@ -215,6 +215,6 @@ export function mergePartTexts(parts: CalligraphyTextObject[]): string | null {
   return parts
     .slice()
     .sort((a, b) => (a.part?.index ?? 0) - (b.part?.index ?? 0))
-    .map((p) => (p.part?.gapBefore ?? "") + p.text)
-    .join("");
+    .map((p) => (p.part?.gapBefore ?? '') + p.text)
+    .join('');
 }

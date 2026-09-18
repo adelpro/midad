@@ -9,11 +9,11 @@ import {
   Image as SkiaImage,
   useImage,
   vec,
-} from "@shopify/react-native-skia";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
+} from '@shopify/react-native-skia';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
-import { selectionFrame, type CollectionFrame } from "@/editor/groups";
+import { selectionFrame, type CollectionFrame } from '@/editor/groups';
 import {
   frameBox,
   hitTest,
@@ -22,17 +22,17 @@ import {
   safeObjectScale,
   selectionPad,
   type SizedObject,
-} from "@/editor/hit-test";
-import { GlyphRenderer } from "@/editor/skia/glyph-shape";
-import { SHAPE_BASE_SIZE } from "@/editor/skia/shape-geometry";
-import { ShapeRenderer } from "@/editor/skia/shapes";
+} from '@/editor/hit-test';
+import { GlyphRenderer } from '@/editor/skia/glyph-shape';
+import { SHAPE_BASE_SIZE } from '@/editor/skia/shape-geometry';
+import { ShapeRenderer } from '@/editor/skia/shapes';
 import {
   textObjectSize,
   useTextLayouts,
   type TextLayouts,
-} from "@/editor/skia/use-text-layouts";
-import { useEditorStore } from "@/editor/store";
-import type { DesignObject, MidadProject } from "@/storage/project-schema";
+} from '@/editor/skia/use-text-layouts';
+import { useEditorStore } from '@/editor/store';
+import type { DesignObject, MidadProject } from '@/storage/project-schema';
 
 export interface EditorCanvasProps {
   project: MidadProject;
@@ -47,12 +47,12 @@ function objectBox(
   layouts: ReturnType<typeof useTextLayouts>,
 ): { width: number; height: number } {
   switch (obj.type) {
-    case "text": {
+    case 'text': {
       const layout = layouts[obj.id];
       return textObjectSize(layout, obj.fontSize, obj.wrapWidth);
     }
-    case "shape":
-    case "glyph":
+    case 'shape':
+    case 'glyph':
       // Local (unscaled) box. The object's transform group supplies the scale,
       // so including it here would apply it twice.
       return { width: SHAPE_BASE_SIZE, height: SHAPE_BASE_SIZE };
@@ -119,7 +119,7 @@ export function EditorCanvas({
   const textObjects = useMemo(
     () =>
       project.objects.filter(
-        (o): o is Extract<DesignObject, { type: "text" }> => o.type === "text",
+        (o): o is Extract<DesignObject, { type: 'text' }> => o.type === 'text',
       ),
     [project.objects],
   );
@@ -215,7 +215,7 @@ export function EditorCanvas({
 
   const { width, height } = project.canvas;
   const bg = project.canvas.background;
-  const paperColor = bg.type === "paper" ? (bg.color ?? "#F7F6F3") : "#FFFFFF";
+  const paperColor = bg.type === 'paper' ? (bg.color ?? '#F7F6F3') : '#FFFFFF';
 
   return (
     <View style={styles.canvas} onLayout={onLayout}>
@@ -228,7 +228,7 @@ export function EditorCanvas({
           ]}
         >
           {/* Background */}
-          {bg.type === "image" && bg.imageUri ? (
+          {bg.type === 'image' && bg.imageUri ? (
             <BackgroundImage uri={bg.imageUri} width={width} height={height} />
           ) : (
             <Rect
@@ -236,7 +236,7 @@ export function EditorCanvas({
               y={0}
               width={width}
               height={height}
-              color={bg.type === "transparent" ? "transparent" : paperColor}
+              color={bg.type === 'transparent' ? 'transparent' : paperColor}
             />
           )}
 
@@ -261,7 +261,7 @@ export function EditorCanvas({
             <CollectionOverlay
               frame={selection.frame}
               scale={scale}
-              handles={selection.state === "whole"}
+              handles={selection.state === 'whole'}
             />
           )}
         </Group>
@@ -292,7 +292,7 @@ const ObjectLayer = memo(function ObjectLayer({
 }) {
   const box = useMemo(() => objectBox(obj, layouts), [obj, layouts]);
   const paragraph = useMemo(
-    () => (obj.type === "text" ? layouts[obj.id]?.paragraph : undefined),
+    () => (obj.type === 'text' ? layouts[obj.id]?.paragraph : undefined),
     [obj, layouts],
   );
   const t = obj.transform;
@@ -300,14 +300,14 @@ const ObjectLayer = memo(function ObjectLayer({
   const scaleX = t.flipH ? -t.scale : t.scale;
   const scaleY = t.flipV ? -t.scale : t.scale;
   const content =
-    obj.type === "text" && paragraph ? (
+    obj.type === 'text' && paragraph ? (
       <Paragraph
         paragraph={paragraph}
         x={-box.width / 2}
         y={-box.height / 2}
         width={box.width}
       />
-    ) : obj.type === "shape" ? (
+    ) : obj.type === 'shape' ? (
       // Renderers draw into a 0..size box, so shift it to sit centred on
       // the object origin — which is what the overlay and hit-test assume.
       <Group
@@ -318,7 +318,7 @@ const ObjectLayer = memo(function ObjectLayer({
       >
         <ShapeRenderer shape={obj} size={box.width} />
       </Group>
-    ) : obj.type === "glyph" ? (
+    ) : obj.type === 'glyph' ? (
       <Group
         transform={[
           { translateX: -box.width / 2 },

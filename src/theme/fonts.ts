@@ -83,11 +83,36 @@ export const fontRoles: { ar: FontRoles; en: FontRoles } = {
 /** Calligraphy families available as editable text styles in the editor. */
 export const calligraphyFonts = [
   { key: 'Amiri', labelAr: 'نسخ', labelEn: 'Naskh', family: 'Amiri' },
-  { key: 'Amiri-Bold', labelAr: 'نسخ عريض', labelEn: 'Naskh Bold', family: 'Amiri' },
+  {
+    key: 'Amiri-Bold',
+    labelAr: 'نسخ عريض',
+    labelEn: 'Naskh Bold',
+    family: 'Amiri',
+  },
   { key: 'ArefRuqaa', labelAr: 'رقعة', labelEn: 'Ruqaa', family: 'ArefRuqaa' },
-  { key: 'NotoNaskhArabic', labelAr: 'نسخ ميسّر', labelEn: 'Naskh Body', family: 'NotoNaskhArabic' },
-  { key: 'NotoKufiArabic', labelAr: 'كوفي', labelEn: 'Kufi', family: 'NotoKufiArabic' },
-  { key: 'ReemKufi', labelAr: 'كوفي حديث', labelEn: 'Kufi Modern', family: 'ReemKufi' },
-  { key: 'Lemonada', labelAr: 'عرض حديث', labelEn: 'Display', family: 'Lemonada' },
+  {
+    key: 'NotoNaskhArabic',
+    labelAr: 'نسخ ميسّر',
+    labelEn: 'Naskh Body',
+    family: 'NotoNaskhArabic',
+  },
+  {
+    key: 'NotoKufiArabic',
+    labelAr: 'كوفي',
+    labelEn: 'Kufi',
+    family: 'NotoKufiArabic',
+  },
+  {
+    key: 'ReemKufi',
+    labelAr: 'كوفي حديث',
+    labelEn: 'Kufi Modern',
+    family: 'ReemKufi',
+  },
+  {
+    key: 'Lemonada',
+    labelAr: 'عرض حديث',
+    labelEn: 'Display',
+    family: 'Lemonada',
+  },
   { key: 'Cairo', labelAr: 'عناصر', labelEn: 'UI Sans', family: 'Cairo' },
 ] as const;

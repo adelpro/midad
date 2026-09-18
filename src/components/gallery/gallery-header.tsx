@@ -1,16 +1,16 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   interpolate,
   useAnimatedStyle,
   type SharedValue,
-} from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandMark, Icon } from "@/components/ui";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { rowStyle } from "@/i18n/rtl";
-import { fontRoles, radius, spacing, typeScale } from "@/theme";
+import { BrandMark, Icon } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { rowStyle } from '@/i18n/rtl';
+import { fontRoles, radius, spacing, typeScale } from '@/theme';
 
 /** Content height of the expanded header (status-bar inset added by the screen). */
 export const GALLERY_HEADER_LARGE = 64;
@@ -47,7 +47,7 @@ export function GalleryHeader({
   const insets = useSafeAreaInsets();
   // Explicit bidi direction for texts — `forceRTL` alone is unreliable on web,
   // and mixed Latin/Arabic content needs an anchored writing direction.
-  const dir = { writingDirection: isRTL ? ("rtl" as const) : ("ltr" as const) };
+  const dir = { writingDirection: isRTL ? ('rtl' as const) : ('ltr' as const) };
 
   const containerStyle = useAnimatedStyle(() => ({
     height:
@@ -56,19 +56,19 @@ export function GalleryHeader({
         scrollY.value,
         [0, RANGE],
         [GALLERY_HEADER_LARGE, CONTENT_COMPACT],
-        "clamp",
+        'clamp',
       ),
   }));
 
   const countStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [RANGE * 0.4, RANGE], [0, 1], "clamp"),
+    opacity: interpolate(scrollY.value, [RANGE * 0.4, RANGE], [0, 1], 'clamp'),
     transform: [
-      { translateY: interpolate(scrollY.value, [0, RANGE], [6, 0], "clamp") },
+      { translateY: interpolate(scrollY.value, [0, RANGE], [6, 0], 'clamp') },
     ],
   }));
 
   const hairlineStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [RANGE * 0.5, RANGE], [0, 1], "clamp"),
+    opacity: interpolate(scrollY.value, [RANGE * 0.5, RANGE], [0, 1], 'clamp'),
   }));
 
   return (
@@ -183,7 +183,7 @@ export function GalleryHeader({
 
       {/* Count surfaces only once the header has collapsed. */}
       <Animated.View
-        style={[styles.compactCountWrap, countStyle, { pointerEvents: "none" }]}
+        style={[styles.compactCountWrap, countStyle, { pointerEvents: 'none' }]}
       >
         <Text
           style={[
@@ -206,23 +206,23 @@ export function GalleryHeader({
 
 const styles = StyleSheet.create({
   wrap: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
     paddingBottom: spacing.md,
   },
   topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     height: 44,
   },
   brand: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   brandName: {
@@ -230,13 +230,13 @@ const styles = StyleSheet.create({
     lineHeight: 34,
   },
   actions: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   pill: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
     height: 44,
     paddingHorizontal: spacing.lg,
@@ -244,22 +244,22 @@ const styles = StyleSheet.create({
   },
   pillSecondary: {
     borderWidth: 1,
-    borderStyle: "solid",
-    backgroundColor: "transparent",
+    borderStyle: 'solid',
+    backgroundColor: 'transparent',
   },
   roundGhost: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     width: 44,
     height: 44,
     borderWidth: 1,
-    borderStyle: "solid",
+    borderStyle: 'solid',
     borderRadius: radius.pill,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
   roundAction: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     width: 44,
     height: 44,
     borderRadius: radius.pill,
@@ -271,13 +271,13 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   compactCountWrap: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    alignItems: "center",
-    justifyContent: "flex-end",
+    alignItems: 'center',
+    justifyContent: 'flex-end',
     paddingBottom: spacing.md + 8,
   },
   compactCount: {
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     lineHeight: typeScale.small.lineHeight,
   },
   hairline: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,

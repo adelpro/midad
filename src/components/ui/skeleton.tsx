@@ -30,7 +30,11 @@ export function SkeletonBlock({
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: reduceMotion
       ? 1
-      : withRepeat(withTiming(PULSE_OPACITY, { duration: motion.base + 650 }), -1, true),
+      : withRepeat(
+          withTiming(PULSE_OPACITY, { duration: motion.base + 650 }),
+          -1,
+          true,
+        ),
   }));
 
   return (
@@ -60,7 +64,8 @@ export function ProjectCardSkeleton({
         layout === 'row' ? styles.cardRow : styles.cardStack,
         { backgroundColor: c.surface, borderColor: c.border },
         style,
-      ]}>
+      ]}
+    >
       <SkeletonBlock
         radius={0}
         style={layout === 'row' ? styles.thumbRow : styles.thumbStack}

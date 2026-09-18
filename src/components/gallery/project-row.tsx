@@ -1,6 +1,6 @@
-import { useCallback, useEffect } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useCallback, useEffect } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -8,14 +8,14 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { Card, DirectionIcon, Icon, IconButton } from "@/components/ui";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { rowStyle } from "@/i18n/rtl";
-import { usePins } from "@/storage/pins";
-import type { MidadProject } from "@/storage/project-schema";
+import { Card, DirectionIcon, Icon, IconButton } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { rowStyle } from '@/i18n/rtl';
+import { usePins } from '@/storage/pins';
+import type { MidadProject } from '@/storage/project-schema';
 import {
   fontRoles,
   motion,
@@ -23,9 +23,9 @@ import {
   spacing,
   springs,
   typeScale,
-} from "@/theme";
+} from '@/theme';
 
-import { useContextMenu } from "./use-context-menu";
+import { useContextMenu } from './use-context-menu';
 
 const THUMB_RATIO = 4 / 3;
 const ROW_THUMB_W = 116;
@@ -37,13 +37,13 @@ const COMMIT_RATIO = 0.4;
 const OVERDRAG_RESISTANCE = 0.15;
 
 /** Which action a row has revealed, if any. */
-export type SwipeSide = "leading" | "trailing" | null;
+export type SwipeSide = 'leading' | 'trailing' | null;
 
 export interface ProjectRowProps {
   project: MidadProject;
   thumbUri: string | null;
   /** `row` = full-width phone row; `stack` = grid tile. */
-  layout: "row" | "stack";
+  layout: 'row' | 'stack';
   /** Whether the swipe gesture is available: native only, and only in `row`. */
   swipeable: boolean;
   /** Only one row may be open at a time; the parent owns which. */
@@ -58,10 +58,10 @@ export interface ProjectRowProps {
 function formatDate(iso: string, language: string): string {
   const d = new Date(iso);
   // Latin digits for Arabic too (`ar-u-nu-latn`) — numerals stay Western by default.
-  return d.toLocaleDateString(language === "ar" ? "ar-u-nu-latn" : "en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+  return d.toLocaleDateString(language === 'ar' ? 'ar-u-nu-latn' : 'en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
 }
 
@@ -101,7 +101,7 @@ export function ProjectRow({
 
   const name = project.name || t.gallery.untitled;
   const date = formatDate(project.updatedAt, language);
-  const isRow = layout === "row";
+  const isRow = layout === 'row';
 
   // Positive = reveal the leading action, negative = the trailing one,
   // *before* the RTL multiplier. `dir` flips it so "swipe toward the trailing
@@ -112,7 +112,7 @@ export function ProjectRow({
 
   const targetFor = useCallback(
     (side: SwipeSide) =>
-      side === null ? 0 : (side === "trailing" ? -1 : 1) * ACTION_W * dir,
+      side === null ? 0 : (side === 'trailing' ? -1 : 1) * ACTION_W * dir,
     [dir],
   );
 
@@ -156,12 +156,12 @@ export function ProjectRow({
       const ratio = (projected * dir) / ACTION_W;
       const side: SwipeSide =
         ratio < -COMMIT_RATIO
-          ? "trailing"
+          ? 'trailing'
           : ratio > COMMIT_RATIO
-            ? "leading"
+            ? 'leading'
             : null;
       const target =
-        side === null ? 0 : (side === "trailing" ? -1 : 1) * ACTION_W * dir;
+        side === null ? 0 : (side === 'trailing' ? -1 : 1) * ACTION_W * dir;
       // Hand the release velocity to the settling spring, so a flick carries
       // through instead of restarting from a standstill — the same handoff the
       // onboarding pager makes (step-pager.tsx).
@@ -189,14 +189,14 @@ export function ProjectRow({
   const handleAccessibilityAction = useCallback(
     (event: { nativeEvent: { actionName: string } }) => {
       switch (event.nativeEvent.actionName) {
-        case "activate":
+        case 'activate':
           onPress();
           break;
-        case "pin":
-        case "unpin":
+        case 'pin':
+        case 'unpin':
           onTogglePin();
           break;
-        case "delete":
+        case 'delete':
           onDelete();
           break;
         default:
@@ -209,14 +209,14 @@ export function ProjectRow({
   // Swipe actions are invisible to screen readers and keyboards, so the same
   // operations are exposed as custom actions.
   const accessibilityActions = [
-    { name: "activate", label: t.common.open },
+    { name: 'activate', label: t.common.open },
     {
-      name: pinned ? "unpin" : "pin",
+      name: pinned ? 'unpin' : 'pin',
       label: pinned ? t.gallery.unpin : t.gallery.pin,
     },
-    { name: "delete", label: t.common.delete },
+    { name: 'delete', label: t.common.delete },
   ];
-  const accessibilityLabel = `${name}, ${date}${pinned ? `, ${t.gallery.pinned}` : ""}`;
+  const accessibilityLabel = `${name}, ${date}${pinned ? `, ${t.gallery.pinned}` : ''}`;
 
   const card = (
     <Card
@@ -278,7 +278,7 @@ export function ProjectRow({
     <View
       style={[
         styles.overflow,
-        { top: spacing.sm, end: spacing.sm, pointerEvents: "box-none" },
+        { top: spacing.sm, end: spacing.sm, pointerEvents: 'box-none' },
       ]}
     >
       <IconButton
@@ -316,7 +316,7 @@ export function ProjectRow({
             name="pin"
             size={18}
             color={pinned ? c.accentText : c.muted}
-            weight={pinned ? "fill" : "regular"}
+            weight={pinned ? 'fill' : 'regular'}
           />
           <Text
             numberOfLines={1}
@@ -356,35 +356,35 @@ export function ProjectRow({
 const styles = StyleSheet.create({
   wrap: {
     // Clips the card as it slides out of the row.
-    overflow: "hidden",
+    overflow: 'hidden',
     borderRadius: radius.lg,
     marginHorizontal: spacing.xs,
   },
   wrapStack: {
     // Grid tiles never translate, so nothing needs clipping — and clipping
     // would cut off the card's own border radius.
-    overflow: "visible",
+    overflow: 'visible',
   },
   actions: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     right: 0,
     top: 0,
     bottom: 0,
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
   },
   action: {
     width: ACTION_W,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.xxs,
   },
   actionLabel: {
     fontSize: typeScale.micro.size,
   },
   cardRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   cardStack: {
     // Only the grid needs this: tiles must fill the item width. In the row
@@ -395,8 +395,8 @@ const styles = StyleSheet.create({
   },
   thumb: {
     aspectRatio: THUMB_RATIO,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderBottomWidth: 1,
   },
   thumbRow: {
@@ -418,19 +418,19 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   nameRow: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: spacing.xs,
   },
   cardName: {
     flex: 1,
     fontSize: typeScale.small.size,
     lineHeight: typeScale.small.lineHeight,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   cardDate: {
     fontSize: typeScale.caption.size,
   },
   overflow: {
-    position: "absolute",
+    position: 'absolute',
   },
 });

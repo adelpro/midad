@@ -12,13 +12,24 @@ export interface EmptyStateProps {
 }
 
 /** Editorial empty state: an Amiri calligraphic glyph, then a calm message. */
-export function EmptyState({ glyph, title, description, children }: EmptyStateProps) {
+export function EmptyState({
+  glyph,
+  title,
+  description,
+  children,
+}: EmptyStateProps) {
   const { colors: c } = useTheme();
   return (
     <View style={styles.container}>
-      {glyph ? <Text style={[styles.glyph, { color: c.borderStrong }]}>{glyph}</Text> : null}
+      {glyph ? (
+        <Text style={[styles.glyph, { color: c.borderStrong }]}>{glyph}</Text>
+      ) : null}
       <Text style={[styles.title, { color: c.ink }]}>{title}</Text>
-      {description ? <Text style={[styles.description, { color: c.muted }]}>{description}</Text> : null}
+      {description ? (
+        <Text style={[styles.description, { color: c.muted }]}>
+          {description}
+        </Text>
+      ) : null}
       {children}
     </View>
   );

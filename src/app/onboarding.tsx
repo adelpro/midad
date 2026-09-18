@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -7,8 +7,8 @@ import {
   Text,
   View,
   useWindowDimensions,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   LanguagePicker,
@@ -17,29 +17,29 @@ import {
   StepPager,
   type OnboardingArtSize,
   type OnboardingArtVariant,
-} from "@/components/onboarding";
-import { Button } from "@/components/ui";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { useSettings } from "@/storage/settings";
-import { fontRoles, layout, spacing, typeScale } from "@/theme";
+} from '@/components/onboarding';
+import { Button } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { useSettings } from '@/storage/settings';
+import { fontRoles, layout, spacing, typeScale } from '@/theme';
 
 const STEPS: {
   art: OnboardingArtVariant;
-  titleKey: "slide1Title" | "slide2Title" | "slide3Title";
-  bodyKey: "slide1Body" | "slide2Body" | "slide3Body";
+  titleKey: 'slide1Title' | 'slide2Title' | 'slide3Title';
+  bodyKey: 'slide1Body' | 'slide2Body' | 'slide3Body';
 }[] = [
-  { art: "craft", titleKey: "slide1Title", bodyKey: "slide1Body" },
-  { art: "fonts", titleKey: "slide2Title", bodyKey: "slide2Body" },
-  { art: "share", titleKey: "slide3Title", bodyKey: "slide3Body" },
+  { art: 'craft', titleKey: 'slide1Title', bodyKey: 'slide1Body' },
+  { art: 'fonts', titleKey: 'slide2Title', bodyKey: 'slide2Body' },
+  { art: 'share', titleKey: 'slide3Title', bodyKey: 'slide3Body' },
 ];
 
 /** Compact art on short viewports (landscape phones, short desktop windows). */
 function artSizeFor(height: number): OnboardingArtSize {
   if (height < 640) {
-    return "sm";
+    return 'sm';
   }
-  return height > 900 ? "lg" : "md";
+  return height > 900 ? 'lg' : 'md';
 }
 
 /**
@@ -81,11 +81,11 @@ export default function OnboardingScreen() {
    */
   const finish = useCallback(() => {
     setHasCompletedOnboarding(true);
-    if (from === "settings" && router.canGoBack()) {
+    if (from === 'settings' && router.canGoBack()) {
       router.back();
       return;
     }
-    router.replace("/(tabs)/gallery");
+    router.replace('/(tabs)/gallery');
   }, [setHasCompletedOnboarding, from, router]);
 
   const renderStep = useCallback(
@@ -168,7 +168,7 @@ export default function OnboardingScreen() {
             index={index}
             onIndexChange={setIndex}
             renderStep={renderStep}
-            isRTL={language === "ar"}
+            isRTL={language === 'ar'}
             minHeight={STEP_MIN_HEIGHT[artSize]}
           />
 
@@ -177,7 +177,7 @@ export default function OnboardingScreen() {
             <StepDots
               count={STEPS.length}
               index={index}
-              isRTL={language === "ar"}
+              isRTL={language === 'ar'}
             />
 
             <View style={styles.langBox}>
@@ -221,15 +221,15 @@ const styles = StyleSheet.create({
   },
   column: {
     flexGrow: 1,
-    width: "100%",
+    width: '100%',
     maxWidth: layout.maxContent,
-    alignSelf: "center",
+    alignSelf: 'center',
     paddingHorizontal: spacing.xl,
   },
   topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: spacing.lg,
   },
   wordmark: {
@@ -240,27 +240,27 @@ const styles = StyleSheet.create({
   skip: {
     minHeight: 44,
     minWidth: 44,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   skipLabel: {
     fontSize: typeScale.small.size,
   },
   step: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.lg,
   },
   stepTitle: {
     fontSize: typeScale.title.size,
     lineHeight: typeScale.title.lineHeight,
-    textAlign: "center",
+    textAlign: 'center',
   },
   stepBody: {
     fontSize: typeScale.body.size,
     lineHeight: typeScale.body.lineHeight,
-    textAlign: "center",
+    textAlign: 'center',
     maxWidth: 340,
   },
   footer: {
@@ -273,6 +273,6 @@ const styles = StyleSheet.create({
   },
   langLabel: {
     fontSize: typeScale.caption.size,
-    textAlign: "center",
+    textAlign: 'center',
   },
 });

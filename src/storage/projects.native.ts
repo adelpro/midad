@@ -1,8 +1,8 @@
-import { Directory, File, Paths } from "expo-file-system";
+import { Directory, File, Paths } from 'expo-file-system';
 
-import type { MidadProject } from "@/storage/project-schema";
+import type { MidadProject } from '@/storage/project-schema';
 
-const DIR = "midad-projects";
+const DIR = 'midad-projects';
 
 async function ensureDir(): Promise<Directory> {
   const dir = new Directory(Paths.document, DIR);
@@ -18,7 +18,7 @@ function fileName(id: string): string {
 
 async function readIndex(): Promise<Record<string, string>> {
   const dir = await ensureDir();
-  const indexFile = new File(dir, ".index.json");
+  const indexFile = new File(dir, '.index.json');
   if (!indexFile.exists) {
     return {};
   }
@@ -31,7 +31,7 @@ async function readIndex(): Promise<Record<string, string>> {
 
 async function writeIndex(index: Record<string, string>): Promise<void> {
   const dir = await ensureDir();
-  const indexFile = dir.createFile(".index.json", "application/json");
+  const indexFile = dir.createFile('.index.json', 'application/json');
   indexFile.write(JSON.stringify(index));
 }
 

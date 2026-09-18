@@ -5,10 +5,10 @@ import {
   Path,
   Rect,
   vec,
-} from "@shopify/react-native-skia";
+} from '@shopify/react-native-skia';
 
-import { SHAPE_INSET, SHAPE_PATH_BUILDERS } from "@/editor/skia/shape-geometry";
-import type { ShapeObject } from "@/storage/project-schema";
+import { SHAPE_INSET, SHAPE_PATH_BUILDERS } from '@/editor/skia/shape-geometry';
+import type { ShapeObject } from '@/storage/project-schema';
 
 export type ShapeRenderProps = {
   shape: ShapeObject;
@@ -28,17 +28,17 @@ export function ShapeRenderer({ shape, size }: ShapeRenderProps) {
   const stroke = shape.fill ? undefined : { color, width: strokeWidth };
 
   switch (shape.shapeKey) {
-    case "circle":
+    case 'circle':
       return (
         <Circle
           c={center}
           r={size / 2 - SHAPE_INSET}
           color={color}
-          style={stroke ? "stroke" : "fill"}
+          style={stroke ? 'stroke' : 'fill'}
           strokeWidth={stroke?.width}
         />
       );
-    case "square":
+    case 'square':
       return (
         <Rect
           x={SHAPE_INSET}
@@ -46,11 +46,11 @@ export function ShapeRenderer({ shape, size }: ShapeRenderProps) {
           width={size - SHAPE_INSET * 2}
           height={size - SHAPE_INSET * 2}
           color={color}
-          style={stroke ? "stroke" : "fill"}
+          style={stroke ? 'stroke' : 'fill'}
           strokeWidth={stroke?.width}
         />
       );
-    case "ring":
+    case 'ring':
       return (
         <Circle
           c={center}
@@ -60,7 +60,7 @@ export function ShapeRenderer({ shape, size }: ShapeRenderProps) {
           strokeWidth={(stroke?.width ?? 2) * 2}
         />
       );
-    case "line":
+    case 'line':
       return (
         <Line
           p1={vec(2, size / 2)}
@@ -81,7 +81,7 @@ export function ShapeRenderer({ shape, size }: ShapeRenderProps) {
         <Path
           path={build(size)}
           color={color}
-          style={stroke ? "stroke" : "fill"}
+          style={stroke ? 'stroke' : 'fill'}
           strokeWidth={stroke?.width}
           strokeJoin="round"
         />

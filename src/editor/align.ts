@@ -1,4 +1,4 @@
-import { groupAabb, type Aabb, type SizedObject } from "@/editor/hit-test";
+import { groupAabb, type Aabb, type SizedObject } from '@/editor/hit-test';
 
 /**
  * Alignment / centring operations for the current selection.
@@ -9,14 +9,14 @@ import { groupAabb, type Aabb, type SizedObject } from "@/editor/hit-test";
  * the selection onto the canvas centre, and work for a single object too.
  */
 export type AlignMode =
-  | "left"
-  | "centerH"
-  | "right"
-  | "top"
-  | "middleV"
-  | "bottom"
-  | "canvasCenterH"
-  | "canvasCenterV";
+  | 'left'
+  | 'centerH'
+  | 'right'
+  | 'top'
+  | 'middleV'
+  | 'bottom'
+  | 'canvasCenterH'
+  | 'canvasCenterV';
 
 /** A translation to apply to one object. */
 export interface AlignUpdate {
@@ -61,13 +61,13 @@ export function computeAlignUpdates(
 
   // Centring moves the selection as one: the delta is measured once, on the
   // selection's own box, and every object shifts by it.
-  if (mode === "canvasCenterH" || mode === "canvasCenterV") {
+  if (mode === 'canvasCenterH' || mode === 'canvasCenterV') {
     const dx =
-      mode === "canvasCenterH"
+      mode === 'canvasCenterH'
         ? canvas.width / 2 - (bounds.left + bounds.right) / 2
         : 0;
     const dy =
-      mode === "canvasCenterV"
+      mode === 'canvasCenterV'
         ? canvas.height / 2 - (bounds.top + bounds.bottom) / 2
         : 0;
     return selected.map((o) => ({
@@ -76,8 +76,8 @@ export function computeAlignUpdates(
     }));
   }
 
-  const targetX = edgeTarget(mode, "x", bounds);
-  const targetY = edgeTarget(mode, "y", bounds);
+  const targetX = edgeTarget(mode, 'x', bounds);
+  const targetY = edgeTarget(mode, 'y', bounds);
   if (targetX === null && targetY === null) {
     return [];
   }
@@ -92,11 +92,11 @@ export function computeAlignUpdates(
     const dx =
       targetX === null
         ? 0
-        : targetX - (edgeTarget(mode, "x", unitBounds) ?? targetX);
+        : targetX - (edgeTarget(mode, 'x', unitBounds) ?? targetX);
     const dy =
       targetY === null
         ? 0
-        : targetY - (edgeTarget(mode, "y", unitBounds) ?? targetY);
+        : targetY - (edgeTarget(mode, 'y', unitBounds) ?? targetY);
     for (const o of unit) {
       updates.push({
         id: o.id,
@@ -113,27 +113,27 @@ export function computeAlignUpdates(
  */
 function edgeTarget(
   mode: AlignMode,
-  axis: "x" | "y",
+  axis: 'x' | 'y',
   box: Aabb,
 ): number | null {
-  if (axis === "x") {
+  if (axis === 'x') {
     switch (mode) {
-      case "left":
+      case 'left':
         return box.left;
-      case "centerH":
+      case 'centerH':
         return (box.left + box.right) / 2;
-      case "right":
+      case 'right':
         return box.right;
       default:
         return null;
     }
   }
   switch (mode) {
-    case "top":
+    case 'top':
       return box.top;
-    case "middleV":
+    case 'middleV':
       return (box.top + box.bottom) / 2;
-    case "bottom":
+    case 'bottom':
       return box.bottom;
     default:
       return null;

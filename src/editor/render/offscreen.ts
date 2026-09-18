@@ -2,17 +2,17 @@ import type {
   SkCanvas,
   SkPaint,
   SkTypefaceFontProvider,
-} from "@shopify/react-native-skia";
-import { PaintStyle, Skia } from "@shopify/react-native-skia";
+} from '@shopify/react-native-skia';
+import { PaintStyle, Skia } from '@shopify/react-native-skia';
 
-import { drawGlyphOnCanvas } from "@/editor/skia/glyph-shape";
+import { drawGlyphOnCanvas } from '@/editor/skia/glyph-shape';
 import {
   SHAPE_BASE_SIZE,
   drawShapeOnCanvas,
-} from "@/editor/skia/shape-geometry";
-import { layoutArabicText } from "@/editor/skia/text";
-import { dataUriToBase64 } from "@/storage/background-image";
-import type { MidadProject } from "@/storage/project-schema";
+} from '@/editor/skia/shape-geometry';
+import { layoutArabicText } from '@/editor/skia/text';
+import { dataUriToBase64 } from '@/storage/background-image';
+import type { MidadProject } from '@/storage/project-schema';
 
 export interface RenderedPngResult {
   base64DataUri: string;
@@ -46,7 +46,7 @@ function drawBackgroundImage(
   const data = Skia.Data.fromBase64(dataUriToBase64(imageUri));
   const img = Skia.Image.MakeImageFromEncoded(data);
   if (!img) {
-    c.drawRect(Skia.XYWHRect(0, 0, W, H), solidPaint("#FFFFFF"));
+    c.drawRect(Skia.XYWHRect(0, 0, W, H), solidPaint('#FFFFFF'));
     return;
   }
   const iw = img.width();
@@ -80,27 +80,27 @@ export function renderProjectToPng(
   const w = Math.max(1, Math.round(W * s));
   const h = Math.max(1, Math.round(H * s));
 
-  const hasText = project.objects.some((o) => o.type === "text");
+  const hasText = project.objects.some((o) => o.type === 'text');
   if (hasText && !fonts) {
-    throw new Error("fonts-not-loaded");
+    throw new Error('fonts-not-loaded');
   }
 
   const surface = Skia.Surface.MakeOffscreen(w, h);
   if (!surface) {
-    throw new Error("offscreen-surface-unavailable");
+    throw new Error('offscreen-surface-unavailable');
   }
 
   const c = surface.getCanvas();
-  c.clear(Skia.Color("transparent"));
+  c.clear(Skia.Color('transparent'));
 
   const bg = project.canvas.background;
-  if (bg.type !== "transparent") {
+  if (bg.type !== 'transparent') {
     c.save();
     c.scale(s, s);
-    if (bg.type === "image" && bg.imageUri) {
+    if (bg.type === 'image' && bg.imageUri) {
       drawBackgroundImage(c, bg.imageUri, W, H);
     } else {
-      const color = bg.type === "paper" ? (bg.color ?? "#F7F6F3") : "#FFFFFF";
+      const color = bg.type === 'paper' ? (bg.color ?? '#F7F6F3') : '#FFFFFF';
       c.drawRect(Skia.XYWHRect(0, 0, W, H), solidPaint(color));
     }
     c.restore();
@@ -127,7 +127,7 @@ export function renderProjectToPng(
       c.saveLayer(layerPaint);
     }
 
-    if (obj.type === "text") {
+    if (obj.type === 'text') {
       const rendered = layoutArabicText(
         {
           text: obj.text,
@@ -148,7 +148,7 @@ export function renderProjectToPng(
         rendered.paragraph.paint(c, -rendered.width / 2, -rendered.height / 2);
         rendered.paragraph.dispose();
       }
-    } else if (obj.type === "shape") {
+    } else if (obj.type === 'shape') {
       // Local units: the canvas has already been scaled by the object transform.
       c.translate(-SHAPE_BASE_SIZE / 2, -SHAPE_BASE_SIZE / 2);
       drawShapeOnCanvas(c, obj, SHAPE_BASE_SIZE);
@@ -167,7 +167,7 @@ export function renderProjectToPng(
   const image = surface.makeImageSnapshot();
   const b64 = image.encodeToBase64();
   if (!b64) {
-    throw new Error("png-encode-failed");
+    throw new Error('png-encode-failed');
   }
   return {
     base64DataUri: `data:image/png;base64,${b64}`,

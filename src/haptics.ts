@@ -1,6 +1,6 @@
-import { Platform } from "react-native";
+import { Platform } from 'react-native';
 
-import * as Haptics from "expo-haptics";
+import * as Haptics from 'expo-haptics';
 
 /**
  * Haptic feedback, per DESIGN.md §6 — "haptics on meaningful moments only".
@@ -29,7 +29,7 @@ function fire(promise: Promise<void>): void {
 
 /** A discrete selection changed: a tool, a pin, a pager step. */
 export function hapticTick(): void {
-  if (Platform.OS === "android") {
+  if (Platform.OS === 'android') {
     fire(
       Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Tick),
     );
@@ -40,7 +40,7 @@ export function hapticTick(): void {
 
 /** The user is about to destroy something recoverable. */
 export function hapticDelete(): void {
-  if (Platform.OS === "android") {
+  if (Platform.OS === 'android') {
     fire(Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Reject));
     return;
   }
@@ -49,7 +49,7 @@ export function hapticDelete(): void {
 
 /** Work landed: a save or an export completed. */
 export function hapticSuccess(): void {
-  if (Platform.OS === "android") {
+  if (Platform.OS === 'android') {
     fire(Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm));
     return;
   }

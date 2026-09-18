@@ -2,7 +2,7 @@ import {
   NO_SHORTCUT_HINTS,
   type EditorShortcutHints,
   type EditorShortcutsOptions,
-} from "@/editor/shortcuts";
+} from '@/editor/shortcuts';
 
 /**
  * Native implementation: inert.

@@ -1,11 +1,11 @@
-import { StyleSheet, Text, View } from "react-native";
-import { useAnimatedStyle } from "react-native-reanimated";
+import { StyleSheet, Text, View } from 'react-native';
+import { useAnimatedStyle } from 'react-native-reanimated';
 
-import { AnimatedPressable } from "@/components/ui/pressable";
-import { usePressFeedback } from "@/hooks/use-press-feedback";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { fontRoles, layout, radius, spacing } from "@/theme";
+import { AnimatedPressable } from '@/components/ui/pressable';
+import { usePressFeedback } from '@/hooks/use-press-feedback';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { fontRoles, layout, radius, spacing } from '@/theme';
 
 /**
  * One segment of the track.
@@ -41,7 +41,7 @@ function SegmentItem({
       accessibilityState={{ selected: active }}
       style={[
         styles.segmentItem,
-        { backgroundColor: active ? c.ink : "transparent" },
+        { backgroundColor: active ? c.ink : 'transparent' },
         animStyle,
       ]}
     >
@@ -71,10 +71,10 @@ export function LanguagePicker() {
         { backgroundColor: c.surfaceAlt, borderColor: c.border },
       ]}
     >
-      {(["ar", "en"] as const).map((lang) => (
+      {(['ar', 'en'] as const).map((lang) => (
         <SegmentItem
           key={lang}
-          label={lang === "ar" ? t.onboarding.arabic : t.onboarding.english}
+          label={lang === 'ar' ? t.onboarding.arabic : t.onboarding.english}
           active={language === lang}
           onPress={() => setLanguage(lang)}
         />
@@ -85,21 +85,21 @@ export function LanguagePicker() {
 
 const styles = StyleSheet.create({
   segment: {
-    flexDirection: "row",
+    flexDirection: 'row',
     borderWidth: 1,
     borderRadius: radius.md,
     padding: 3,
     gap: 3,
     // Cap the track so the two segments keep a phone-proportioned width on
     // large displays instead of stretching into a full-window pill.
-    width: "100%",
+    width: '100%',
     maxWidth: layout.maxControl,
-    alignSelf: "center",
+    alignSelf: 'center',
   },
   segmentItem: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: spacing.sm + 2,
     borderRadius: radius.sm,
   },

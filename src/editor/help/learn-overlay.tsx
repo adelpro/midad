@@ -1,9 +1,9 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Icon, IconButton, Reveal } from "@/components/ui";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import { rowStyle } from "@/i18n/rtl";
+import { Button, Icon, IconButton, Reveal } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import { rowStyle } from '@/i18n/rtl';
 import {
   elevationStyle,
   fontRoles,
@@ -11,7 +11,7 @@ import {
   shadows,
   spacing,
   typeScale,
-} from "@/theme";
+} from '@/theme';
 
 import {
   helpEntry,
@@ -21,7 +21,7 @@ import {
   helpLabel,
   helpRole,
   type HelpKey,
-} from "./catalog";
+} from './catalog';
 
 export interface LearnOverlayProps {
   /** The control the user inspected last, or null before the first tap. */
@@ -53,11 +53,11 @@ export function LearnOverlay({
   const { colors: c } = useTheme();
   const fonts = fontRoles[language];
   const active = activeKey ? helpEntry(activeKey) : null;
-  const gestures = helpGroupEntries("canvas");
-  const gestureGroup = helpGroup("canvas");
+  const gestures = helpGroupEntries('canvas');
+  const gestureGroup = helpGroup('canvas');
 
   return (
-    <View style={[styles.overlay, { pointerEvents: "box-none" }]}>
+    <View style={[styles.overlay, { pointerEvents: 'box-none' }]}>
       <Reveal
         style={[
           styles.banner,
@@ -154,14 +154,14 @@ export function LearnOverlay({
 
 const styles = StyleSheet.create({
   overlay: {
-    position: "absolute",
+    position: 'absolute',
     // Inset by the canvas wrapper's own padding so both cards align with the
     // canvas card edge instead of the border box.
     top: spacing.md,
     left: spacing.md,
     right: spacing.md,
     bottom: spacing.md,
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
     gap: spacing.sm,
     zIndex: 20,
   },
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.sm,
   },
-  bannerHead: { alignItems: "flex-start", gap: spacing.sm },
+  bannerHead: { alignItems: 'flex-start', gap: spacing.sm },
   bannerText: { flex: 1, gap: 2 },
   bannerLabel: {
     fontSize: typeScale.body.size,
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   },
   legendScroll: { flexShrink: 1, marginTop: spacing.xs },
   legendBody: { gap: spacing.sm },
-  legendRow: { alignItems: "flex-start", gap: spacing.sm },
+  legendRow: { alignItems: 'flex-start', gap: spacing.sm },
   legendLabel: {
     width: LEGEND_LABEL_WIDTH,
     flexShrink: 0,

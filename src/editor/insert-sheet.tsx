@@ -10,7 +10,7 @@
  * exactly what `<Svg viewBox>` wants, and `@/editor/glyphs` is deliberately
  * Skia-free so a modal never drags CanvasKit onto its render path.
  */
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -18,49 +18,49 @@ import {
   Text,
   View,
   useWindowDimensions,
-} from "react-native";
-import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
+} from 'react-native';
+import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 
-import { Button, Sheet } from "@/components/ui";
+import { Button, Sheet } from '@/components/ui';
 import {
   glyphViewBox,
   glyphsInGroup,
   type GlyphCatalogEntry,
   type GlyphGroup,
-} from "@/editor/glyphs";
+} from '@/editor/glyphs';
 import {
   SHAPE_BASE_SIZE,
   SHAPE_INSET,
   SHAPE_PATH_BUILDERS,
-} from "@/editor/skia/shape-geometry";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
-import type { ShapeKey } from "@/storage/project-schema";
-import { fontRoles, radius, spacing, typeScale } from "@/theme";
+} from '@/editor/skia/shape-geometry';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
+import type { ShapeKey } from '@/storage/project-schema';
+import { fontRoles, radius, spacing, typeScale } from '@/theme';
 
-export type InsertTab = "glyphs" | "shapes";
+export type InsertTab = 'glyphs' | 'shapes';
 
 /** Re-exported so callers can name a shape without reaching into the schema. */
 export type { ShapeKey };
 
 /** Shapes in the order the sheet lists them: boxes, polygons, then curves. */
 const SHAPE_KEYS: readonly ShapeKey[] = [
-  "circle",
-  "square",
-  "triangle",
-  "diamond",
-  "pentagon",
-  "hexagon",
-  "octagon",
-  "star",
-  "crescent",
-  "arch",
-  "ring",
-  "line",
+  'circle',
+  'square',
+  'triangle',
+  'diamond',
+  'pentagon',
+  'hexagon',
+  'octagon',
+  'star',
+  'crescent',
+  'arch',
+  'ring',
+  'line',
 ];
 
 /** Catalogue groups in the order the sheet lists them. */
-const GROUPS: readonly GlyphGroup[] = ["mark", "letter"];
+const GROUPS: readonly GlyphGroup[] = ['mark', 'letter'];
 
 /** Tile metrics (dp). */
 const TILE = 76;
@@ -98,7 +98,7 @@ function ShapePreview({
   const thin = SHAPE_STROKE;
   const thick = SHAPE_STROKE * 2;
   switch (shapeKey) {
-    case "circle":
+    case 'circle':
       return (
         <Circle
           cx={mid}
@@ -109,7 +109,7 @@ function ShapePreview({
           strokeWidth={thin}
         />
       );
-    case "square":
+    case 'square':
       return (
         <Rect
           x={SHAPE_INSET}
@@ -121,7 +121,7 @@ function ShapePreview({
           strokeWidth={thin}
         />
       );
-    case "ring":
+    case 'ring':
       return (
         <Circle
           cx={mid}
@@ -132,7 +132,7 @@ function ShapePreview({
           strokeWidth={thick}
         />
       );
-    case "line":
+    case 'line':
       return (
         <Line
           x1={2}
@@ -265,7 +265,7 @@ export function InsertSheet({
   const { colors: c } = useTheme();
   const { t, language } = useT();
   const { height } = useWindowDimensions();
-  const [tab, setTab] = useState<InsertTab>("glyphs");
+  const [tab, setTab] = useState<InsertTab>('glyphs');
   const fonts = fontRoles[language];
 
   const shapeLabels: Record<ShapeKey, string> = {
@@ -299,21 +299,21 @@ export function InsertSheet({
         <View style={styles.tabs}>
           <Button
             label={t.editor.glyphs}
-            variant={tab === "glyphs" ? "primary" : "secondary"}
-            selected={tab === "glyphs"}
-            onPress={() => setTab("glyphs")}
+            variant={tab === 'glyphs' ? 'primary' : 'secondary'}
+            selected={tab === 'glyphs'}
+            onPress={() => setTab('glyphs')}
             style={styles.tab}
           />
           <Button
             label={t.editor.shapes}
-            variant={tab === "shapes" ? "primary" : "secondary"}
-            selected={tab === "shapes"}
-            onPress={() => setTab("shapes")}
+            variant={tab === 'shapes' ? 'primary' : 'secondary'}
+            selected={tab === 'shapes'}
+            onPress={() => setTab('shapes')}
             style={styles.tab}
           />
         </View>
 
-        {tab === "glyphs" ? (
+        {tab === 'glyphs' ? (
           <ScrollView
             style={{ maxHeight: Math.round(height * GRID_MAX_FRACTION) }}
             contentContainerStyle={styles.sections}
@@ -326,7 +326,7 @@ export function InsertSheet({
                     { color: c.muted, fontFamily: fonts.uiBold },
                   ]}
                 >
-                  {group === "mark"
+                  {group === 'mark'
                     ? t.editor.glyphMarks
                     : t.editor.glyphLetters}
                 </Text>
@@ -335,7 +335,7 @@ export function InsertSheet({
                     <GlyphTile
                       key={entry.key}
                       entry={entry}
-                      label={language === "ar" ? entry.labelAr : entry.labelEn}
+                      label={language === 'ar' ? entry.labelAr : entry.labelEn}
                       onPress={pick(() => onPickGlyph(entry.key))}
                     />
                   ))}
@@ -362,7 +362,7 @@ export function InsertSheet({
 
 const styles = StyleSheet.create({
   body: { gap: spacing.md },
-  tabs: { flexDirection: "row", gap: spacing.xs },
+  tabs: { flexDirection: 'row', gap: spacing.xs },
   tab: { flex: 1 },
   sections: { gap: spacing.lg },
   section: { gap: spacing.xs },
@@ -370,19 +370,19 @@ const styles = StyleSheet.create({
   // they mangle Arabic. See the theme's typography rules.
   sectionTitle: { fontSize: typeScale.caption.size },
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.xs,
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   tile: {
     width: TILE,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 2,
     paddingVertical: spacing.xs,
     borderWidth: 1,
     borderRadius: radius.md,
   },
-  tileLabel: { fontSize: typeScale.caption.size, textAlign: "center" },
+  tileLabel: { fontSize: typeScale.caption.size, textAlign: 'center' },
 });

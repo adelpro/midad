@@ -1,12 +1,12 @@
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { SelectionActionId } from "@/editor/selection-actions";
-import type { Language } from "@/i18n/strings";
+import type { SelectionActionId } from '@/editor/selection-actions';
+import type { Language } from '@/i18n/strings';
 
-export type ThemePreference = "system" | "light" | "dark";
+export type ThemePreference = 'system' | 'light' | 'dark';
 
 /** Preset auto-save flush intervals, in milliseconds. */
 export const AUTO_SAVE_INTERVALS_MS = [
@@ -26,10 +26,10 @@ export interface CanvasSize {
 }
 
 export const DEFAULT_CANVASES: CanvasSize[] = [
-  { labelAr: "مربع", labelEn: "Square", width: 1080, height: 1080 },
-  { labelAr: "عمودي", labelEn: "Portrait", width: 1080, height: 1620 },
-  { labelAr: "أفقي", labelEn: "Landscape", width: 1620, height: 1080 },
-  { labelAr: "بطاقة", labelEn: "Card", width: 1080, height: 720 },
+  { labelAr: 'مربع', labelEn: 'Square', width: 1080, height: 1080 },
+  { labelAr: 'عمودي', labelEn: 'Portrait', width: 1080, height: 1620 },
+  { labelAr: 'أفقي', labelEn: 'Landscape', width: 1620, height: 1080 },
+  { labelAr: 'بطاقة', labelEn: 'Card', width: 1080, height: 720 },
 ];
 
 interface SettingsState {
@@ -78,9 +78,9 @@ interface SettingsState {
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
-      language: "ar",
+      language: 'ar',
       defaultCanvasIndex: 0,
-      theme: "system",
+      theme: 'system',
       autoSaveEnabled: true,
       autoSaveIntervalMs: AUTO_SAVE_INTERVAL_DEFAULT_MS,
       selectionBarActions: null,
@@ -96,7 +96,7 @@ export const useSettings = create<SettingsState>()(
         set({ hasCompletedOnboarding }),
     }),
     {
-      name: "midad:settings",
+      name: 'midad:settings',
       storage: createJSONStorage(() => AsyncStorage),
     },
   ),

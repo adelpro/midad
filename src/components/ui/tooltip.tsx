@@ -1,8 +1,8 @@
-import type { PropsWithChildren } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import type { PropsWithChildren } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { useTheme } from "@/hooks/use-theme";
-import { radius, spacing, typeScale } from "@/theme";
+import { useTheme } from '@/hooks/use-theme';
+import { radius, spacing, typeScale } from '@/theme';
 
 export interface TooltipProps extends PropsWithChildren {
   label: string;
@@ -15,7 +15,7 @@ export interface TooltipProps extends PropsWithChildren {
    * control that sits at the very top of the window would land over the
    * status-bar strip, where it is clipped rather than read.
    */
-  placement?: "above" | "below";
+  placement?: 'above' | 'below';
 }
 
 /**
@@ -30,17 +30,17 @@ export interface TooltipProps extends PropsWithChildren {
 export function Tooltip({
   label,
   visible,
-  placement = "above",
+  placement = 'above',
   children,
 }: TooltipProps) {
   const { colors: c } = useTheme();
   const wrapStyle =
-    placement === "above" ? styles.bubbleWrapAbove : styles.bubbleWrapBelow;
+    placement === 'above' ? styles.bubbleWrapAbove : styles.bubbleWrapBelow;
   return (
     <View style={styles.anchor}>
       {children}
       {visible && (
-        <View style={[wrapStyle, { pointerEvents: "none" }]}>
+        <View style={[wrapStyle, { pointerEvents: 'none' }]}>
           <View style={[styles.bubble, { backgroundColor: c.ink }]}>
             <Text style={[styles.text, { color: c.onInk }]}>{label}</Text>
           </View>
@@ -51,24 +51,24 @@ export function Tooltip({
 }
 
 const styles = StyleSheet.create({
-  anchor: { position: "relative", zIndex: 10 },
+  anchor: { position: 'relative', zIndex: 10 },
   // Both wrap variants span the anchor so the bubble centres on the trigger at
   // any width. The old fixed `translateX: -40` only lined up for one bubble
   // size.
   bubbleWrapAbove: {
-    position: "absolute",
-    bottom: "100%",
+    position: 'absolute',
+    bottom: '100%',
     left: 0,
     right: 0,
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: spacing.xs,
   },
   bubbleWrapBelow: {
-    position: "absolute",
-    top: "100%",
+    position: 'absolute',
+    top: '100%',
     left: 0,
     right: 0,
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: spacing.xs,
   },
   bubble: {
@@ -79,9 +79,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   text: {
-    fontFamily: "monospace",
+    fontFamily: 'monospace',
     fontSize: typeScale.micro.size,
     lineHeight: typeScale.micro.lineHeight,
-    textAlign: "center",
+    textAlign: 'center',
   },
 });

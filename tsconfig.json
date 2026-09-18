@@ -2,6 +2,7 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "tsBuildInfoFile": ".cache/tsconfig.tsbuildinfo",
     "incremental": true,
     "paths": {
       "@/*": ["./src/*"],

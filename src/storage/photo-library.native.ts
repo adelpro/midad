@@ -5,9 +5,16 @@ import type { ExportOptions } from '@/storage/export';
  * (with permission). Lives in a `.native.ts` file so web/SSR bundles
  * never load `expo-media-library` (it crashes at import time in Node).
  */
-export async function saveImageToPhotoLibrary({ data, format, fileName }: ExportOptions): Promise<boolean> {
+export async function saveImageToPhotoLibrary({
+  data,
+  format,
+  fileName,
+}: ExportOptions): Promise<boolean> {
   const { File, Paths } = await import('expo-file-system');
-  const tmp = new File(Paths.cache, `${fileName ?? 'midad-design'}-${Date.now()}.${format}`);
+  const tmp = new File(
+    Paths.cache,
+    `${fileName ?? 'midad-design'}-${Date.now()}.${format}`,
+  );
   if (tmp.exists) {
     tmp.delete();
   }

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback } from 'react';
 
 /**
  * Right-click / context-menu support for gallery rows.

@@ -1,6 +1,6 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
-import { computeAlignUpdates, type AlignMode } from "@/editor/align";
+import { computeAlignUpdates, type AlignMode } from '@/editor/align';
 import {
   canGroup,
   canUngroup,
@@ -12,14 +12,14 @@ import {
   sameIds,
   selectionUnits,
   type MemberOrigin,
-} from "@/editor/groups";
-import type { ResizeHandle, SizedObject } from "@/editor/hit-test";
-import { NUDGE_COALESCE_MS } from "@/editor/shortcuts";
+} from '@/editor/groups';
+import type { ResizeHandle, SizedObject } from '@/editor/hit-test';
+import { NUDGE_COALESCE_MS } from '@/editor/shortcuts';
 import type {
   CalligraphyTextObject,
   DesignObject,
   MidadProject,
-} from "@/storage/project-schema";
+} from '@/storage/project-schema';
 
 /**
  * Editor document state: the working design, selection, and undo/redo history.
@@ -271,7 +271,7 @@ interface EditorState {
   undo: () => void;
   redo: () => void;
 
-  setCanvas: (patch: Partial<MidadProject["canvas"]>) => void;
+  setCanvas: (patch: Partial<MidadProject['canvas']>) => void;
   setGrid: (enabled: boolean) => void;
   setName: (name: string) => void;
 }

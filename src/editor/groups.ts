@@ -368,7 +368,7 @@ export const OBJECT_SCALE_BOUNDS = { min: 0.05, max: 20 } as const;
 export function selectionFrame<T extends FramedMember>(
   ids: readonly string[],
   sized: readonly T[],
-): { frame: CollectionFrame; state: "whole" | "entered"; members: T[] } | null {
+): { frame: CollectionFrame; state: 'whole' | 'entered'; members: T[] } | null {
   const collectionId = selectionCollection(ids, sized);
   if (collectionId !== null) {
     const members = sized.filter((o) => o.groupId === collectionId);
@@ -376,12 +376,12 @@ export function selectionFrame<T extends FramedMember>(
     if (frame === null) {
       return null;
     }
-    return { frame, state: ids.length > 1 ? "whole" : "entered", members };
+    return { frame, state: ids.length > 1 ? 'whole' : 'entered', members };
   }
   if (ids.length > 1) {
     const members = sized.filter((o) => ids.includes(o.id));
     const frame = collectionFrame(members);
-    return frame === null ? null : { frame, state: "whole", members };
+    return frame === null ? null : { frame, state: 'whole', members };
   }
   return null;
 }
@@ -561,7 +561,7 @@ export interface CollectionBarPlacement {
   /** Top edge, view px. */
   top: number;
   /** Which side of the frame the bar ended up on. */
-  side: "above" | "below";
+  side: 'above' | 'below';
 }
 
 /**
@@ -610,16 +610,16 @@ export function collectionBarPlacement(args: {
   const left = Math.min(Math.max(topAnchor.x - barWidth / 2, margin), maxLeft);
   const above = topAnchor.y - barHeight - gap;
   if (above >= margin) {
-    return { left, top: above, side: "above" };
+    return { left, top: above, side: 'above' };
   }
   const below = bottomAnchor.y + gap;
   if (below + barHeight <= viewH - margin) {
-    return { left, top: below, side: "below" };
+    return { left, top: below, side: 'below' };
   }
   return {
     left,
     top: Math.min(Math.max(above, margin), maxTop),
-    side: "above",
+    side: 'above',
   };
 }
 
@@ -724,17 +724,17 @@ export function rotateCollection(
  */
 export function flipCollection(
   origins: readonly MemberOrigin[],
-  axis: "h" | "v",
+  axis: 'h' | 'v',
   pivot: { x: number; y: number },
 ): CollectionFlipPatch[] {
   return origins.map((o) => ({
     id: o.id,
     transform: {
-      x: axis === "h" ? 2 * pivot.x - o.x : o.x,
-      y: axis === "v" ? 2 * pivot.y - o.y : o.y,
+      x: axis === 'h' ? 2 * pivot.x - o.x : o.x,
+      y: axis === 'v' ? 2 * pivot.y - o.y : o.y,
       rotation: -o.rotation,
-      flipH: axis === "h" ? !o.flipH : o.flipH,
-      flipV: axis === "v" ? !o.flipV : o.flipV,
+      flipH: axis === 'h' ? !o.flipH : o.flipH,
+      flipV: axis === 'v' ? !o.flipV : o.flipV,
     },
   }));
 }

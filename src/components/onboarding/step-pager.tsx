@@ -1,20 +1,20 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   View,
   useWindowDimensions,
   type LayoutChangeEvent,
-} from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+} from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSpring,
-} from "react-native-reanimated";
+} from 'react-native-reanimated';
 
-import { springs } from "@/theme";
+import { springs } from '@/theme';
 
 export interface StepPagerProps {
   count: number;
@@ -96,9 +96,9 @@ function StepPagerBase({
     if (!node) {
       return;
     }
-    if (typeof node.getBoundingClientRect === "function") {
+    if (typeof node.getBoundingClientRect === 'function') {
       applyWidth(node.getBoundingClientRect().width);
-    } else if (typeof node.measure === "function") {
+    } else if (typeof node.measure === 'function') {
       node.measure((_x, _y, w) => applyWidth(w));
     }
   }, [applyWidth, windowWidth]);
@@ -224,7 +224,7 @@ export const StepPager = memo(StepPagerBase);
 const styles = StyleSheet.create({
   viewport: {
     flex: 1,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   // The gesture target is a separate node from the measured box, so the ref and
   // `onLayout` on the parent are unaffected by how the gesture library wraps or
@@ -235,13 +235,13 @@ const styles = StyleSheet.create({
   // The strip and its pages both use absolute positioning with a physical `left`
   // so page order never depends on the ambient writing direction.
   strip: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     bottom: 0,
     left: 0,
   },
   page: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     bottom: 0,
   },

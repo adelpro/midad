@@ -1,20 +1,20 @@
-import { useEffect, useRef, useState, type PropsWithChildren } from "react";
-import { StyleSheet } from "react-native";
-import { useAnimatedStyle } from "react-native-reanimated";
+import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
+import { StyleSheet } from 'react-native';
+import { useAnimatedStyle } from 'react-native-reanimated';
 
-import { usePressFeedback } from "@/hooks/use-press-feedback";
-import { useTheme } from "@/hooks/use-theme";
-import { isWeb } from "@/storage/platform";
-import { radius } from "@/theme";
+import { usePressFeedback } from '@/hooks/use-press-feedback';
+import { useTheme } from '@/hooks/use-theme';
+import { isWeb } from '@/storage/platform';
+import { radius } from '@/theme';
 
-import { AnimatedPressable } from "./pressable";
-import { Tooltip } from "./tooltip";
+import { AnimatedPressable } from './pressable';
+import { Tooltip } from './tooltip';
 
 export interface IconButtonProps extends PropsWithChildren {
   onPress?: () => void;
   disabled?: boolean;
   /** surface-tone background */
-  variant?: "ghost" | "surface" | "ink";
+  variant?: 'ghost' | 'surface' | 'ink';
   size?: number;
   accessibilityLabel?: string;
   accessibilityHint?: string;
@@ -26,7 +26,7 @@ export interface IconButtonProps extends PropsWithChildren {
    */
   hint?: string;
   /** Which side the hint bubble opens on. Defaults to above the button. */
-  hintPlacement?: "above" | "below";
+  hintPlacement?: 'above' | 'below';
   /**
    * Long-press handler.
    *
@@ -40,7 +40,7 @@ export interface IconButtonProps extends PropsWithChildren {
 export function IconButton({
   onPress,
   disabled,
-  variant = "ghost",
+  variant = 'ghost',
   size = 40,
   accessibilityLabel,
   accessibilityHint,
@@ -63,11 +63,11 @@ export function IconButton({
    */
   const hintEnabled = !isWeb && !!hint;
   const bg =
-    variant === "ink"
+    variant === 'ink'
       ? c.ink
-      : variant === "surface"
+      : variant === 'surface'
         ? c.surface
-        : "transparent";
+        : 'transparent';
   const press = usePressFeedback();
   const animStyle = useAnimatedStyle(
     () => ({
@@ -91,7 +91,7 @@ export function IconButton({
   };
   return (
     <Tooltip
-      label={hint ?? accessibilityLabel ?? ""}
+      label={hint ?? accessibilityLabel ?? ''}
       visible={hintEnabled && hintVisible}
       placement={hintPlacement}
     >
@@ -137,8 +137,8 @@ export function IconButton({
 
 const styles = StyleSheet.create({
   base: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
   },
 });

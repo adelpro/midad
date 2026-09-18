@@ -20,15 +20,15 @@
 /** Unicode joining behaviour of a code point. */
 export type JoiningType =
   /** Dual-joining: connects to both neighbours. */
-  | "D"
+  | 'D'
   /** Right-joining: connects only to the preceding letter. */
-  | "R"
+  | 'R'
   /** Join-causing: tatweel and ZWJ force a connection. */
-  | "C"
+  | 'C'
   /** Transparent: combining marks, which never affect joining. */
-  | "T"
+  | 'T'
   /** Non-joining: whitespace, digits, punctuation, Latin, ZWNJ. */
-  | "U";
+  | 'U';
 
 export interface TextCluster {
   /** Inclusive UTF-16 index into the source string. */
@@ -134,23 +134,23 @@ const JOIN_CAUSING = new Set([0x0640, 0x200d]);
 
 function joiningType(cp: number): JoiningType {
   if (isIn(cp, TRANSPARENT)) {
-    return "T";
+    return 'T';
   }
   if (JOIN_CAUSING.has(cp)) {
-    return "C";
+    return 'C';
   }
   if (isIn(cp, RIGHT_JOINING)) {
-    return "R";
+    return 'R';
   }
   if (isIn(cp, ARABIC_LETTERS)) {
-    return "D";
+    return 'D';
   }
-  return "U";
+  return 'U';
 }
 
-const canJoinForward = (t: JoiningType): boolean => t === "D" || t === "C";
+const canJoinForward = (t: JoiningType): boolean => t === 'D' || t === 'C';
 const canJoinBackward = (t: JoiningType): boolean =>
-  t === "D" || t === "R" || t === "C";
+  t === 'D' || t === 'R' || t === 'C';
 
 /**
  * Whitespace plus zero-width / formatting code points. These affect where a
@@ -163,7 +163,7 @@ const INVISIBLE_CHARS =
 
 /** Whether a slice would actually put ink on the canvas. */
 const rendersInk = (slice: string): boolean =>
-  slice.replace(INVISIBLE_CHARS, "").length > 0;
+  slice.replace(INVISIBLE_CHARS, '').length > 0;
 
 interface Unit {
   type: JoiningType;
@@ -203,10 +203,10 @@ export function segmentClusters(text: string): TextCluster[] {
   for (const unit of tokenize(text)) {
     const current = groups[groups.length - 1];
     if (!current) {
-      groups.push({ units: [unit], base: unit.type === "T" ? null : unit });
+      groups.push({ units: [unit], base: unit.type === 'T' ? null : unit });
       continue;
     }
-    if (unit.type === "T") {
+    if (unit.type === 'T') {
       // Marks always stay with the base they decorate. A leading mark run keeps
       // `base` null so the first real letter still joins it.
       current.units.push(unit);
@@ -224,7 +224,7 @@ export function segmentClusters(text: string): TextCluster[] {
   }
 
   const clusters: TextCluster[] = [];
-  let gap = "";
+  let gap = '';
   for (const group of groups) {
     const start = group.units[0].start;
     const end = group.units[group.units.length - 1].end;
@@ -236,7 +236,7 @@ export function segmentClusters(text: string): TextCluster[] {
       continue;
     }
     clusters.push({ start, end, text: raw, gapBefore: gap });
-    gap = "";
+    gap = '';
   }
   return clusters;
 }

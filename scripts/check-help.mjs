@@ -20,14 +20,14 @@
  *
  * Run: node scripts/check-help.mjs
  */
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import ts from "typescript";
+import ts from 'typescript';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const read = (...parts) => readFileSync(join(here, "..", ...parts), "utf8");
+const read = (...parts) => readFileSync(join(here, '..', ...parts), 'utf8');
 
 let failures = 0;
 
@@ -71,7 +71,7 @@ function load(...parts) {
     },
   });
   const moduleShim = { exports: {} };
-  new Function("exports", "module", outputText)(moduleShim.exports, moduleShim);
+  new Function('exports', 'module', outputText)(moduleShim.exports, moduleShim);
   return { source, exports: moduleShim.exports };
 }
 
@@ -79,85 +79,85 @@ function load(...parts) {
 // Every module here has to stand alone: the native bundles import the catalog
 // and the binding table, so neither may reach a platform or a DOM type.
 // ---------------------------------------------------------------------------
-const catalog = load("src", "editor", "help", "catalog.ts");
-const stringsModule = load("src", "i18n", "strings.ts");
-const shortcutModule = load("src", "editor", "shortcuts.ts");
+const catalog = load('src', 'editor', 'help', 'catalog.ts');
+const stringsModule = load('src', 'i18n', 'strings.ts');
+const shortcutModule = load('src', 'editor', 'shortcuts.ts');
 
 ok(
-  "catalog.ts declares no runtime imports",
+  'catalog.ts declares no runtime imports',
   !/^\s*import\s+(?!type\b)/m.test(catalog.source),
-  "found a value import; only `import type` is allowed",
+  'found a value import; only `import type` is allowed',
 );
 ok(
-  "strings.ts declares no imports",
+  'strings.ts declares no imports',
   !/^\s*import\s/m.test(stringsModule.source),
-  "found an import statement",
+  'found an import statement',
 );
 
 const { HELP_ENTRIES, HELP_GROUPS } = catalog.exports;
 const { strings } = stringsModule.exports;
 const { SHORTCUT_BINDINGS } = shortcutModule.exports;
 
-const LANGUAGES = ["ar", "en"];
+const LANGUAGES = ['ar', 'en'];
 
 /**
  * `partLabel` is a format template ("Part {n} of {total}"), not the label of a
  * control, so no entry can claim it. Listed rather than pattern-matched so
  * adding a real label key later cannot slip past unnoticed.
  */
-const NON_LABEL_HINTS = ["partLabel", "memberLabel"];
+const NON_LABEL_HINTS = ['partLabel', 'memberLabel'];
 
 // ---------------------------------------------------------------------------
 // Shape.
 // ---------------------------------------------------------------------------
 const keys = HELP_ENTRIES.map((entry) => entry.key);
 eq(
-  "every help key is unique",
+  'every help key is unique',
   keys.filter((key, i) => keys.indexOf(key) !== i),
   [],
 );
 eq(
-  "no help key is blank",
-  keys.filter((key) => typeof key !== "string" || key.trim() === ""),
+  'no help key is blank',
+  keys.filter((key) => typeof key !== 'string' || key.trim() === ''),
   [],
 );
 
 const groupKeys = HELP_GROUPS.map((group) => group.key);
 ok(
-  "every group is declared before it is used",
+  'every group is declared before it is used',
   HELP_ENTRIES.every((entry) => groupKeys.includes(entry.group)),
-  "an entry names a group that HELP_GROUPS does not declare",
+  'an entry names a group that HELP_GROUPS does not declare',
 );
 
-const declaredLabelForms = ["hint", "editor", "ar"];
+const declaredLabelForms = ['hint', 'editor', 'ar'];
 const malformed = HELP_ENTRIES.filter((entry) => {
   const found = Object.keys(entry.label ?? {}).filter((key) =>
     declaredLabelForms.includes(key),
   );
   // `ar` and `en` are one form, and the other two are one key each: either
   // exactly `ar`+`en`, or exactly one of the namespaces.
-  const forms = found.includes("ar")
-    ? found.includes("en")
-      ? ["literal"]
-      : ["literal-incomplete"]
+  const forms = found.includes('ar')
+    ? found.includes('en')
+      ? ['literal']
+      : ['literal-incomplete']
     : found;
   return forms.length !== 1;
 }).map((entry) => entry.key);
-eq("every label uses exactly one source", malformed, []);
+eq('every label uses exactly one source', malformed, []);
 
 const labelForms = HELP_ENTRIES.map((entry) =>
-  "hint" in entry.label
+  'hint' in entry.label
     ? `hint:${entry.label.hint}`
-    : "editor" in entry.label
+    : 'editor' in entry.label
       ? `editor:${entry.label.editor}`
-      : "literal",
+      : 'literal',
 );
 const hintKeys = labelForms
-  .filter((form) => form.startsWith("hint:"))
-  .map((form) => form.slice("hint:".length));
+  .filter((form) => form.startsWith('hint:'))
+  .map((form) => form.slice('hint:'.length));
 const editorKeys = labelForms
-  .filter((form) => form.startsWith("editor:"))
-  .map((form) => form.slice("editor:".length));
+  .filter((form) => form.startsWith('editor:'))
+  .map((form) => form.slice('editor:'.length));
 
 // ---------------------------------------------------------------------------
 // Labels resolve in both languages.
@@ -166,28 +166,28 @@ const missingLabels = [];
 for (const language of LANGUAGES) {
   const hints = strings[language].editor.hints;
   for (const key of hintKeys) {
-    if (typeof hints[key] !== "string" || hints[key] === "") {
+    if (typeof hints[key] !== 'string' || hints[key] === '') {
       missingLabels.push(`${language}: hints.${key}`);
     }
   }
   for (const key of editorKeys) {
     const value = strings[language].editor[key];
-    if (typeof value !== "string" || value === "") {
+    if (typeof value !== 'string' || value === '') {
       missingLabels.push(`${language}: editor.${key}`);
     }
   }
 }
-eq("every referenced label exists in both languages", missingLabels, []);
+eq('every referenced label exists in both languages', missingLabels, []);
 
 const literalGaps = HELP_ENTRIES.filter(
   (entry) =>
-    "ar" in entry.label &&
-    (typeof entry.label.ar !== "string" ||
-      entry.label.ar.trim() === "" ||
-      typeof entry.label.en !== "string" ||
-      entry.label.en.trim() === ""),
+    'ar' in entry.label &&
+    (typeof entry.label.ar !== 'string' ||
+      entry.label.ar.trim() === '' ||
+      typeof entry.label.en !== 'string' ||
+      entry.label.en.trim() === ''),
 ).map((entry) => entry.key);
-eq("every literal label is written in both languages", literalGaps, []);
+eq('every literal label is written in both languages', literalGaps, []);
 
 // ---------------------------------------------------------------------------
 // Every hints key is accounted for. This is the assertion that keeps the
@@ -197,16 +197,16 @@ const hintsKeys = Object.keys(strings.en.editor.hints);
 const unclaimed = hintsKeys.filter(
   (key) => !hintKeys.includes(key) && !NON_LABEL_HINTS.includes(key),
 );
-eq("every tooltip label belongs to exactly one help entry", unclaimed, []);
+eq('every tooltip label belongs to exactly one help entry', unclaimed, []);
 
 eq(
-  "a hints key is never claimed twice",
+  'a hints key is never claimed twice',
   hintKeys.filter((key, i) => hintKeys.indexOf(key) !== i),
   [],
 );
 
 eq(
-  "the hints allowlist holds only non-labels",
+  'the hints allowlist holds only non-labels',
   NON_LABEL_HINTS.filter((key) => !(key in strings.en.editor.hints)),
   [],
 );
@@ -216,10 +216,10 @@ eq(
 // this table exists to avoid.
 // ---------------------------------------------------------------------------
 const resolveLabel = (entry, language) => {
-  if ("hint" in entry.label) {
+  if ('hint' in entry.label) {
     return strings[language].editor.hints[entry.label.hint];
   }
-  if ("editor" in entry.label) {
+  if ('editor' in entry.label) {
     return strings[language].editor[entry.label.editor];
   }
   return entry.label[language];
@@ -228,8 +228,8 @@ const resolveLabel = (entry, language) => {
 const roleProblems = [];
 for (const entry of HELP_ENTRIES) {
   for (const language of LANGUAGES) {
-    const role = language === "ar" ? entry.roleAr : entry.roleEn;
-    if (typeof role !== "string" || role.trim() === "") {
+    const role = language === 'ar' ? entry.roleAr : entry.roleEn;
+    if (typeof role !== 'string' || role.trim() === '') {
       roleProblems.push(`${entry.key}: empty ${language} role`);
       continue;
     }
@@ -238,7 +238,7 @@ for (const entry of HELP_ENTRIES) {
     }
   }
 }
-eq("every role explains rather than repeats", roleProblems, []);
+eq('every role explains rather than repeats', roleProblems, []);
 
 // ---------------------------------------------------------------------------
 // Shortcuts: the sheet claims to list them all, so every bound action has to
@@ -250,12 +250,12 @@ const claimedIds = HELP_ENTRIES.map((entry) => entry.shortcutId).filter(
 );
 
 eq(
-  "no entry names an unknown shortcut",
+  'no entry names an unknown shortcut',
   claimedIds.filter((id) => !boundIds.includes(id)),
   [],
 );
 eq(
-  "every shortcut is documented",
+  'every shortcut is documented',
   boundIds.filter((id) => !claimedIds.includes(id)),
   [],
 );
@@ -264,7 +264,7 @@ eq(
 // No empty sections in the sheet.
 // ---------------------------------------------------------------------------
 eq(
-  "no help group is empty",
+  'no help group is empty',
   groupKeys.filter((key) => !HELP_ENTRIES.some((entry) => entry.group === key)),
   [],
 );
@@ -275,13 +275,13 @@ eq(
 // matters here is that the catalog never hardcodes chord text of its own.
 // ---------------------------------------------------------------------------
 const hardcodedChords = HELP_ENTRIES.filter((entry) =>
-  ["ar", "en"].some((language) =>
+  ['ar', 'en'].some((language) =>
     /(⌘|⇧|Ctrl\+|Shift\+)/.test(
-      language === "ar" ? entry.roleAr : entry.roleEn,
+      language === 'ar' ? entry.roleAr : entry.roleEn,
     ),
   ),
 ).map((entry) => entry.key);
-eq("no role hardcodes a chord", hardcodedChords, []);
+eq('no role hardcodes a chord', hardcodedChords, []);
 
 console.log(
   failures === 0
