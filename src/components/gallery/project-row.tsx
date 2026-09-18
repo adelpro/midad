@@ -1,6 +1,6 @@
-import { useCallback, useEffect } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useCallback, useEffect } from "react";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -8,14 +8,14 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import { Card, DirectionIcon, Icon, IconButton } from '@/components/ui';
-import { useTheme } from '@/hooks/use-theme';
-import { useT } from '@/i18n';
-import { rowStyle } from '@/i18n/rtl';
-import { usePins } from '@/storage/pins';
-import type { MidadProject } from '@/storage/project-schema';
+import { Card, DirectionIcon, Icon, IconButton } from "@/components/ui";
+import { useTheme } from "@/hooks/use-theme";
+import { useT } from "@/i18n";
+import { rowStyle } from "@/i18n/rtl";
+import { usePins } from "@/storage/pins";
+import type { MidadProject } from "@/storage/project-schema";
 import {
   fontRoles,
   motion,
@@ -23,27 +23,66 @@ import {
   spacing,
   springs,
   typeScale,
-} from '@/theme';
+} from "@/theme";
 
-import { useContextMenu } from './use-context-menu';
+import { useContextMenu } from "./use-context-menu";
 
 const THUMB_RATIO = 4 / 3;
 const ROW_THUMB_W = 116;
 /** Reveal width per side. Wide enough for an icon + label, ≥44pt in both axes. */
 const ACTION_W = 84;
+/**
+ * Room each panel keeps beyond the reveal width, for the two things that push
+ * the card past `ACTION_W`: the rubber-band give in the drag, whose asymptote is
+ * exactly this, and the overshoot of the latch spring.
+ *
+ * It is a *static* width — DESIGN.md §6 animates transform and opacity only —
+ * and the card's own translate does the clipping, so the panel's inner edge and
+ * the card's leading edge stay welded together and no sliver of page background
+ * can open up between them. A panel exactly `ACTION_W` wide is what makes that
+ * sliver visible, because a reveal can always travel further than the action.
+ */
+const ELASTIC_TRAVEL = 48;
+/** Panel width: the reveal plus its give. Also the far limit of the drag. */
+const PANEL_W = ACTION_W + ELASTIC_TRAVEL;
+/**
+ * Fastest release velocity handed to the settle spring (dp/s).
+ *
+ * The bounce past a latch is ≈ `0.0288 · v` for ζ 0.6 / stiffness 300, so an
+ * unclamped 2000dp/s flick would travel ~58dp — past `ELASTIC_TRAVEL`, and back
+ * into the sliver this layout exists to prevent. The commit decision still uses
+ * the raw velocity; only the spring is damped into range.
+ */
+const MAX_SETTLE_VELOCITY = 1200;
 /** Fraction of ACTION_W the release point must pass to latch open. */
 const COMMIT_RATIO = 0.4;
-/** How much of a drag past the reveal width is allowed through, as friction. */
-const OVERDRAG_RESISTANCE = 0.15;
+/**
+ * Least distance a flick must travel before its velocity may decide the commit.
+ * Velocity alone would latch a row the finger barely moved, which then reads as
+ * a swipe that refused to go back.
+ */
+const FLICK_FLOOR = ACTION_W * 0.15;
+
+/**
+ * The settle preset is chosen by *destination*, not by who asked for it.
+ *
+ * A latch wants the bounce — that give is the elastic. A return to rest must not
+ * have one: overshooting past 0 reveals the action on the other side of the row
+ * for a few frames. Both the gesture and the parent-state effect settle through
+ * these, which also keeps Reanimated on its "continue the previous run" path
+ * when the effect re-asserts the target the gesture just chose.
+ */
+const LATCH_SPRING = springs.elastic;
+const REST_SPRING = springs.exit;
 
 /** Which action a row has revealed, if any. */
-export type SwipeSide = 'leading' | 'trailing' | null;
+export type SwipeSide = "leading" | "trailing" | null;
 
 export interface ProjectRowProps {
   project: MidadProject;
   thumbUri: string | null;
   /** `row` = full-width phone row; `stack` = grid tile. */
-  layout: 'row' | 'stack';
+  layout: "row" | "stack";
   /** Whether the swipe gesture is available: native only, and only in `row`. */
   swipeable: boolean;
   /** Only one row may be open at a time; the parent owns which. */
@@ -58,10 +97,10 @@ export interface ProjectRowProps {
 function formatDate(iso: string, language: string): string {
   const d = new Date(iso);
   // Latin digits for Arabic too (`ar-u-nu-latn`) — numerals stay Western by default.
-  return d.toLocaleDateString(language === 'ar' ? 'ar-u-nu-latn' : 'en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
+  return d.toLocaleDateString(language === "ar" ? "ar-u-nu-latn" : "en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 }
 
@@ -79,6 +118,14 @@ function formatDate(iso: string, language: string): string {
  * offset is anchored at activation so the card never jumps, and direction uses
  * `useT().isRTL` rather than `I18nManager.isRTL` — the latter is stale until
  * the app restarts after a language change (`src/i18n/rtl.ts`).
+ *
+ * **A release always settles somewhere.** Past `COMMIT_RATIO` — and only once
+ * the finger has actually travelled — the row latches and the spring is allowed
+ * to overshoot, because that give is what makes the reveal feel elastic.
+ * Anything less returns to rest on a critically damped spring, since a bounce
+ * past 0 would flash the action on the other side. The row also cancels itself
+ * as soon as it stops being the thing being touched: another row opening, a tap,
+ * a list scroll, or leaving the screen.
  */
 export function ProjectRow({
   project,
@@ -101,7 +148,7 @@ export function ProjectRow({
 
   const name = project.name || t.gallery.untitled;
   const date = formatDate(project.updatedAt, language);
-  const isRow = layout === 'row';
+  const isRow = layout === "row";
 
   // Positive = reveal the leading action, negative = the trailing one,
   // *before* the RTL multiplier. `dir` flips it so "swipe toward the trailing
@@ -112,7 +159,7 @@ export function ProjectRow({
 
   const targetFor = useCallback(
     (side: SwipeSide) =>
-      side === null ? 0 : (side === 'trailing' ? -1 : 1) * ACTION_W * dir,
+      side === null ? 0 : (side === "trailing" ? -1 : 1) * ACTION_W * dir,
     [dir],
   );
 
@@ -122,9 +169,16 @@ export function ProjectRow({
     if (x.value === target) {
       return;
     }
+    // The same preset rule the gesture's own settle uses, so an in-flight bounce
+    // is continued rather than restarted when this re-asserts the same target.
+    // `velocity: 0` leaves it to Reanimated to add the running animation's
+    // velocity, which is what carries the release momentum across the round trip.
     x.value = reduceMotion
       ? withTiming(target, { duration: motion.fast })
-      : withSpring(target, springs.momentum);
+      : withSpring(target, {
+          ...(openSide === null ? REST_SPRING : LATCH_SPRING),
+          velocity: 0,
+        });
   }, [openSide, targetFor, reduceMotion, x]);
 
   const pan = Gesture.Pan()
@@ -137,38 +191,50 @@ export function ProjectRow({
       startX.value = x.value;
     })
     .onUpdate((e) => {
+      // Past the reveal the drag gives instead of stopping at a wall: the
+      // resistance grows with the distance, so the gesture reads as a material
+      // under tension rather than a slider that hit its end. `ELASTIC_TRAVEL` is
+      // the asymptote — which is also exactly how much extra panel there is to
+      // reveal, so the stretched panel still covers what the card uncovers.
       const next = startX.value + e.translationX;
-      // Past the reveal width the drag meets friction rather than an invisible
-      // wall — real things slow before they stop, and the resistance is what
-      // tells the user they have gone far enough.
+      const over = Math.abs(next) - ACTION_W;
       // eslint-disable-next-line react-hooks/immutability
       x.value =
-        next > ACTION_W
-          ? ACTION_W + (next - ACTION_W) * OVERDRAG_RESISTANCE
-          : next < -ACTION_W
-            ? -ACTION_W + (next + ACTION_W) * OVERDRAG_RESISTANCE
-            : next;
+        over <= 0
+          ? next
+          : Math.sign(next) *
+            (ACTION_W + (ELASTIC_TRAVEL * over) / (over + ELASTIC_TRAVEL));
     })
     .onEnd((e) => {
       // Where the row would come to rest if released now, so a flick latches
-      // open without the user having to drag all the way.
+      // open without the user having to drag all the way. The floor stops the
+      // velocity deciding on its own: a twitch that never moved the card has to
+      // return it, not latch it.
       const projected = startX.value + e.translationX + e.velocityX * 0.15;
       const ratio = (projected * dir) / ACTION_W;
+      const travelled = Math.abs(e.translationX) >= FLICK_FLOOR;
       const side: SwipeSide =
-        ratio < -COMMIT_RATIO
-          ? 'trailing'
-          : ratio > COMMIT_RATIO
-            ? 'leading'
+        ratio < -COMMIT_RATIO && travelled
+          ? "trailing"
+          : ratio > COMMIT_RATIO && travelled
+            ? "leading"
             : null;
       const target =
-        side === null ? 0 : (side === 'trailing' ? -1 : 1) * ACTION_W * dir;
+        side === null ? 0 : (side === "trailing" ? -1 : 1) * ACTION_W * dir;
       // Hand the release velocity to the settling spring, so a flick carries
       // through instead of restarting from a standstill — the same handoff the
-      // onboarding pager makes (step-pager.tsx).
+      // onboarding pager makes (step-pager.tsx) — and settle with the preset the
+      // destination calls for: the latch bounces, the return snaps.
       // eslint-disable-next-line react-hooks/immutability
       x.value = reduceMotion
         ? withTiming(target, { duration: motion.fast })
-        : withSpring(target, { ...springs.momentum, velocity: e.velocityX });
+        : withSpring(target, {
+            ...(side === null ? REST_SPRING : LATCH_SPRING),
+            velocity: Math.min(
+              MAX_SETTLE_VELOCITY,
+              Math.max(-MAX_SETTLE_VELOCITY, e.velocityX),
+            ),
+          });
       runOnJS(onOpenChange)(side);
     });
 
@@ -189,14 +255,14 @@ export function ProjectRow({
   const handleAccessibilityAction = useCallback(
     (event: { nativeEvent: { actionName: string } }) => {
       switch (event.nativeEvent.actionName) {
-        case 'activate':
+        case "activate":
           onPress();
           break;
-        case 'pin':
-        case 'unpin':
+        case "pin":
+        case "unpin":
           onTogglePin();
           break;
-        case 'delete':
+        case "delete":
           onDelete();
           break;
         default:
@@ -209,14 +275,14 @@ export function ProjectRow({
   // Swipe actions are invisible to screen readers and keyboards, so the same
   // operations are exposed as custom actions.
   const accessibilityActions = [
-    { name: 'activate', label: t.common.open },
+    { name: "activate", label: t.common.open },
     {
-      name: pinned ? 'unpin' : 'pin',
+      name: pinned ? "unpin" : "pin",
       label: pinned ? t.gallery.unpin : t.gallery.pin,
     },
-    { name: 'delete', label: t.common.delete },
+    { name: "delete", label: t.common.delete },
   ];
-  const accessibilityLabel = `${name}, ${date}${pinned ? `, ${t.gallery.pinned}` : ''}`;
+  const accessibilityLabel = `${name}, ${date}${pinned ? `, ${t.gallery.pinned}` : ""}`;
 
   const card = (
     <Card
@@ -278,7 +344,7 @@ export function ProjectRow({
     <View
       style={[
         styles.overflow,
-        { top: spacing.sm, end: spacing.sm, pointerEvents: 'box-none' },
+        { top: spacing.sm, end: spacing.sm, pointerEvents: "box-none" },
       ]}
     >
       <IconButton
@@ -304,47 +370,70 @@ export function ProjectRow({
 
   return (
     <View style={styles.wrap} ref={contextMenuRef}>
-      {/* Sits behind the card, revealing the side the swipe latched onto. */}
+      {/* Sits behind the card, revealing the side the swipe latched onto. Each
+          panel is wider than its action and keeps that action against the outer
+          edge, so the panel's inner edge is always past wherever the card can
+          stop: the reveal is clipped by the card, never left with a gap. */}
       <View style={[styles.actions, rowStyle(isRTL)]}>
-        <Pressable
-          onPress={onTogglePin}
-          accessibilityRole="button"
-          accessibilityLabel={pinned ? t.gallery.unpin : t.gallery.pin}
-          style={[styles.action, { backgroundColor: c.surfaceAlt }]}
+        <View
+          style={[
+            styles.panel,
+            rowStyle(isRTL),
+            { backgroundColor: c.surfaceAlt },
+          ]}
         >
-          <Icon
-            name="pin"
-            size={18}
-            color={pinned ? c.accentText : c.muted}
-            weight={pinned ? 'fill' : 'regular'}
-          />
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.actionLabel,
-              { color: pinned ? c.accentText : c.muted, fontFamily: fonts.ui },
-            ]}
+          <Pressable
+            onPress={onTogglePin}
+            accessibilityRole="button"
+            accessibilityLabel={pinned ? t.gallery.unpin : t.gallery.pin}
+            style={styles.action}
           >
-            {pinned ? t.gallery.unpin : t.gallery.pin}
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={onDelete}
-          accessibilityRole="button"
-          accessibilityLabel={t.common.delete}
-          style={[styles.action, { backgroundColor: c.danger }]}
+            <Icon
+              name="pin"
+              size={18}
+              color={pinned ? c.accentText : c.muted}
+              weight={pinned ? "fill" : "regular"}
+            />
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.actionLabel,
+                {
+                  color: pinned ? c.accentText : c.muted,
+                  fontFamily: fonts.ui,
+                },
+              ]}
+            >
+              {pinned ? t.gallery.unpin : t.gallery.pin}
+            </Text>
+          </Pressable>
+        </View>
+        <View
+          style={[
+            styles.panel,
+            styles.panelEnd,
+            rowStyle(isRTL),
+            { backgroundColor: c.danger },
+          ]}
         >
-          <Icon name="trash" size={18} color={c.onInk} />
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.actionLabel,
-              { color: c.onInk, fontFamily: fonts.ui },
-            ]}
+          <Pressable
+            onPress={onDelete}
+            accessibilityRole="button"
+            accessibilityLabel={t.common.delete}
+            style={styles.action}
           >
-            {t.common.delete}
-          </Text>
-        </Pressable>
+            <Icon name="trash" size={18} color={c.onInk} />
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.actionLabel,
+                { color: c.onInk, fontFamily: fonts.ui },
+              ]}
+            >
+              {t.common.delete}
+            </Text>
+          </Pressable>
+        </View>
       </View>
       <GestureDetector gesture={pan}>
         <Animated.View style={cardStyle}>{card}</Animated.View>
@@ -356,35 +445,48 @@ export function ProjectRow({
 const styles = StyleSheet.create({
   wrap: {
     // Clips the card as it slides out of the row.
-    overflow: 'hidden',
+    overflow: "hidden",
     borderRadius: radius.lg,
     marginHorizontal: spacing.xs,
   },
   wrapStack: {
     // Grid tiles never translate, so nothing needs clipping — and clipping
     // would cut off the card's own border radius.
-    overflow: 'visible',
+    overflow: "visible",
   },
   actions: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     top: 0,
     bottom: 0,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
+  },
+  panel: {
+    // Wider than one action on purpose: the card can travel as far as PANEL_W
+    // (the drag's asymptote, plus the latch spring's overshoot), and this is what
+    // keeps revealed background under the card's edge the whole way there.
+    width: PANEL_W,
+  },
+  panelEnd: {
+    // Pins the action to the outer edge of the trailing panel. Works in both
+    // directions because the panel's own row is `rowStyle(isRTL)` too: the
+    // trailing edge is `flex-end` in LTR and in an auto-mirrored RTL layout
+    // alike, and `row-reverse` swaps it for the pre-restart case.
+    justifyContent: "flex-end",
   },
   action: {
     width: ACTION_W,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.xxs,
   },
   actionLabel: {
     fontSize: typeScale.micro.size,
   },
   cardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   cardStack: {
     // Only the grid needs this: tiles must fill the item width. In the row
@@ -395,8 +497,8 @@ const styles = StyleSheet.create({
   },
   thumb: {
     aspectRatio: THUMB_RATIO,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderBottomWidth: 1,
   },
   thumbRow: {
@@ -418,19 +520,19 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
   },
   nameRow: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: spacing.xs,
   },
   cardName: {
     flex: 1,
     fontSize: typeScale.small.size,
     lineHeight: typeScale.small.lineHeight,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   cardDate: {
     fontSize: typeScale.caption.size,
   },
   overflow: {
-    position: 'absolute',
+    position: "absolute",
   },
 });

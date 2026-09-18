@@ -94,12 +94,13 @@ is FORBIDDEN for these (see §7).
 
 Engine: reanimated springs only. Presets in `springs` tokens:
 
-| Token      | Physics               | Use                                   |
-| ---------- | --------------------- | ------------------------------------- |
-| `ui`       | ζ 1.0, stiffness 260  | presses, toggles, thumbs              |
-| `momentum` | ζ 0.8, stiffness 320  | flicks, throws                        |
-| `sheet`    | ζ 0.85, stiffness 300 | sheet enter/exit                      |
-| `exit`     | ζ 1.0, stiffness 380  | dismissals and other system responses |
+| Token      | Physics               | Use                                       |
+| ---------- | --------------------- | ----------------------------------------- |
+| `ui`       | ζ 1.0, stiffness 260  | presses, toggles, thumbs                  |
+| `momentum` | ζ 0.8, stiffness 320  | flicks, throws                            |
+| `elastic`  | ζ 0.6, stiffness 300  | a latch that should give (never a return) |
+| `sheet`    | ζ 0.85, stiffness 300 | sheet enter/exit                          |
+| `exit`     | ζ 1.0, stiffness 380  | dismissals and other system responses     |
 
 - ζ is the **damping ratio**: `1` is critically damped (fastest approach, no
   overshoot), below `1` overshoots. Author presets as ζ + stiffness, never as a

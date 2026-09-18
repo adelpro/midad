@@ -3,7 +3,7 @@
  * Two palettes (light paper / dark ink) + spacing, radii, shadows, motion, type.
  */
 
-import { Platform, type ViewStyle } from 'react-native';
+import { Platform, type ViewStyle } from "react-native";
 
 export interface MidadPalette {
   // Canvas & surfaces
@@ -46,75 +46,75 @@ export interface MidadPalette {
   shadowOpacity: number;
 }
 
-export type ColorScheme = 'light' | 'dark';
+export type ColorScheme = "light" | "dark";
 
 /** Light — warm bone / paper. */
 const lightColors: MidadPalette = {
-  paper: '#F7F6F3',
-  paperBright: '#FBFBFA',
-  surface: '#FFFFFF',
-  surfaceAlt: '#F9F9F8',
-  surfacePressed: '#EFEEE9',
+  paper: "#F7F6F3",
+  paperBright: "#FBFBFA",
+  surface: "#FFFFFF",
+  surfaceAlt: "#F9F9F8",
+  surfacePressed: "#EFEEE9",
 
-  ink: '#111111',
-  inkSoft: '#2F3437',
-  muted: '#787774',
-  faint: '#A9A69F',
-  onInk: '#FFFFFF',
+  ink: "#111111",
+  inkSoft: "#2F3437",
+  muted: "#787774",
+  faint: "#A9A69F",
+  onInk: "#FFFFFF",
 
-  border: '#EAEAEA',
-  borderStrong: '#D8D5CE',
+  border: "#EAEAEA",
+  borderStrong: "#D8D5CE",
 
-  accent: '#B0894F',
-  accentText: '#956400',
-  accentSoft: '#F5EEE2',
+  accent: "#B0894F",
+  accentText: "#956400",
+  accentSoft: "#F5EEE2",
 
-  paleRed: { bg: '#FDEBEC', text: '#9F2F2D' },
-  paleBlue: { bg: '#E1F3FE', text: '#1F6C9F' },
-  paleGreen: { bg: '#EDF3EC', text: '#346538' },
-  paleYellow: { bg: '#FBF3DB', text: '#956400' },
+  paleRed: { bg: "#FDEBEC", text: "#9F2F2D" },
+  paleBlue: { bg: "#E1F3FE", text: "#1F6C9F" },
+  paleGreen: { bg: "#EDF3EC", text: "#346538" },
+  paleYellow: { bg: "#FBF3DB", text: "#956400" },
 
-  danger: '#9F2F2D',
-  dangerBg: '#FDEBEC',
-  success: '#346538',
-  successBg: '#EDF3EC',
+  danger: "#9F2F2D",
+  dangerBg: "#FDEBEC",
+  success: "#346538",
+  successBg: "#EDF3EC",
 
-  shadowColor: '#111111',
+  shadowColor: "#111111",
   shadowOpacity: 0.06,
 };
 
 /** Dark — warm ink / charcoal. Inverts paper↔ink. */
 const darkColors: MidadPalette = {
-  paper: '#16150F',
-  paperBright: '#1D1B14',
-  surface: '#211F18',
-  surfaceAlt: '#26241C',
-  surfacePressed: '#2E2B22',
+  paper: "#16150F",
+  paperBright: "#1D1B14",
+  surface: "#211F18",
+  surfaceAlt: "#26241C",
+  surfacePressed: "#2E2B22",
 
-  ink: '#F2EFE7',
-  inkSoft: '#D8D4C9',
-  muted: '#9A968C',
-  faint: '#6B675F',
-  onInk: '#16150F',
+  ink: "#F2EFE7",
+  inkSoft: "#D8D4C9",
+  muted: "#9A968C",
+  faint: "#6B675F",
+  onInk: "#16150F",
 
-  border: '#33312A',
-  borderStrong: '#45423A',
+  border: "#33312A",
+  borderStrong: "#45423A",
 
-  accent: '#C9A05C',
-  accentText: '#E0B878',
-  accentSoft: '#2E2920',
+  accent: "#C9A05C",
+  accentText: "#E0B878",
+  accentSoft: "#2E2920",
 
-  paleRed: { bg: '#2E1F1E', text: '#E8A6A3' },
-  paleBlue: { bg: '#142A38', text: '#8FC4E8' },
-  paleGreen: { bg: '#1C2A1B', text: '#9CC694' },
-  paleYellow: { bg: '#2E2818', text: '#D9BE7E' },
+  paleRed: { bg: "#2E1F1E", text: "#E8A6A3" },
+  paleBlue: { bg: "#142A38", text: "#8FC4E8" },
+  paleGreen: { bg: "#1C2A1B", text: "#9CC694" },
+  paleYellow: { bg: "#2E2818", text: "#D9BE7E" },
 
-  danger: '#E8A6A3',
-  dangerBg: '#2E1F1E',
-  success: '#9CC694',
-  successBg: '#1C2A1B',
+  danger: "#E8A6A3",
+  dangerBg: "#2E1F1E",
+  success: "#9CC694",
+  successBg: "#1C2A1B",
 
-  shadowColor: '#000000',
+  shadowColor: "#000000",
   shadowOpacity: 0.4,
 };
 
@@ -198,7 +198,7 @@ export function elevationStyle(
   colors: MidadPalette,
   spec: ShadowSpec,
 ): ViewStyle {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     return {
       boxShadow: `0 ${spec.offsetY}px ${spec.blurRadius}px ${withAlpha(
         colors.shadowColor,
@@ -253,6 +253,7 @@ export const motion = {
 const springRatio = {
   ui: 1.0,
   momentum: 0.8,
+  elastic: 0.6,
   sheet: 0.85,
   exit: 1.0,
 } as const;
@@ -280,6 +281,18 @@ export const springs = {
   momentum: {
     damping: dampingFor(springRatio.momentum, 320),
     stiffness: 320,
+    mass: 1,
+  },
+  /**
+   * The gallery row's swipe latch — ζ 0.6, so it visibly overshoots (~9%) and
+   * settles back. That give is the elastic; the panel carries the room for it.
+   *
+   * Use it for a *latch* only. A return to rest must not overshoot: past the
+   * origin it would reveal the action on the other side of the row.
+   */
+  elastic: {
+    damping: dampingFor(springRatio.elastic, 300),
+    stiffness: 300,
     mass: 1,
   },
   /** Sheets and other large surface entry/exit — ζ 0.85. */
@@ -321,5 +334,5 @@ export const tagType = {
   fontSize: 10,
   lineHeight: 12,
   letterSpacing: 0.05,
-  textTransform: 'uppercase' as const,
+  textTransform: "uppercase" as const,
 };
