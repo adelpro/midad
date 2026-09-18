@@ -291,9 +291,9 @@ function cancelRotationSettle() {
 function collectionTarget(
   store: ReturnType<typeof useEditorStore.getState>,
 ): { frame: SelectionFrame; members: SizedObject[] } | null {
-  // The same rule the canvas draws and the chip labels: a `whole` selection is
-  // the one whose handles are live, so an entered collection's context box can
-  // never steal a press from the member inside it.
+  // The same rule the canvas draws and the collection bar labels: a `whole`
+  // selection is the one whose handles are live, so an entered collection's context
+  // box can never steal a press from the member inside it.
   const selection = selectionFrame(store.selectedIds, store.sizedObjects);
   return selection?.state === "whole" ? selection : null;
 }

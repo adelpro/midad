@@ -479,13 +479,13 @@ export const HELP_ENTRIES = [
     roleEn: "Jump straight to this member inside the collection.",
   },
   {
-    key: "sel.collectionChip",
+    key: "sel.collectionBar",
     group: "selection",
-    label: { ar: "شارة المجموعة", en: "Collection chip" },
+    label: { ar: "شريط المجموعة", en: "Collection bar" },
     roleAr:
-      "تعرض عدد عناصر التحديد، وعند الدخول إلى المجموعة تعرض العنصر الحالي. لمسها يعيدك إلى المجموعة كاملة.",
+      "يعرض عدد عناصر التحديد، وعند الدخول إلى المجموعة يعرض العنصر الحالي مع شريحة لكل عنصر للتنقل بينها. لمس العدد يعيدك إلى المجموعة كاملة.",
     roleEn:
-      "Shows how many elements the selection holds — or, inside a collection, which member you are on. Tapping it goes back to the whole collection.",
+      "Shows how many elements the selection holds — or, inside a collection, which member you are on, with a tile per member to move between them. Tapping the count goes back to the whole collection.",
   },
   {
     key: "sel.swatchInk",

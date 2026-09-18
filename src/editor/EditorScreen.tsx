@@ -13,20 +13,11 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
-import { useAnimatedStyle } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import {
-  AnimatedPressable,
-  Button,
-  DirectionIcon,
-  Icon,
-  IconButton,
-  Reveal,
-  Sheet,
-} from "@/components/ui";
+import { Button, Icon, IconButton, Reveal, Sheet } from "@/components/ui";
 import { EditorCanvasHost } from "@/editor/EditorCanvasHost";
-import { CollectionChip } from "@/editor/collection-chip";
+import { CollectionBar, memberLabel } from "@/editor/collection-bar";
 import {
   collectSvgFontFaces,
   collectUsedFamilies,
@@ -89,15 +80,9 @@ import { useAutoSave } from "@/editor/use-auto-save";
 import { useKeyboardShortcuts } from "@/editor/use-keyboard-shortcuts";
 import { useObjectGestures } from "@/editor/use-object-gestures";
 import { hapticDelete, hapticSuccess, hapticTick } from "@/haptics";
-import { usePressFeedback } from "@/hooks/use-press-feedback";
 import { useTheme } from "@/hooks/use-theme";
 import { useT } from "@/i18n";
-import {
-  formatCollectionGroup,
-  formatMemberLabel,
-  formatPartLabel,
-  formatSelectedCount,
-} from "@/i18n/strings";
+import { formatCollectionGroup, formatSelectedCount } from "@/i18n/strings";
 import { pickBackgroundImage } from "@/storage/background-image";
 import { shareFile, shareImage } from "@/storage/export";
 import type {
@@ -297,7 +282,7 @@ export function EditorScreen() {
   const selectionBarActions = useSettings((s) => s.selectionBarActions);
   const setSelectionBarActions = useSettings((s) => s.setSelectionBarActions);
   const help = useHelpMode();
-  /** The learn-mode binder, held in a variable so the chip's memo can key on it. */
+  /** The learn-mode binder, held in a variable so the bar head's memo can key on it. */
   const helpPress = help.press;
 
   // Load the project once.
@@ -373,8 +358,8 @@ export function EditorScreen() {
    *
    * Kept apart from the collection members below on purpose. Rejoin is about
    * *provenance* — it has to go on working for a word that was later ungrouped —
-   * while the member strip and the frame are about *membership*. One lookup could
-   * not serve both without breaking one of them.
+   * while the bar's member track and the frame are about *membership*. One lookup
+   * could not serve both without breaking one of them.
    */
   const rejoinParts = useMemo(() => {
     const rootId = selectedText?.part?.rootId;
@@ -393,15 +378,15 @@ export function EditorScreen() {
    * The members of the collection the selection is in, in reading order — a split
    * word's letters, or a group's objects.
    *
-   * Empty for a lone object, which is what keeps the member strip off the rail
-   * until there is more than one member to navigate.
+   * Empty for a lone object, which is what keeps the bar's member track off the
+   * canvas until there is more than one member to navigate.
    */
   const members = useMemo(
     () => collectionMembers(selectedIds, project?.objects ?? []),
     [selectedIds, project],
   );
 
-  /** Position of the primary selection within the member strip (-1 when absent). */
+  /** Position of the primary selection within the member track (-1 when absent). */
   const activeMemberIndex = members.findIndex((m) => m.id === selectedIds[0]);
 
   /**
@@ -527,7 +512,9 @@ export function EditorScreen() {
     );
   }, [rejoinParts, t]);
 
-  /** Moves the focus to the neighbouring member of the selected collection. */
+  /**
+   * Moves the focus to the neighbouring member of the selected collection.
+   */
   const stepMember = useCallback(
     (direction: 1 | -1) => {
       if (members.length < 2) {
@@ -539,10 +526,29 @@ export function EditorScreen() {
       const from = current < 0 ? 0 : current;
       const next = (from + direction + members.length) % members.length;
       // Entering the neighbour, not selecting it: a plain `select` would grow
-      // back to the whole collection and the strip would stop stepping.
+      // back to the whole collection and the track would stop stepping.
       enterMember(members[next].id);
     },
     [members, enterMember],
+  );
+
+  /**
+   * The collection bar's presses, bound here rather than inside the bar because
+   * learn mode has to intercept them: while it is on, a tile or an arrow
+   * explains itself instead of moving the focus, which is the whole point of the
+   * mode. The bar stays presentational and calls these like any other handler.
+   */
+  const pressMember = useCallback(
+    (id: string) => helpPress("sel.memberTile", () => enterMember(id)),
+    [helpPress, enterMember],
+  );
+
+  const pressStep = useCallback(
+    (direction: 1 | -1) =>
+      helpPress(direction < 0 ? "sel.partPrev" : "sel.partNext", () =>
+        stepMember(direction),
+      ),
+    [helpPress, stepMember],
   );
 
   /**
@@ -1258,34 +1264,38 @@ export function EditorScreen() {
   );
 
   /**
-   * The chip above the selection: how many elements it is, or — while a
+   * The collection bar's head: how many elements the selection is, or — while a
    * collection is entered — which member is being edited, with the way back out.
+   * The member track and the bar's placement are the component's own business.
    *
    * It replaced the count badge that used to head the selection rail. A label
    * about the selection belongs on the selection, and the rail's width is for
    * actions — the badge was also charged against their budget, twice over.
    */
-  const chip = useMemo(() => {
+  const barHead = useMemo(() => {
     const selection = selectionFrame(selectedIds, sizedObjects);
     if (!selection) {
       return null;
     }
-    const role = helpRole(helpEntry("sel.collectionChip"), language);
+    const role = helpRole(helpEntry("sel.collectionBar"), language);
     if (selection.state === "entered") {
       const index = selection.members.findIndex((m) => m.id === selectedIds[0]);
       const total = selection.members.length;
+      // The member's own label, not the primary text's: the rule has to hold for
+      // every member of the collection, which is exactly what `collectionMembers`
+      // uses to decide reading order.
+      const primary = members[index];
       return {
         frame: selection.frame,
         mode: "entered" as const,
-        // Position only: the member strip names the member, and a chip pinned to
-        // the canvas is a label rather than a sentence.
+        // Position only: the bar's track names the member, and the head is a
+        // label rather than a sentence.
         text: `${index + 1}/${total}`,
-        label:
-          selectedText?.part !== undefined
-            ? formatPartLabel(index, total, language)
-            : formatMemberLabel(index, total, language),
+        label: primary
+          ? memberLabel(primary, index, total, language)
+          : `${index + 1}/${total}`,
         hint: role,
-        onPress: helpPress("sel.collectionChip", exitCollection),
+        onPress: helpPress("sel.collectionBar", exitCollection),
       };
     }
     const text =
@@ -1306,7 +1316,7 @@ export function EditorScreen() {
     sizedObjects,
     project,
     language,
-    selectedText,
+    members,
     exitCollection,
     helpPress,
   ]);
@@ -1397,10 +1407,25 @@ export function EditorScreen() {
     togglePin,
   };
 
+  /**
+   * Whether the context zone holds anything at all. The zone's *slot* is
+   * reserved either way — it is part of the fixed-height rail — but only its
+   * contents may be charged against the actions' width budget.
+   */
+  const hasContext =
+    splitNotice !== null ||
+    tool === "background" ||
+    (tool === "color" && !!selectedObject);
+
   const railIds = railActionIds(shape, bar);
   const visibleCount = visibleActionCount({
     railWidth,
-    contextWidth,
+    // The zone's contents are content, not actions — swatches, the background
+    // picker, a refusal notice — and `0` is how this says "nothing is rendered":
+    // charged nothing, not even the gap. An *empty* zone still reported its
+    // `contentContainerStyle` padding as its size, so the rail went on paying a
+    // button's worth of width for nothing, in every state, forever.
+    contextWidth: hasContext ? contextWidth : 0,
     available: railIds.length,
   });
   const railActions = resolveSelectionActions(railIds, sources);
@@ -1525,14 +1550,18 @@ export function EditorScreen() {
               />
             </View>
           </GestureDetector>
-          {chip && (
-            <CollectionChip
-              frame={chip.frame}
-              mode={chip.mode}
-              text={chip.text}
-              accessibilityLabel={chip.label}
-              accessibilityHint={chip.hint}
-              onPress={chip.onPress}
+          {barHead && (
+            <CollectionBar
+              frame={barHead.frame}
+              mode={barHead.mode}
+              text={barHead.text}
+              accessibilityLabel={barHead.label}
+              accessibilityHint={barHead.hint}
+              onPress={barHead.onPress}
+              members={members}
+              activeIndex={activeMemberIndex}
+              onEnterMember={pressMember}
+              onStep={pressStep}
             />
           )}
           {help.active && (
@@ -1589,44 +1618,12 @@ export function EditorScreen() {
               contentContainerStyle={styles.contextTrack}
               onContentSizeChange={(w) => setContextWidth(w)}
             >
-              {/* Member strip — the pieces of the selected collection, in reading
-                  order: a split word's letters, or a group's objects. */}
-              {members.length > 1 && (
-                <Reveal style={styles.memberStrip}>
-                  <IconButton
-                    onPress={help.press("sel.partPrev", () => stepMember(-1))}
-                    accessibilityLabel={t.editor.hints.partPrev}
-                    hint={t.editor.hints.partPrev}
-                  >
-                    <DirectionIcon isRTL={!isRTL} size={16} />
-                  </IconButton>
-                  <View style={styles.memberTrack}>
-                    {members.map((member, index) => (
-                      <MemberTile
-                        key={member.id}
-                        label={
-                          member.type === "text" && member.part !== undefined
-                            ? formatPartLabel(index, members.length, language)
-                            : formatMemberLabel(index, members.length, language)
-                        }
-                        member={member}
-                        index={index}
-                        active={index === activeMemberIndex}
-                        onPress={help.press("sel.memberTile", () =>
-                          enterMember(member.id),
-                        )}
-                      />
-                    ))}
-                  </View>
-                  <IconButton
-                    onPress={help.press("sel.partNext", () => stepMember(1))}
-                    accessibilityLabel={t.editor.hints.partNext}
-                    hint={t.editor.hints.partNext}
-                  >
-                    <DirectionIcon isRTL={isRTL} size={16} />
-                  </IconButton>
-                </Reveal>
-              )}
+              {/*
+               * The member track is deliberately *not* here. It is the
+               * collection bar on the canvas (`collection-bar.tsx`) — the zone
+               * is for content about the current tool, and the track is
+               * navigation that was spending the actions' width budget.
+               */}
 
               {/* Why a split was refused */}
               {!!splitNotice && (
@@ -2028,82 +2025,6 @@ export function EditorScreen() {
   );
 }
 
-/**
- * One member tile in the member strip.
- *
- * A text member shows its own glyph in its own font — a faithful preview, which
- * is what makes a split word navigable letter by letter. Anything else shows its
- * kind's glyph instead, because a 44dp tile cannot show an ornament honestly.
- *
- * Split out of the screen because it owns press feedback — hooks cannot be called
- * from inside the parent's `map`.
- */
-function MemberTile({
-  label,
-  member,
-  index,
-  active,
-  onPress,
-}: {
-  label: string;
-  member: DesignObject;
-  index: number;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const { colors: c } = useTheme();
-  const { language } = useT();
-  const fonts = fontRoles[language];
-  const press = usePressFeedback();
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: press.scale.value }],
-  }));
-
-  return (
-    <AnimatedPressable
-      onPress={onPress}
-      onPressIn={press.onPressIn}
-      onPressOut={press.onPressOut}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      accessibilityLabel={label}
-      style={[
-        styles.memberTile,
-        {
-          borderColor: active ? c.accent : c.border,
-          backgroundColor: active ? c.accentSoft : c.surfaceAlt,
-        },
-        animStyle,
-      ]}
-    >
-      {member.type === "text" ? (
-        // The member's own font, so the tile shows the glyph exactly as the
-        // canvas does.
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.memberGlyph,
-            { color: c.ink, fontFamily: member.fontKey },
-          ]}
-        >
-          {member.text}
-        </Text>
-      ) : (
-        <Icon
-          name={member.type === "shape" ? "shapes" : "sparkle"}
-          size={20}
-          color={c.ink}
-        />
-      )}
-      <Text
-        style={[styles.memberIndex, { color: c.muted, fontFamily: fonts.ui }]}
-      >
-        {index + 1}
-      </Text>
-    </AnimatedPressable>
-  );
-}
-
 function ToolBtn({
   label,
   hint,
@@ -2189,31 +2110,6 @@ function TextInputStub({
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  memberStrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  memberTrack: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  memberTile: {
-    minWidth: 48,
-    height: 44,
-    borderRadius: radius.lg,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: spacing.sm,
-    gap: spacing.xxs,
-  },
-  memberGlyph: { fontSize: 20, lineHeight: 26 },
-  memberIndex: {
-    fontSize: typeScale.micro.size,
-    lineHeight: typeScale.micro.lineHeight,
-  },
   notice: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -2289,8 +2185,7 @@ const styles = StyleSheet.create({
   },
   /**
    * The selection rail never scrolls: it truncates to what fits and the rest
-   * live in the `⋯` sheet. The count badge is measured separately so the width
-   * maths can charge it.
+   * live in the `⋯` sheet.
    */
   selectionRail: {
     flexDirection: "row",

@@ -361,9 +361,9 @@ export const OBJECT_SCALE_BOUNDS = { min: 0.05, max: 20 } as const;
  * | `"entered"` | one member of a collection                                | context box, no handles |
  * | `null`      | one loose object                                          | its own chrome |
  *
- * One function for the canvas, the chip and the gesture layer, so the box the
- * user sees, the box the chip points at and the box a press can grab are the same
- * box by construction.
+ * One function for the canvas, the collection bar and the gesture layer, so the box
+ * the user sees, the box the bar points at and the box a press can grab are the
+ * same box by construction.
  */
 export function selectionFrame<T extends FramedMember>(
   ids: readonly string[],
@@ -524,7 +524,7 @@ export function collectionFrame<T extends FramedMember>(
   };
 }
 
-/** The frame's top edge midpoint — where the collection chip is anchored. */
+/** The frame's top edge midpoint — the collection bar's preferred anchor. */
 export function frameTopCentre(frame: CollectionFrame): {
   x: number;
   y: number;
@@ -534,6 +534,89 @@ export function frameTopCentre(frame: CollectionFrame): {
     x: frame.x + frame.hh * Math.sin(rad),
     y: frame.y - frame.hh * Math.cos(rad),
   };
+}
+
+/** The frame's bottom edge midpoint — the bar's fallback anchor. */
+export function frameBottomCentre(frame: CollectionFrame): {
+  x: number;
+  y: number;
+} {
+  const rad = (frame.rotation * Math.PI) / 180;
+  return {
+    x: frame.x - frame.hh * Math.sin(rad),
+    y: frame.y + frame.hh * Math.cos(rad),
+  };
+}
+
+/** A point in view px — design space already mapped through the viewport. */
+export interface ViewPoint {
+  x: number;
+  y: number;
+}
+
+/** Where the collection bar sits, and which side of the frame it chose. */
+export interface CollectionBarPlacement {
+  /** Left edge, view px. */
+  left: number;
+  /** Top edge, view px. */
+  top: number;
+  /** Which side of the frame the bar ended up on. */
+  side: "above" | "below";
+}
+
+/**
+ * Where the collection bar goes: above the frame by preference, below it when
+ * the frame sits too close to the top edge, and clamped inside the canvas only
+ * when the selection leaves room for neither.
+ *
+ * The bar replaced a single-line chip on the same anchor, and the clamp that
+ * suited a chip does not suit it: a label can sit over the selection, but a row
+ * of member tiles would cover the very members it is offering to navigate. So
+ * the first choice is whichever side is *clear of the frame*, and the clamp is
+ * the last resort for a selection taller than the canvas.
+ *
+ * `barWidth`/`barHeight` are measured, not constants — the bar's height follows
+ * its own content, and the caller has nothing to keep in sync.
+ */
+export function collectionBarPlacement(args: {
+  /** The frame's top edge midpoint, already in view px. */
+  topAnchor: ViewPoint;
+  /** The frame's bottom edge midpoint, already in view px. */
+  bottomAnchor: ViewPoint;
+  barWidth: number;
+  barHeight: number;
+  /** The canvas box, view px. */
+  viewW: number;
+  viewH: number;
+  /** The inset the bar keeps from the canvas edges, view px. */
+  margin: number;
+  /** The clearance between the bar and the frame edge it sits beside, view px. */
+  gap: number;
+}): CollectionBarPlacement {
+  const {
+    topAnchor,
+    bottomAnchor,
+    barWidth,
+    barHeight,
+    viewW,
+    viewH,
+    margin,
+    gap,
+  } = args;
+  // `Math.max` before `Math.min` so a bar wider or taller than the canvas
+  // clamps to `margin` instead of inverting the range.
+  const maxLeft = Math.max(margin, viewW - barWidth - margin);
+  const maxTop = Math.max(margin, viewH - barHeight - margin);
+  const left = Math.min(Math.max(topAnchor.x - barWidth / 2, margin), maxLeft);
+  const above = topAnchor.y - barHeight - gap;
+  if (above >= margin) {
+    return { left, top: above, side: "above" };
+  }
+  const below = bottomAnchor.y + gap;
+  if (below + barHeight <= viewH - margin) {
+    return { left, top: below, side: "below" };
+  }
+  return { left, top: Math.min(Math.max(above, margin), maxTop), side: "above" };
 }
 
 /** Capture the per-member origins a collection gesture transforms absolutely. */

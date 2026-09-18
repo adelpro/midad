@@ -122,7 +122,7 @@ can never shadow a resize handle.
 
 **A whole selection is tested the same way, against its frame.** `hitFrameHandle`
 runs the same `pickHandle` over `selectionFrame(selectedIds, sizedObjects)` — the
-frame the overlay draws and the chip is anchored to — so there is one handle
+frame the overlay draws and the collection bar is anchored to — so there is one handle
 geometry and one box, not three. The frame carries no scale of its own (its
 half-extents are already visual), which is why its radii are not divided by
 anything: the chrome and the touch target are both in design units. See

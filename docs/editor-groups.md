@@ -2,9 +2,9 @@
 
 > How several objects become one element in the midad editor: the membership
 > field and the invariant the whole feature rests on. This is the behavior
-> contract for **membership**; the states, the box, the handles and the chip are
-> [`editor-collections.md`](editor-collections.md). When code and this document
-> disagree, fix the code.
+> contract for **membership**; the states, the box, the handles and the
+> collection bar are [`editor-collections.md`](editor-collections.md). When code
+> and this document disagree, fix the code.
 
 ---
 
@@ -12,8 +12,8 @@
 
 A group is a set of objects the editor treats as **one element**. Tapping any
 member selects them all; they then move, nudge, duplicate, restack, delete,
-restyle, scale and rotate together, and the selection bar, the chip and the align
-actions all treat them as a single thing.
+restyle, scale and rotate together, and the selection bar, the collection bar and
+the align actions all treat them as a single thing.
 
 The feature exists because the editor already knew how to move several objects at
 once (the multi-selection group drag) — what it lacked was a way to make that
@@ -103,7 +103,7 @@ the rest of the group follows it.
 | Ink swatch                                            | Recolours every member (`color` is the one style field all three object types carry)            |
 | Style presets, font size, leading, opacity, alignment | Applied to every selected **text** object, each resolved against its own properties             |
 | Align / centre                                        | Moves each **element** as a whole (§5)                                                          |
-| Chip                                                  | Counts the group's members — `مجموعة · 3` — and offers the way back out while entered           |
+| Bar head                                              | Counts the group's members — `مجموعة · 3` — and offers the way back out while entered           |
 
 Style edits deliberately stop at text objects for text-only fields: writing
 `fontKey` onto an ornament would be inert at best and a type error at worst. Ink
@@ -129,8 +129,8 @@ group, or one lone object (`selectionUnits`).
 A lone object is a one-object unit, which is why a plain multi-selection aligns
 exactly as it always has.
 
-The chip and the rail's `isMulti` both count elements, so a group of three offers
-the same actions a single object does. That is the point of a group: it behaves as
+The bar's head and the rail's `isMulti` both count elements, so a group of three
+offers the same actions a single object does. That is the point of a group: it behaves as
 one element. Align is the one family that needs at least two elements to say
 anything, so it disappears for a lone group.
 

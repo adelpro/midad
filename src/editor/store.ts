@@ -38,7 +38,7 @@ interface Viewport {
    * The canvas box in view px.
    *
    * Published alongside the transform so an overlay that lives *outside* the
-   * Skia tree — the collection chip — can place itself from a design-space point
+   * Skia tree — the collection bar — can place itself from a design-space point
    * without measuring the canvas a second time.
    */
   w: number;

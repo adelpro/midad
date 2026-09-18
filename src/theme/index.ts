@@ -32,6 +32,7 @@ export {
   springs,
   tagType,
   typeScale,
+  withAlpha,
 } from "./tokens";
 export type {
   ColorScheme,

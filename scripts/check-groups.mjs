@@ -37,8 +37,10 @@ const {
   collectionMembers,
   dissolveSingletonGroups,
   enteredCollection,
+  collectionBarPlacement,
   expandToGroups,
   flipCollection,
+  frameBottomCentre,
   frameTopCentre,
   groupMemberIds,
   memberOrigins,
@@ -437,7 +439,7 @@ near(
   { x: 0, y: 0, hw: 100, hh: 50, rotation: 0 },
 );
 near(
-  "the chip anchors on the frame's top edge",
+  "the bar anchors on the frame's top edge",
   frameTopCentre({ x: 100, y: 0, hw: 150, hh: 25, rotation: 0 }),
   { x: 100, y: -25 },
 );
@@ -445,6 +447,102 @@ near(
   "the top edge follows the frame's rotation",
   frameTopCentre({ x: 100, y: 0, hw: 50, hh: 125, rotation: 90 }),
   { x: 225, y: 0 },
+);
+near(
+  "the bottom edge is the top edge through the frame",
+  frameBottomCentre({ x: 100, y: 0, hw: 150, hh: 25, rotation: 0 }),
+  { x: 100, y: 25 },
+);
+near(
+  "the bottom edge follows the frame's rotation too",
+  frameBottomCentre({ x: 100, y: 0, hw: 50, hh: 125, rotation: 90 }),
+  { x: -25, y: 0 },
+);
+
+console.log("\ncollectionBarPlacement — clear of the frame, or clamped");
+
+/** A 200×44 bar anchored to a frame whose top edge is at `topY`. */
+function barAt({ topY, bottomY = topY + 100, barWidth = 200, view = {} }) {
+  return collectionBarPlacement({
+    topAnchor: { x: 200, y: topY },
+    bottomAnchor: { x: 200, y: bottomY },
+    barWidth,
+    barHeight: 44,
+    viewW: view.w ?? 400,
+    viewH: view.h ?? 600,
+    margin: 4,
+    gap: 8,
+  });
+}
+
+// The common case: room above, so the bar sits over the frame's top edge and
+// covers nothing. left = 200 - 100 = 100.
+check("a clear frame puts the bar above it", barAt({ topY: 200 }), {
+  left: 100,
+  top: 148,
+  side: "above",
+});
+
+// The flip: 44 + 8 of clearance no longer fits above (200 -> 148 cleared, 20
+// does not), so the bar drops below the frame's bottom edge instead.
+check("a frame at the top edge flips the bar below it", barAt({ topY: 20 }), {
+  left: 100,
+  top: 128,
+  side: "below",
+});
+
+// Neither side fits: a selection taller than the canvas clamps above the frame
+// rather than rendering off-screen.
+check("a frame taller than the canvas clamps the bar", barAt({ topY: -300, bottomY: 700 }), {
+  left: 100,
+  top: 4,
+  side: "above",
+});
+
+// The left clamp, both edges, and the mirroring case that a rotated frame
+// produces: an anchor off the canvas still yields an on-canvas bar.
+check("the bar clamps to the left edge", barAt({ topY: 200, barWidth: 0 }).left, 200);
+check(
+  "an anchor past the left edge clamps to the margin",
+  collectionBarPlacement({
+    topAnchor: { x: -50, y: 200 },
+    bottomAnchor: { x: -50, y: 300 },
+    barWidth: 200,
+    barHeight: 44,
+    viewW: 400,
+    viewH: 600,
+    margin: 4,
+    gap: 8,
+  }).left,
+  4,
+);
+check(
+  "an anchor past the right edge clamps to the far margin",
+  collectionBarPlacement({
+    topAnchor: { x: 900, y: 200 },
+    bottomAnchor: { x: 900, y: 300 },
+    barWidth: 200,
+    barHeight: 44,
+    viewW: 400,
+    viewH: 600,
+    margin: 4,
+    gap: 8,
+  }).left,
+  196,
+);
+check(
+  "a bar wider than the canvas collapses to the margin, not a negative range",
+  collectionBarPlacement({
+    topAnchor: { x: 200, y: 200 },
+    bottomAnchor: { x: 200, y: 300 },
+    barWidth: 500,
+    barHeight: 44,
+    viewW: 400,
+    viewH: 600,
+    margin: 4,
+    gap: 8,
+  }).left,
+  4,
 );
 
 console.log(
@@ -598,7 +696,7 @@ check(
 );
 
 console.log(
-  "\nselectionFrame — one box for the canvas, the chip and the press",
+  "\nselectionFrame — one box for the canvas, the bar and the press",
 );
 
 const sizedMember = (id, groupId, x, y) => ({

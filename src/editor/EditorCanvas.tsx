@@ -194,9 +194,9 @@ export function EditorCanvas({
   /**
    * The box around the selection, and what kind of box it is.
    *
-   * One rule, shared with the gesture layer and the chip (`groups.ts`): a whole
-   * selection is a box with handles, an entered member shows its collection's box
-   * as context, and a lone object has no box of its own at all. What is drawn,
+   * One rule, shared with the gesture layer and the collection bar (`groups.ts`): a
+   * whole selection is a box with handles, an entered member shows its collection's
+   * box as context, and a lone object has no box of its own at all. What is drawn,
    * what is labelled and what can be grabbed are therefore the same box.
    */
   const selection = useMemo(

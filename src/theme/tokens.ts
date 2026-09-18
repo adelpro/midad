@@ -171,8 +171,16 @@ export const shadows = {
   sheet: { offsetY: -4, blurRadius: 16, elevation: 8 },
 } as const;
 
-/** `#RRGGBB` + alpha → `rgba()`; every palette shadow ink is hex. */
-function shadowInk(hex: string, alpha: number): string {
+/**
+ * `#RRGGBB` + alpha → `rgba()`; every palette value is hex, so this is how a
+ * token becomes translucent.
+ *
+ * Two callers: the elevation ramp's shadow ink (already 6% in the light
+ * palette), and the floating bars DESIGN.md §5 describes as a *semi-transparent*
+ * surface — a chrome bar over the canvas is only legible as a frosted layer,
+ * because an opaque one would be `surface` on a `surface`-coloured canvas.
+ */
+export function withAlpha(hex: string, alpha: number): string {
   const n = Number.parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 0xff}, ${(n >> 8) & 0xff}, ${n & 0xff}, ${alpha})`;
 }
@@ -192,7 +200,7 @@ export function elevationStyle(
 ): ViewStyle {
   if (Platform.OS === "web") {
     return {
-      boxShadow: `0 ${spec.offsetY}px ${spec.blurRadius}px ${shadowInk(
+      boxShadow: `0 ${spec.offsetY}px ${spec.blurRadius}px ${withAlpha(
         colors.shadowColor,
         colors.shadowOpacity,
       )}`,

@@ -166,10 +166,10 @@ actions **plus `⋯`** have to fit, which is why one button is subtracted up fro
 
 The multi-selection count used to sit at the head of the row as a `<Text>`, charged
 as `countCharge = countWidth + RAIL_GAP` against `usable` — and again inside the
-zone's ceiling, so it cost the actions twice over. It is now a chip on the canvas
-(`editor-collections.md` §5), which is both where a label about the selection
-belongs and the reason `visibleActionCount` no longer takes a `countWidth`. The
-row gained roughly one button, and the zone's ceiling rose with it.
+zone's ceiling, so it cost the actions twice over. It is now part of the collection
+bar on the canvas (`editor-collections.md` §5), which is both where a label about
+the selection belongs and the reason `visibleActionCount` no longer takes a
+`countWidth`. The row gained roughly one button.
 
 The move also removed a latent bug: nothing ever reset `countWidth` when the badge
 unmounted, so a stale width went on being charged until the badge happened to
@@ -185,17 +185,46 @@ action count influences.
 **A width of `0` means the sibling is not rendered, so it is charged nothing —
 including no gap.**
 
+### The member track left this budget too
+
+The zone used to hold the collection's **member track** — a tile per member with
+prev/next arrows. It is now the collection bar on the canvas
+(`editor-collections.md` §5), for the same reason the count badge went: it is not
+an action. The cost was worse than the badge's, because the track was the widest
+thing the zone ever held and the *longest* words paid most: on a 390pt phone with a
+three-part word selected, the two step arrows alone spent 84 of the ~146dp the zone
+was allowed, and `fit` came out at **3**. The same selection now renders **7**
+actions, and the tiles no longer have to scroll to be read.
+
+### What is left in the zone
+
+Content about the current *tool*, and nothing else: the ink swatches for the colour
+tool, the paper swatches and the image picker for the background tool, and the
+transient refusal notice. So the zone is empty in the editor's most common state.
+
+That state used to be charged anyway. The zone's scroller always reports *some*
+width — `contextTrack` keeps `paddingHorizontal: spacing.md`, and the
+`contentContainerStyle`'s padding counts as content — so an empty zone went on
+claiming ~28dp of the row in every state, forever. The screen now gates it:
+`contextWidth: hasContext ? contextWidth : 0`, where `hasContext` is exactly the
+three cases above. This is the §6 rule ("a width of `0` means the sibling is not
+rendered, so it is charged nothing") applied to the last thing that was not
+honouring it, and it is worth a button on its own.
+
 ### Why the context zone is capped
 
 The zone keeps a scroller, so its content can always ask for more width than the
 rail has. Measuring it from that content handed it an unbounded claim against the
 actions' budget: **four parts of a split word were enough to claim the entire
-row**, so the bar rendered nothing but `⋯` — the parts strip had _replaced_ the
+row**, so the bar rendered nothing but `⋯` — the member track had _replaced_ the
 selection bar instead of sitting beside it.
 
 The zone is therefore charged at most `CONTEXT_ZONE_MAX_SHARE` of the usable
-width, and the actions keep the rest. The strip scrolls harder instead; members and
-swatches are content, so that is the honest degradation (DESIGN.md §5).
+width, and the actions keep the rest. The conflict that produced the rule is now
+moot — the track that caused it is on the canvas — but the cap stays: a large
+swatch set can still outgrow the width, and a tail that scrolls out of sight is
+invisible chrome. Swatches are content, so scrolling them is the honest
+degradation (DESIGN.md §5).
 
 `RAIL_MIN_BUTTONS = 2` guarantees the head action and `⋯` always fit. `⋯` is the
 only route to every action the budget cut, so it can never be the thing that gets
@@ -374,7 +403,8 @@ mirrors with direction via `styles.pinLeft` / `styles.pinRight`.
 | `resolveSelectionActions`, `SelectionAction`, `SelectionPin`              | `src/editor/selection-actions.tsx`                              |
 | `SelectionRailActions`, `SelectionActionTile`, `SelectionOverflowActions` | `src/editor/selection-actions.tsx`                              |
 | `STEP_DIRECTION`, `DirectionIcon` usage                                   | `src/editor/selection-actions.tsx`                              |
-| The chip, the member strip, the context zone's contents                   | `src/editor/collection-chip.tsx`, `src/editor/EditorScreen.tsx` |
+| The collection bar (head, member track, placement)                        | `src/editor/collection-bar.tsx`                                 |
+| The context zone's contents, `hasContext`, the head's copy                | `src/editor/EditorScreen.tsx`                                   |
 | `bar`, `togglePin`, `railIds`, `visibleCount`, measurement callbacks      | `src/editor/EditorScreen.tsx`                                   |
 | `contextRail` slot, `CONTEXT_RAIL_HEIGHT`                                 | `src/editor/EditorScreen.tsx`                                   |
 | `selectionBarActions`, `setSelectionBarActions`                           | `src/storage/settings.ts`                                       |

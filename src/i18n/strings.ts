@@ -148,7 +148,8 @@ export interface Translation {
     saveFailed: string;
     selectedCount: string;
     /**
-     * The chip above a whole collection, e.g. "Group · 3" / "مجموعة · 3".
+     * The collection bar's head over a whole collection, e.g. "Group · 3" /
+     * "مجموعة · 3".
      *
      * A format rather than a label: the number is the point, and the word only
      * says what is being counted.
@@ -696,7 +697,10 @@ export function formatSelectedCount(n: number, language: Language): string {
   );
 }
 
-/** The chip over a whole collection, e.g. "Group · 3" / "مجموعة · 3". */
+/**
+ * The collection bar's head over a whole collection, e.g. "Group · 3" /
+ * "مجموعة · 3".
+ */
 export function formatCollectionGroup(n: number, language: Language): string {
   return strings[language].editor.collectionGroup.replace(
     "{n}",

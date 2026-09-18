@@ -19,29 +19,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rotate grip: corners and edges scale the collection about the opposite edge, the
   grip turns it about its centre, and the rotation snaps to the 45° multiples like
   an object's does.
-- **A member strip** replaces the split-only parts strip: a tile per member, in
-  reading order, with prev/next stepping. A text member shows its own glyph.
-- **A collection chip** on the canvas replaces the count badge that used to head
-  the selection rail: it reports the element count, and inside a collection it
-  shows which member you are on and takes you back to the whole thing.
+- **A collection bar** on the canvas replaces both the split-only parts strip and
+  the count badge that used to head the selection rail. One anchored surface
+  carries the head — the element count, or which member you are on while inside a
+  collection, with the way back out — and the member track: a tile per member in
+  reading order, with prev/next stepping, a text member showing its own glyph, and
+  an index caption so two tiles of the same kind can still be told apart. It sits
+  above the frame, flipping below it when the frame is at the top of the canvas.
 
 ### Changed
 
-- The selection rail's width budget no longer charges for the count badge, so the
-  bar fits roughly one more action and the context strip gets a larger share.
-  (The old badge also went on charging a stale width after it unmounted; that is
-  gone with it.)
+- **The selection rail is actions only.** The member track left it for the
+  collection bar, so the rail no longer shares its width budget with navigation:
+  on a 390pt phone with a three-part word selected it went from `fit = 3` — three
+  actions, plus a track scrolled one-and-a-half tiles deep — to **7 actions** with
+  every tile readable. The count badge no longer costs a slot either, and an empty
+  context zone is finally charged nothing: the zone's scroller reported its own
+  container padding as content, so roughly one button's width was being spent on
+  nothing in every state.
 - The rail's scale, rotate and flip buttons act on a whole selection as a unit:
   they orbit and scale about the selection's centre instead of overwriting every
   member's own value from the primary object.
 - **Learn mode** now teaches the collection gestures — its canvas legend lists the
   collection handles, how to enter a collection and how to leave one — and the
-  member strip's tiles and arrows explain themselves on tap instead of stepping.
+  collection bar's tiles and arrows explain themselves on tap instead of stepping.
 
 ### Fixed
 
 - A grouped word could not be edited letter by letter: selecting a part grew back
   to the whole group. A part is now entered individually.
+- The collection chip measured its position against a box one padding-step larger
+  than the canvas card, so its 4dp inset put it 8dp *outside* the card it was
+  labelling. The bar's layer is inset by the canvas wrapper's own padding, which
+  is what makes the inset mean what it says.
 - Pressing and dragging an object that was not yet selected used to move the
   _previously_ selected object: the drag origins were read from the store snapshot
   taken before the press.

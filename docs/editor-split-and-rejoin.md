@@ -182,8 +182,8 @@ Both directions are **single undoable steps** that snapshot once:
 
 The two features stay independent where it matters: **rejoin is keyed on
 `part.rootId`**, not on membership, so ungrouping a word does not destroy the
-ability to rejoin it, and the member strip (membership) and the rejoin action
-(provenance) derive from different lookups. See
+ability to rejoin it, and the collection bar's member track (membership) and the
+rejoin action (provenance) derive from different lookups. See
 [`editor-collections.md`](editor-collections.md) §1 and §6.
 
 ## 9. The executable spec

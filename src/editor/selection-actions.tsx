@@ -441,8 +441,11 @@ const RAIL_PADDING = spacing.md;
  * rank and truncate, the context zone scrolls).
  *
  * The zone is therefore charged at most this share of the usable width, and the
- * actions keep the rest. The strip scrolls harder instead; parts and swatches
- * are content, so that is the honest degradation.
+ * actions keep the rest. What is left in the zone is content about the current
+ * *tool* — colour swatches, the background picker, a refusal notice — and a
+ * split word no longer reaches it at all: its members are the collection bar on
+ * the canvas (`collection-bar.tsx`), which was the worst offender against this
+ * budget and is now charged nothing.
  */
 const CONTEXT_ZONE_MAX_SHARE = 0.4;
 
@@ -563,7 +566,7 @@ const PIN_HIT_SLOP = { top: 9, bottom: 9, left: 9, right: 9 };
  *
  * `stylePrev`/`styleNext` carry no `icon` there because a fixed arrow would read
  * backwards in Arabic — the mirroring belongs to the renderer, not to the table.
- * The tile supplies it, pointing the same way the parts strip's own
+ * The tile supplies it, pointing the same way the collection bar's own
  * previous/next buttons do.
  */
 const STEP_DIRECTION: Partial<Record<SelectionActionId, "prev" | "next">> = {

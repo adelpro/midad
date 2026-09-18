@@ -2,8 +2,8 @@
 
 > How several objects become one element — and how a split word became the same
 > thing. The membership field, the two states, the box the handles are drawn on,
-> and the chip that replaced the rail's count badge. This is the behavior
-> contract; when code and this document disagree, fix the code.
+> and the bar that walks a collection's members. This is the behavior contract;
+> when code and this document disagree, fix the code.
 
 ---
 
@@ -58,9 +58,9 @@ all.
 | ------------------------------------------------------------- | ----------------------------------------------------- |
 | Tap a member of an **unselected** collection                  | Selects the whole collection                          |
 | Tap a member that is **already selected** (a tap, not a drag) | Enters it — the second-tap idiom                      |
-| Tap a tile in the member strip                                | Enters that member                                    |
+| Tap a tile in the member track                                | Enters that member                                    |
 | Tap empty space, or Escape                                    | Clears the selection entirely                         |
-| Tap the chip while entered                                    | `exitCollection` — selects the whole collection again |
+| Tap the bar's head while entered                              | `exitCollection` — selects the whole collection again |
 
 The enter happens at **tap-up**, never at pointer-down: a drag has to keep moving
 the whole collection, and only a real tap (which a drag swallows) can mean "step
@@ -92,8 +92,8 @@ members' boxes, measured in the collection's frame, unioned, then oriented
   that object's scale out as well.
 - **One rule, three consumers**: `selectionFrame(ids, sized)` in `groups.ts`
   returns the frame, whether it is `whole` or `entered`, and its members. The
-  canvas draws it, the chip labels it and the gesture layer grabs it — so the box
-  the user sees, the box the chip points at and the box a press can grab are the
+  canvas draws it, the bar labels it and the gesture layer grabs it — so the box
+  the user sees, the box the bar points at and the box a press can grab are the
   same box by construction.
 
 ## 4. What the handles do
@@ -124,43 +124,70 @@ composition would come apart. When the members' scales span a wider range than t
 bounds allow there is no such factor, so the clamp falls back to per-member and the
 similarity degrades — the honest outcome for a document that arrived that way.
 
-## 5. The chip
+## 5. The collection bar
 
 The element count used to be a 12px text badge at the **head of the selection
 rail**. It was charged against the rail's button budget — twice over, since it also
 shrank the context strip's share — its measured width was never reset when it
 unmounted, and it was the only rail style that ignored the theme.
 
-It is now `CollectionChip`, a themed pill on the canvas anchored to the frame's
-top edge, and it says:
+It became a chip on the canvas, anchored to the frame's top edge. It is now
+`CollectionBar`: that same head, with the member track (§6) beside it inside one
+anchored surface. The head says:
 
-| Selection               | Chip                        |
+| Selection               | Head                        |
 | ----------------------- | --------------------------- |
 | A whole collection      | `مجموعة · 3` / `Group · 3`  |
 | A loose multi-selection | `المحدد: 3` / `Selected: 3` |
 | Inside a collection     | `2/3`, with a back chevron  |
 
+**Why the track left the rail.** The rail holds the selection's *actions*, and the
+track is navigation — but the two were sharing one 56dp row and one width budget.
+With a three-part word selected the step arrows alone spent 84 of the ~146dp the
+context zone was allowed, so the rail truncated to three actions while the tiles
+scrolled one-and-a-half deep. Both halves lost, and the loss was worst for exactly
+the selection that needs the most navigation. On the canvas the bar has the whole
+card's width, and the rail keeps its budget for actions
+([`editor-selection-bar.md`](editor-selection-bar.md) §6).
+
+**Placement** is `collectionBarPlacement` in `groups.ts` — pure, so
+`check-groups.mjs` covers it. Above the frame's top edge by preference; below
+`frameBottomCentre` when the frame sits too close to the top of the canvas; and
+clamped inside the card only when the selection leaves room for neither. The chip
+this replaced only ever clamped, which is fine for a one-line label and not fine
+for a row of tiles: a clamped bar sits *over* the very members it offers to
+navigate.
+
 It is a plain React Native view in the canvas wrapper — the same place
 `LearnOverlay` lives, and outside the gesture detector — so it cannot resize the
 canvas (which would re-run fit-to-view and visibly zoom the design) and it can be a
 real, accessible control. Its layer is `box-none`, so the canvas keeps every touch
-that is not on the chip. It follows pan and zoom because it is positioned from the
+that is not on the bar. It follows pan and zoom because it is positioned from the
 frame through the published `Viewport` (which now carries the canvas box size for
-exactly this reason).
+exactly this reason), and its layer is **inset by the wrapper's own padding** so
+that "inset 4 from the canvas edge" means the card's edge — the chip measured
+against a box a whole padding-step larger, so its `left: 4` was 8dp *outside* the
+card it was labelling.
 
-## 6. The member strip
+## 6. The member track
 
-The parts strip generalised: the context zone shows a tile per **member** of the
-selected collection, in reading order (`part.index` when every member is a part,
-document order otherwise).
+The parts strip generalised: a tile per **member** of the selected collection, in
+reading order (`part.index` when every member is a part, document order otherwise).
 
 - A text member renders its own glyph in its own font — a faithful preview, which
   is what makes a split word navigable letter by letter. Anything else shows its
-  kind's glyph.
+  kind's glyph, and its index caption is then the only thing telling two tiles
+  apart, so it is not decoration.
 - Tapping a tile **enters** that member; the prev/next arrows step through them
-  with wraparound.
-- The strip appears only when there is more than one member, and it is what sets
-  `CONTEXT_RAIL_HEIGHT` (56).
+  with wraparound. Both are bound in learn mode (`help.press`), so while it is on
+  they explain themselves instead of moving the focus.
+- A hairline separates the head from the track. Without it the head's `2/3` and the
+  tiles read as one run of chips — which is the confusion the bar exists to undo.
+- The track appears only when there is more than one member. A loose
+  multi-selection has no members at all (`collectionMembers` returns none for it),
+  so the bar is a bare head reading `Selected: 3`.
+- The track is the **only** part of the bar that scrolls, and only when the tiles
+  genuinely outgrow the card; the head and both arrows stay put.
 
 ## 7. What a collection does not do
 
@@ -199,7 +226,8 @@ needs nothing else: `groupId` is a flat field, so a snapshot carries it.
 | `select` / `enterMember` / `exitCollection`, the invariant at every write | `src/editor/store.ts`                                           |
 | The collection overlay (frame, handles, grip)                             | `src/editor/EditorCanvas.tsx`                                   |
 | Frame handle hit-testing, the collection resize and its settle            | `src/editor/use-object-gestures.ts`                             |
-| The chip, the member strip, the collection-aware rail actions             | `src/editor/EditorScreen.tsx`, `src/editor/collection-chip.tsx` |
+| The collection bar — head, member track, placement                        | `src/editor/collection-bar.tsx`                                 |
+| The bar's head copy, the collection-aware rail actions                    | `src/editor/EditorScreen.tsx`                                   |
 | Availability (`canGroup`/`canUngroup`), the rail's slot table             | `src/editor/selection-actions.tsx`                              |
 | Help entries, the canvas-group legend entries                             | `src/editor/help/catalog.ts`                                    |
 | Executable spec for all of the above that is pure                         | `scripts/check-groups.mjs`                                      |
@@ -212,5 +240,5 @@ needs nothing else: `groupId` is a flat field, so a snapshot carries it.
 | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md)       | The split/rejoin algorithm, and why a part set is a collection with provenance       |
 | [`editor-gestures.md`](editor-gestures.md)                       | §2 owns the pointer-down decision table that now resolves a collection frame as well |
 | [`editor-coordinates.md`](editor-coordinates.md)                 | The four frames, and which chrome divides by which scale                             |
-| [`editor-selection-bar.md`](editor-selection-bar.md)             | §6 owns the width budget the count badge was removed from                            |
+| [`editor-selection-bar.md`](editor-selection-bar.md)             | §6 owns the width budget the count badge and the member track were removed from      |
 | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) | How the collection gestures reach learn mode's canvas legend                         |
