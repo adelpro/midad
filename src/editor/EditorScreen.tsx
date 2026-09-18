@@ -1831,7 +1831,7 @@ export function EditorScreen() {
             style={{
               maxHeight: Math.round(windowHeight * SHEET_BODY_MAX_FRACTION),
             }}
-            contentContainerStyle={styles.sheetBody}
+            contentContainerStyle={styles.textSheetBody}
             keyboardShouldPersistTaps="handled"
             nestedScrollEnabled
           >
@@ -2238,6 +2238,10 @@ const styles = StyleSheet.create({
   toolLabel: { fontSize: typeScale.caption.size },
   toolAction: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   sheetBody: { gap: spacing.md },
+  textSheetBody: {
+    gap: spacing.lg,
+    paddingHorizontal: spacing.sm,
+  },
   /** The text sheet's confirm button, outside the scrolling body. */
   sheetFooter: { marginTop: spacing.md },
   fontRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
