@@ -252,7 +252,7 @@ current.includes(id)
 
 | Surface   | Control                                                                          |
 | --------- | -------------------------------------------------------------------------------- |
-| `⋯` sheet | The row's **trailing pin** — the discoverable half                              |
+| `⋯` sheet | The row's **trailing pin** — the discoverable half                               |
 | Rail      | **Long-press a rail button** — `IconButton`'s `onLongPress={action.pin?.toggle}` |
 
 Two consequences worth preserving:
@@ -409,22 +409,22 @@ of the window and read as a ledger.
 
 ## 12. Code map
 
-| Concern                                                                   | File                                |
-| ------------------------------------------------------------------------- | ----------------------------------- |
-| `SelectionActionId`, `RAIL_SLOTS`, `OVERFLOW_ACTIONS`, `SHEET_ORDER`      | `src/editor/selection-actions.tsx`  |
-| `SelectionShape`, `isAvailable`                                           | `src/editor/selection-actions.tsx`  |
-| `railActionIds`, `overflowActionIds`, `SLOT_INDEX_OF`                     | `src/editor/selection-actions.tsx`  |
-| `visibleActionCount` and the geometry constants                           | `src/editor/selection-actions.tsx`  |
-| `resolveSelectionActions`, `SelectionAction`, `SelectionPin`              | `src/editor/selection-actions.tsx`  |
+| Concern                                                                  | File                                |
+| ------------------------------------------------------------------------ | ----------------------------------- |
+| `SelectionActionId`, `RAIL_SLOTS`, `OVERFLOW_ACTIONS`, `SHEET_ORDER`     | `src/editor/selection-actions.tsx`  |
+| `SelectionShape`, `isAvailable`                                          | `src/editor/selection-actions.tsx`  |
+| `railActionIds`, `overflowActionIds`, `SLOT_INDEX_OF`                    | `src/editor/selection-actions.tsx`  |
+| `visibleActionCount` and the geometry constants                          | `src/editor/selection-actions.tsx`  |
+| `resolveSelectionActions`, `SelectionAction`, `SelectionPin`             | `src/editor/selection-actions.tsx`  |
 | `SelectionRailActions`, `SelectionActionRow`, `SelectionOverflowActions` | `src/editor/selection-actions.tsx`  |
-| `STEP_DIRECTION`, `DirectionIcon` usage                                   | `src/editor/selection-actions.tsx`  |
-| The sheet panel's width cap and centred presentation                      | `src/components/ui/sheet.tsx`       |
-| The collection bar (head, member track, placement)                        | `src/editor/collection-bar.tsx`     |
-| The context zone's contents, `hasContext`, the head's copy                | `src/editor/EditorScreen.tsx`       |
-| `bar`, `togglePin`, `railIds`, `visibleCount`, measurement callbacks      | `src/editor/EditorScreen.tsx`       |
-| `contextRail` slot, `CONTEXT_RAIL_HEIGHT`                                 | `src/editor/EditorScreen.tsx`       |
-| `selectionBarActions`, `setSelectionBarActions`                           | `src/storage/settings.ts`           |
-| `sel.*` labels, roles, icons and chords                                   | `src/editor/help/catalog.ts`        |
-| Hint suppression under `onLongPress`                                      | `src/components/ui/icon-button.tsx` |
-| `spacing`, `radius`, `typeScale` tokens                                   | `src/theme/tokens.ts`               |
-| The rail's layout rule                                                    | `DESIGN.md` §5                      |
+| `STEP_DIRECTION`, `DirectionIcon` usage                                  | `src/editor/selection-actions.tsx`  |
+| The sheet panel's width cap and centred presentation                     | `src/components/ui/sheet.tsx`       |
+| The collection bar (head, member track, placement)                       | `src/editor/collection-bar.tsx`     |
+| The context zone's contents, `hasContext`, the head's copy               | `src/editor/EditorScreen.tsx`       |
+| `bar`, `togglePin`, `railIds`, `visibleCount`, measurement callbacks     | `src/editor/EditorScreen.tsx`       |
+| `contextRail` slot, `CONTEXT_RAIL_HEIGHT`                                | `src/editor/EditorScreen.tsx`       |
+| `selectionBarActions`, `setSelectionBarActions`                          | `src/storage/settings.ts`           |
+| `sel.*` labels, roles, icons and chords                                  | `src/editor/help/catalog.ts`        |
+| Hint suppression under `onLongPress`                                     | `src/components/ui/icon-button.tsx` |
+| `spacing`, `radius`, `typeScale` tokens                                  | `src/theme/tokens.ts`               |
+| The rail's layout rule                                                   | `DESIGN.md` §5                      |
