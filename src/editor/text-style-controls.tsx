@@ -1,23 +1,23 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   useWindowDimensions,
   type LayoutChangeEvent,
-} from "react-native";
+} from 'react-native';
 
-import { Icon, IconButton, Slider } from "@/components/ui";
-import { hapticTick } from "@/haptics";
-import { useTheme } from "@/hooks/use-theme";
-import { useT } from "@/i18n";
+import { Icon, IconButton, Slider } from '@/components/ui';
+import { hapticTick } from '@/haptics';
+import { useTheme } from '@/hooks/use-theme';
+import { useT } from '@/i18n';
 import {
   DEFAULT_LEADING_RATIO,
   fontRoles,
   radius,
   spacing,
   typeScale,
-} from "@/theme";
+} from '@/theme';
 
 /**
  * Typography controls for the editor's text sheets, split out of
@@ -346,8 +346,8 @@ export function TextPreview({
             fontSize: previewFontSize,
             lineHeight: lineBox,
             color: blank ? c.faint : c.ink,
-            textAlign: "center",
-            writingDirection: isRTL ? "rtl" : "ltr",
+            textAlign: 'center',
+            writingDirection: isRTL ? 'rtl' : 'ltr',
           }}
         >
           {blank ? t.editor.previewSample : draft}
@@ -359,29 +359,29 @@ export function TextPreview({
 
 const styles = StyleSheet.create({
   numberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.sm,
   },
   numberLabel: { fontSize: typeScale.body.size },
   numberControls: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   numberValue: {
     minWidth: 56,
-    textAlign: "center",
+    textAlign: 'center',
     fontSize: typeScale.body.size,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   gauge: { gap: spacing.sm },
   preview: { gap: spacing.xs },
   previewHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.sm,
   },
   previewCaption: {
@@ -391,11 +391,11 @@ const styles = StyleSheet.create({
   previewBox: {
     borderWidth: PREVIEW_BORDER,
     borderRadius: radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     // Still a safety net rather than the cause: the ink is reserved for above,
     // so this only rounds off anything that overshoots anyway.
-    overflow: "hidden",
+    overflow: 'hidden',
     paddingHorizontal: PREVIEW_PAD_X,
     paddingVertical: PREVIEW_PAD_Y,
   },

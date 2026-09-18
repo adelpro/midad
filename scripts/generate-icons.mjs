@@ -18,9 +18,9 @@
  * Requires the `sharp` dev dependency. The warm-paper color (#F7F6F3) must
  * match the `backgroundColor` values in app.json.
  */
-import sharp from 'sharp';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -49,7 +49,6 @@ async function rasterLogo(targetHeight) {
 async function makeCanvas({ size, onPaper = false, availRatio = 0.7 }) {
   const avail = Math.round(size * availRatio);
   const logoH = avail;
-  const logoW = Math.round(avail * LOGO_ASPECT);
   // Re-rasterize the logo at exactly the target size for sharpness.
   const logoPng = await rasterLogo(logoH);
   const base = onPaper

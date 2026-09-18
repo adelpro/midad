@@ -45,8 +45,6 @@ yarn-error.*
 .eslintcache
 .prettiercache
 
-example
-
 # generated native folders
 /ios
 /android
