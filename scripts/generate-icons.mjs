@@ -30,9 +30,9 @@ const outDir = path.join(root, 'assets/images');
 // Warm paper background (matches app.json splash)
 const PAPER = { r: 247, g: 246, b: 243, alpha: 255 };
 
-// Logo intrinsic aspect ratio
-const LOGO_W = 735;
-const LOGO_H = 957;
+// Logo intrinsic aspect ratio (matches the crop in assets/brand/midad.svg)
+const LOGO_W = 412;
+const LOGO_H = 743;
 const LOGO_ASPECT = LOGO_W / LOGO_H;
 
 // Rasterize the raw logo (SVG) to a target height, preserving aspect.
