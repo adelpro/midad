@@ -72,7 +72,7 @@
     "secrets:check": "gitleaks protect --staged --redact",
     "prepare": "husky",
     "verify": "node scripts/verify.mjs",
-    "eas-build-pre-install": "corepack enable && corepack prepare yarn@4.1.1 --activate"
+    "eas-build-pre-install": "corepack enable && corepack prepare yarn@4.13.0 --activate"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
