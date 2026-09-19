@@ -325,6 +325,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   row: {
+    alignItems: 'stretch',
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: spacing.lg,
@@ -332,6 +333,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   rowLabel: {
+    alignSelf: 'stretch',
     fontSize: typeScale.small.size,
     lineHeight: typeScale.small.lineHeight,
   },
@@ -341,14 +343,15 @@ const styles = StyleSheet.create({
     lineHeight: typeScale.caption.lineHeight,
   },
   choiceRow: {
+    alignSelf: 'stretch',
     flexDirection: 'row',
     gap: spacing.sm,
     flexWrap: 'wrap',
   },
   choiceBtn: {
-    flex: 0,
-    width: '100%',
-    minWidth: 96,
+    alignSelf: 'center',
+    width: undefined,
+    maxWidth: 200,
   },
   restartNotice: {
     fontSize: typeScale.small.size,
