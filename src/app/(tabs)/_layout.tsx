@@ -1,5 +1,5 @@
-import { useWindowDimensions } from 'react-native';
 import { Tabs } from 'expo-router/js-tabs';
+import { useWindowDimensions } from 'react-native';
 
 import { Icon } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
@@ -59,6 +59,20 @@ export default function TabsLayout() {
           tabBarIcon: ({ focused, color, size }) => (
             <Icon
               name="settings"
+              color={typeof color === 'string' ? color : c.ink}
+              size={size}
+              weight={focused ? 'fill' : 'regular'}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="more"
+        options={{
+          title: t.tabs.more,
+          tabBarIcon: ({ focused, color, size }) => (
+            <Icon
+              name="more"
               color={typeof color === 'string' ? color : c.ink}
               size={size}
               weight={focused ? 'fill' : 'regular'}

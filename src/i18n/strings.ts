@@ -32,6 +32,7 @@ export interface Translation {
   tabs: {
     gallery: string;
     settings: string;
+    more: string;
   };
   onboarding: {
     welcome: string;
@@ -270,6 +271,7 @@ export const strings: Record<Language, Translation> = {
     tabs: {
       gallery: 'لوحتي',
       settings: 'الإعدادات',
+      more: 'المزيد',
     },
     onboarding: {
       welcome: 'مرحباً بك في مداد',
@@ -492,6 +494,7 @@ export const strings: Record<Language, Translation> = {
     tabs: {
       gallery: 'Gallery',
       settings: 'Settings',
+      more: 'More',
     },
     onboarding: {
       welcome: 'Welcome to midad',

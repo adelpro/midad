@@ -1,17 +1,10 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Sheet, Toggle } from '@/components/ui';
+import { Button, Toggle } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import {
@@ -71,7 +64,6 @@ export default function SettingsScreen() {
   } = useSettings();
   const router = useRouter();
   const [languageJustChanged, setLanguageJustChanged] = useState(false);
-  const [aboutMenuOpen, setAboutMenuOpen] = useState(false);
 
   const changeLanguage = (next: 'ar' | 'en') => {
     if (next !== lang) {
@@ -269,28 +261,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <SectionLabel>{t.settings.aboutSection}</SectionLabel>
         <View style={styles.group}>
-          <View
-            style={[
-              styles.row,
-              { backgroundColor: c.surface, borderColor: c.border },
-            ]}
-          >
-            <Text
-              style={[styles.rowLabel, { fontFamily: fonts.ui, color: c.ink }]}
-            >
-              {t.settings.aboutBody}
-            </Text>
-            <View style={styles.choiceRow}>
-              <Button
-                label={t.common.more}
-                variant="secondary"
-                onPress={() => setAboutMenuOpen(true)}
-                style={styles.choiceBtn}
-              />
-            </View>
-          </View>
           <View
             style={[
               styles.row,
@@ -323,61 +294,6 @@ export default function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
-
-      <Sheet
-        visible={aboutMenuOpen}
-        onClose={() => setAboutMenuOpen(false)}
-        title={t.common.more}
-      >
-        <View style={styles.menuList}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              setAboutMenuOpen(false);
-              router.push('/about');
-            }}
-            style={({ pressed }) => [
-              styles.menuItem,
-              {
-                backgroundColor: pressed ? c.surfacePressed : c.surface,
-                borderColor: c.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.menuItemText,
-                { fontFamily: fonts.uiBold, color: c.ink },
-              ]}
-            >
-              {t.settings.aboutLink}
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              setAboutMenuOpen(false);
-              router.push('/privacy');
-            }}
-            style={({ pressed }) => [
-              styles.menuItem,
-              {
-                backgroundColor: pressed ? c.surfacePressed : c.surface,
-                borderColor: c.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.menuItemText,
-                { fontFamily: fonts.uiBold, color: c.ink },
-              ]}
-            >
-              {t.settings.privacyLink}
-            </Text>
-          </Pressable>
-        </View>
-      </Sheet>
     </SafeAreaView>
   );
 }
@@ -429,21 +345,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     flexWrap: 'wrap',
   },
-  menuList: {
-    gap: spacing.sm,
-  },
-  menuItem: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  menuItemText: {
-    fontSize: typeScale.small.size,
-    lineHeight: typeScale.small.lineHeight,
-  },
   choiceBtn: {
-    flex: 1,
+    flex: 0,
+    width: '100%',
     minWidth: 96,
   },
   restartNotice: {
