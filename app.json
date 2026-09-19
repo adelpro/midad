@@ -29,9 +29,12 @@
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
-        "android.permission.READ_MEDIA_IMAGES"
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ]
     },
     "web": {
@@ -65,7 +68,7 @@
         {
           "photosPermission": "يستخدم التطبيق مكتبة الصور لاختيار صورة خلفية للتصميم / The app uses your photo library to choose a design background image.",
           "savePhotosPermission": "يستخدم التطبيق مكتبة الصور لحفظ تصميماتك / The app saves your designs to your photo library.",
-          "granularPermissions": ["photo"]
+          "granularPermissions": []
         }
       ]
     ],

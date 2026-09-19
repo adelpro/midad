@@ -1,6 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-
-import { isWeb } from '@/storage/platform';
+import { Platform } from 'react-native';
 
 /**
  * Background image helpers.
@@ -32,7 +31,10 @@ export function dataUriToBase64(dataUri: string): string {
 export async function pickBackgroundImage(): Promise<string | null> {
   try {
     // Web has no permission gate — the browser owns the picker.
-    if (!isWeb) {
+    // Android's system photo picker grants access to the selected image and
+    // does not require broad photo-library read permission. iOS still needs
+    // its photo-library authorization before opening the picker.
+    if (Platform.OS === 'ios') {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
         return null;
