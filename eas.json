@@ -12,7 +12,8 @@
     "aab": {
       "android": {
         "buildType": "app-bundle"
-      }
+      },
+      "autoIncrement": true
     },
     "preview": {
       "extends": "apk"
