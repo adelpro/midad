@@ -83,6 +83,8 @@ export interface Translation {
     defaultCanvas: string;
     aboutSection: string;
     aboutBody: string;
+    aboutLink: string;
+    privacyLink: string;
     version: string;
     credits: string;
     restartNotice: string;
@@ -99,6 +101,20 @@ export interface Translation {
     onboardingSection: string;
     onboardingReplay: string;
     onboardingReplayHint: string;
+  };
+  aboutPage: {
+    title: string;
+    body: string;
+    mission: string;
+    versionLabel: string;
+    developedBy: string;
+  };
+  privacyPage: {
+    title: string;
+    summary: string;
+    localData: string;
+    analytics: string;
+    contact: string;
   };
   editor: {
     newProject: string;
@@ -302,6 +318,8 @@ export const strings: Record<Language, Translation> = {
       defaultCanvas: 'مقاس اللوحة الافتراضي',
       aboutSection: 'حول',
       aboutBody: 'مداد — استوديو الخط العربي.',
+      aboutLink: 'حول التطبيق',
+      privacyLink: 'سياسة الخصوصية',
       version: 'الإصدار',
       credits: 'الخطوط مرخّصة بموجب رخصة SIL Open Font License',
       restartNotice: 'أعد تشغيل التطبيق ليُطبَّق اتجاه الواجهة الجديد بالكامل.',
@@ -318,6 +336,26 @@ export const strings: Record<Language, Translation> = {
       onboardingSection: 'الجولة التعريفية',
       onboardingReplay: 'إظهار الجولة مرة أخرى',
       onboardingReplayHint: 'أعِد مشاهدة شاشات التعريف.',
+    },
+    aboutPage: {
+      title: 'حول مداد',
+      body: 'مداد هو استوديو عربي للتصميم والخط العربي. يساعدك على تجربة الأحجام، الألوان، الطباعة، والنسخ بأسلوب شخصي وسهل.',
+      mission:
+        'نهدف إلى جعل الفن العربي أكثر قربًا من كل مستخدم، مع أدوات بسيطة تركز على الإبداع لا على التعقيد.',
+      versionLabel: 'الإصدار الحالي',
+      developedBy:
+        'تم تطوير التطبيق ليخدم كتابة ولوحات الخط العربي في كل مكان.',
+    },
+    privacyPage: {
+      title: 'سياسة الخصوصية',
+      summary:
+        'نحترم خصوصيتك. لا نبيع أو نشارك بياناتك الشخصية مع أطراف خارجية.',
+      localData:
+        'يُحفظ محتوى لوحاتك محليًا على جهازك، ويُستخدم فقط لعرض أعمالك داخل التطبيق.',
+      analytics:
+        'لا نستخدم تحليلات متتبعة أو إعلانات تابعة في التطبيق، ولا نجمع بيانات استخدام مستمرة.',
+      contact:
+        'إذا كان لديك أي سؤال حول الخصوصية، يمكنك التواصل مباشرة من خلال التطبيق أو مراجعة إعدادات المشروع.',
     },
     editor: {
       newProject: 'لوحة جديدة',
@@ -504,6 +542,8 @@ export const strings: Record<Language, Translation> = {
       defaultCanvas: 'Default canvas size',
       aboutSection: 'About',
       aboutBody: 'midad — the Arabic calligraphy studio.',
+      aboutLink: 'About the app',
+      privacyLink: 'Privacy policy',
       version: 'Version',
       credits: 'Fonts under the SIL Open Font License',
       restartNotice:
@@ -522,6 +562,26 @@ export const strings: Record<Language, Translation> = {
       onboardingSection: 'Intro',
       onboardingReplay: 'Show the intro again',
       onboardingReplayHint: 'Replay the introduction screens.',
+    },
+    aboutPage: {
+      title: 'About midad',
+      body: 'midad is an Arabic calligraphy studio designed for exploring layouts, lettering, color, and composition in a mindful, approachable way.',
+      mission:
+        'Our goal is to make Arabic art more accessible to everyone by focusing on creativity, clarity, and a smooth creative flow.',
+      versionLabel: 'Current version',
+      developedBy:
+        'Built to support personal calligraphy practice and custom design work on your device.',
+    },
+    privacyPage: {
+      title: 'Privacy policy',
+      summary:
+        'We respect your privacy. We do not sell or share your personal data with third parties.',
+      localData:
+        'Your design content is stored locally on your device and remains available only inside the app for your own work.',
+      analytics:
+        'The app does not use advertising trackers or persistent analytics services to monitor your activity.',
+      contact:
+        'If you have any privacy questions, contact the app support or review the project settings for the latest information.',
     },
     editor: {
       newProject: 'New artwork',
