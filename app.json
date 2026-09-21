@@ -25,7 +25,6 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.adelpro.midad",
-      "versionCode": 2,
       "permissions": [],
       "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
