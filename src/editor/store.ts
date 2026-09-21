@@ -273,6 +273,8 @@ interface EditorState {
 
   setCanvas: (patch: Partial<MidadProject['canvas']>) => void;
   setGrid: (enabled: boolean) => void;
+  /** Updates document metadata without adding a canvas undo step. */
+  setProjectName: (name: string) => void;
 }
 
 const MAX_HISTORY = 50;
@@ -913,5 +915,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setGrid: (gridEnabled) =>
     set((s) => ({
       project: s.project ? { ...s.project, gridEnabled } : s.project,
+    })),
+
+  setProjectName: (name) =>
+    set((s) => ({
+      project: s.project ? { ...s.project, name } : s.project,
     })),
 }));

@@ -178,6 +178,7 @@ these are document writes that are **not undoable**:
 
 - paper colour and background image (`setBgColor`, `setBgImage`, `clearBgImage`)
 - the grid toggle (`toggleGrid`)
+- the project name (`setProjectName`)
 
 They are still saved — they live in `project` and auto-save persists the whole
 document. If undoable backgrounds are wanted, that is a new decision, not

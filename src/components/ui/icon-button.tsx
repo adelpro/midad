@@ -115,6 +115,7 @@ export function IconButton({
           show();
         }}
         delayLongPress={350}
+        hitSlop={2}
         onHoverIn={hintEnabled ? show : undefined}
         onHoverOut={hintEnabled ? hide : undefined}
         style={[

@@ -123,6 +123,7 @@ export interface Translation {
     canvasSize: string;
     background: string;
     select: string;
+    multiSelect: string;
     text: string;
     glyphs: string;
     shapes: string;
@@ -365,6 +366,7 @@ export const strings: Record<Language, Translation> = {
       canvasSize: 'مقاس اللوحة',
       background: 'الخلفية',
       select: 'تحديد',
+      multiSelect: 'تحديد متعدد',
       text: 'نص',
       glyphs: 'زخارف',
       shapes: 'أشكال',
@@ -592,6 +594,7 @@ export const strings: Record<Language, Translation> = {
       canvasSize: 'Canvas size',
       background: 'Background',
       select: 'Select',
+      multiSelect: 'Multi-select',
       text: 'Text',
       glyphs: 'Ornaments',
       shapes: 'Shapes',

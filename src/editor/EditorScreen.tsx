@@ -82,6 +82,7 @@ import { useObjectGestures } from '@/editor/use-object-gestures';
 import { hapticDelete, hapticSuccess, hapticTick } from '@/haptics';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
+import { rowStyle } from '@/i18n/rtl';
 import { pickBackgroundImage } from '@/storage/background-image';
 import { saveImageToLibrary, shareFile, shareImage } from '@/storage/export';
 import { hasMediaLibrary } from '@/storage/platform';
@@ -224,6 +225,10 @@ export function EditorScreen() {
   const { t, language, isRTL } = useT();
   const { colors: c } = useTheme();
   const fonts = fontRoles[language];
+  const dir = {
+    writingDirection: isRTL ? ('rtl' as const) : ('ltr' as const),
+    textAlign: isRTL ? ('right' as const) : ('left' as const),
+  };
 
   const project = useEditorStore((s) => s.project);
   const loadProject = useEditorStore((s) => s.loadProject);
@@ -236,6 +241,7 @@ export function EditorScreen() {
   const select = useEditorStore((s) => s.select);
   const alignSelected = useEditorStore((s) => s.alignSelected);
   const setGrid = useEditorStore((s) => s.setGrid);
+  const setProjectName = useEditorStore((s) => s.setProjectName);
   const gridEnabled = useEditorStore((s) => s.project?.gridEnabled);
   const multiSelectMode = useEditorStore((s) => s.multiSelectMode);
   const setMultiSelectMode = useEditorStore((s) => s.setMultiSelectMode);
@@ -275,6 +281,11 @@ export function EditorScreen() {
   const [styleSheetOpen, setStyleSheetOpen] = useState(false);
   /** The selection bar's `⋯` overflow sheet. */
   const [moreOpen, setMoreOpen] = useState(false);
+  /** The header's secondary actions. */
+  const [headerMoreOpen, setHeaderMoreOpen] = useState(false);
+  /** The draft shown while renaming the current project. */
+  const [titleSheetOpen, setTitleSheetOpen] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
   /** The help reference sheet. */
   const [helpOpen, setHelpOpen] = useState(false);
   /** Transient explanation shown when a split is refused. */
@@ -1477,6 +1488,16 @@ export function EditorScreen() {
     selectTool('background');
   }, [selectTool, setMultiSelectMode]);
 
+  const openTitleSheet = useCallback(() => {
+    setTitleDraft(project?.name ?? '');
+    setTitleSheetOpen(true);
+  }, [project?.name]);
+
+  const saveTitle = useCallback(() => {
+    setProjectName(titleDraft.trim());
+    setTitleSheetOpen(false);
+  }, [setProjectName, titleDraft]);
+
   if (!project) {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: c.paper }]}>
@@ -1495,7 +1516,7 @@ export function EditorScreen() {
       >
         {/* Top bar */}
         <View style={[styles.topBar, { borderColor: c.border }]}>
-          <View style={styles.barInner}>
+          <View style={[styles.barInner, rowStyle(isRTL)]}>
             <IconButton
               onPress={() => router.back()}
               accessibilityLabel={t.editor.hints.back}
@@ -1506,12 +1527,29 @@ export function EditorScreen() {
                 size={20}
               />
             </IconButton>
-            <Text
-              numberOfLines={1}
-              style={[styles.title, { fontFamily: fonts.ui, color: c.ink }]}
+            <Pressable
+              onPress={openTitleSheet}
+              accessibilityRole="button"
+              accessibilityLabel={project.name || t.editor.newProject}
+              accessibilityHint={t.common.rename}
+              style={({ pressed }) => [
+                styles.titleButton,
+                { opacity: pressed ? 0.65 : 1 },
+              ]}
             >
-              {project.name || t.editor.newProject}
-            </Text>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="middle"
+                style={[
+                  styles.title,
+                  { fontFamily: fonts.ui, color: c.ink },
+                  dir,
+                  { textAlign: 'center' },
+                ]}
+              >
+                {project.name || t.editor.newProject}
+              </Text>
+            </Pressable>
             <View style={styles.topActions}>
               <IconButton
                 onPress={undo}
@@ -1530,41 +1568,11 @@ export function EditorScreen() {
                 <Icon name="redo" size={18} color={canRedo ? c.ink : c.faint} />
               </IconButton>
               <IconButton
-                onPress={() => setGrid(!gridEnabled)}
-                variant={gridEnabled ? 'ink' : 'ghost'}
-                accessibilityLabel={t.editor.hints.grid}
-                hint={shortcuts.hint(t.editor.hints.grid, 'toggleGrid')}
+                onPress={() => setHeaderMoreOpen(true)}
+                accessibilityLabel={t.common.more}
+                hint={t.common.more}
               >
-                <Icon
-                  name="grid"
-                  size={18}
-                  color={gridEnabled ? c.onInk : c.ink}
-                />
-              </IconButton>
-              <IconButton
-                onPress={save}
-                accessibilityLabel={t.editor.hints.save}
-                accessibilityHint={t.editor.hints.save}
-                hint={shortcuts.hint(t.editor.hints.save, 'save')}
-              >
-                <Icon name="download" size={18} />
-              </IconButton>
-              <IconButton
-                onPress={() => {
-                  setExportError(null);
-                  setExportOpen(true);
-                }}
-                accessibilityLabel={t.editor.hints.export}
-                hint={t.editor.hints.export}
-              >
-                <Icon name="export" size={18} />
-              </IconButton>
-              <IconButton
-                onPress={help.press('topBar.help', () => setHelpOpen(true))}
-                accessibilityLabel={t.editor.helpTitle}
-                hint={shortcuts.hint(t.editor.helpTitle, 'openHelp')}
-              >
-                <Icon name="help" size={18} />
+                <Icon name="more" size={18} />
               </IconButton>
             </View>
           </View>
@@ -1637,7 +1645,7 @@ export function EditorScreen() {
           ]}
         >
           <View
-            style={styles.contextRow}
+            style={[styles.contextRow, rowStyle(isRTL)]}
             onLayout={(e) => setRailWidth(e.nativeEvent.layout.width)}
           >
             {/* Selection rail — truncates to what fits; the rest live in `⋯` */}
@@ -1657,7 +1665,7 @@ export function EditorScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.contextScroll}
-              contentContainerStyle={styles.contextTrack}
+              contentContainerStyle={[styles.contextTrack, rowStyle(isRTL)]}
               onContentSizeChange={(w) => setContextWidth(w)}
             >
               {/*
@@ -1679,6 +1687,7 @@ export function EditorScreen() {
                     style={[
                       styles.noticeText,
                       { color: c.danger, fontFamily: fonts.ui },
+                      dir,
                     ]}
                   >
                     {splitNotice}
@@ -1772,7 +1781,9 @@ export function EditorScreen() {
             { borderColor: c.border, backgroundColor: c.surface },
           ]}
         >
-          <View style={[styles.barInner, styles.toolRailInner]}>
+          <View
+            style={[styles.barInner, styles.toolRailInner, rowStyle(isRTL)]}
+          >
             <ToolBtn
               label={t.editor.select}
               hint={shortcuts.hint(t.editor.select, 'toolSelect')}
@@ -1781,7 +1792,8 @@ export function EditorScreen() {
               icon="pen"
             />
             <ToolBtn
-              label={t.editor.hints.multiSelect}
+              label={t.editor.multiSelect}
+              accessibilityLabel={t.editor.hints.multiSelect}
               hint={shortcuts.hint(
                 t.editor.hints.multiSelect,
                 'toolMultiSelect',
@@ -1817,6 +1829,69 @@ export function EditorScreen() {
             />
           </View>
         </View>
+
+        {/* Header secondary actions */}
+        <Sheet
+          visible={headerMoreOpen}
+          onClose={() => setHeaderMoreOpen(false)}
+          title={t.common.more}
+        >
+          <View style={styles.sheetBody}>
+            <Button
+              label={t.editor.grid}
+              onPress={() => {
+                setGrid(!gridEnabled);
+                setHeaderMoreOpen(false);
+              }}
+              fullWidth
+              variant="secondary"
+            />
+            <Button
+              label={t.common.save}
+              onPress={() => {
+                void save();
+                setHeaderMoreOpen(false);
+              }}
+              fullWidth
+              variant="secondary"
+            />
+            <Button
+              label={t.editor.export}
+              onPress={() => {
+                setExportError(null);
+                setHeaderMoreOpen(false);
+                setExportOpen(true);
+              }}
+              fullWidth
+              variant="secondary"
+            />
+            <Button
+              label={t.editor.helpTitle}
+              onPress={() => {
+                setHeaderMoreOpen(false);
+                setHelpOpen(true);
+              }}
+              fullWidth
+              variant="secondary"
+            />
+          </View>
+        </Sheet>
+
+        {/* Rename sheet */}
+        <Sheet
+          visible={titleSheetOpen}
+          onClose={() => setTitleSheetOpen(false)}
+          title={t.common.rename}
+        >
+          <View style={styles.sheetBody}>
+            <TextInputStub
+              value={titleDraft}
+              onChange={setTitleDraft}
+              placeholder={t.editor.projectName}
+            />
+            <Button label={t.common.save} onPress={saveTitle} fullWidth />
+          </View>
+        </Sheet>
 
         {/* Text sheet */}
         <Sheet
@@ -2069,12 +2144,14 @@ export function EditorScreen() {
 
 function ToolBtnRaw({
   label,
+  accessibilityLabel,
   hint,
   active,
   onPress,
   icon,
 }: {
   label: string;
+  accessibilityLabel?: string;
   /** Tooltip text. Carries the shortcut chord; defaults to the caption. */
   hint?: string;
   active: boolean;
@@ -2083,13 +2160,13 @@ function ToolBtnRaw({
     'pen' | 'type' | 'sparkle' | 'shapes' | 'palette' | 'image' | 'multiSelect';
 }) {
   const { colors: c } = useTheme();
-  const { language } = useT();
+  const { language, isRTL } = useT();
   return (
     <View style={styles.toolBtnWrap}>
       <IconButton
         onPress={onPress}
         variant={active ? 'ink' : 'ghost'}
-        accessibilityLabel={label}
+        accessibilityLabel={accessibilityLabel ?? label}
         hint={hint ?? label}
       >
         <Icon name={icon} size={18} color={active ? c.onInk : c.ink} />
@@ -2100,8 +2177,11 @@ function ToolBtnRaw({
           {
             color: active ? c.ink : c.faint,
             fontFamily: fontRoles[language].ui,
+            writingDirection: isRTL ? 'rtl' : 'ltr',
+            textAlign: 'center',
           },
         ]}
+        numberOfLines={1}
       >
         {label}
       </Text>
@@ -2145,6 +2225,8 @@ function TextInputStub({
           fontFamily: fontRoles[language].ui,
           fontSize: typeScale.body.size,
           padding: 0,
+          writingDirection: language === 'ar' ? 'rtl' : 'ltr',
+          textAlign: language === 'ar' ? 'right' : 'left',
         }}
       />
     </View>
@@ -2184,7 +2266,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  title: { flex: 1, fontSize: typeScale.subheading.size, fontWeight: '600' },
+  titleButton: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    width: '100%',
+    fontSize: typeScale.subheading.size,
+    lineHeight: typeScale.subheading.lineHeight,
+    fontWeight: '600',
+  },
   topActions: { flexDirection: 'row', gap: spacing.xs },
   /**
    * The canvas owns the leftover height. It sits in the normal column flow now:
@@ -2265,8 +2358,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: spacing.md,
   },
-  toolBtnWrap: { alignItems: 'center', gap: 2 },
-  toolLabel: { fontSize: typeScale.caption.size },
+  toolBtnWrap: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    gap: 2,
+  },
+  toolLabel: { width: '100%', fontSize: typeScale.caption.size },
   sheetBody: { gap: spacing.md },
   textSheetBody: {
     gap: spacing.lg,
