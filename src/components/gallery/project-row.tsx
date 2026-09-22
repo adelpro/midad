@@ -149,6 +149,8 @@ export function ProjectRow({
   const name = project.name || t.gallery.untitled;
   const date = formatDate(project.updatedAt, language);
   const isRow = layout === 'row';
+  /** The action layer is only live while the row is open. Closed, it is inert. */
+  const open = openSide !== null;
 
   // Positive = reveal the leading action, negative = the trailing one,
   // *before* the RTL multiplier. `dir` flips it so "swipe toward the trailing
@@ -374,7 +376,18 @@ export function ProjectRow({
           panel is wider than its action and keeps that action against the outer
           edge, so the panel's inner edge is always past wherever the card can
           stop: the reveal is clipped by the card, never left with a gap. */}
-      <View style={[styles.actions, rowStyle(isRTL)]}>
+      <View
+        style={[styles.actions, rowStyle(isRTL)]}
+        // The actions live *behind* the card whether or not the row is open.
+        // Closed, they must be unreachable: a screen reader would otherwise land
+        // on "Pin"/"Delete" for a row nobody swiped, duplicating the card's own
+        // custom actions, and on web they would sit in the tab order behind the
+        // card. `accessibilityElementsHidden` covers iOS, the Android analogue is
+        // `importantForAccessibility`, and `pointerEvents` stops stray hits.
+        pointerEvents={open ? 'auto' : 'none'}
+        accessibilityElementsHidden={!open}
+        importantForAccessibility={open ? 'auto' : 'no-hide-descendants'}
+      >
         <View
           style={[
             styles.panel,
@@ -384,6 +397,7 @@ export function ProjectRow({
         >
           <Pressable
             onPress={onTogglePin}
+            focusable={open}
             accessibilityRole="button"
             accessibilityLabel={pinned ? t.gallery.unpin : t.gallery.pin}
             style={styles.action}
@@ -418,6 +432,7 @@ export function ProjectRow({
         >
           <Pressable
             onPress={onDelete}
+            focusable={open}
             accessibilityRole="button"
             accessibilityLabel={t.common.delete}
             style={styles.action}
