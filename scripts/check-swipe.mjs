@@ -82,7 +82,11 @@ const RTL = -1;
 
 section('the panel is exactly the reveal plus its give');
 
-check('PANEL_W adds the give to the reveal', PANEL_W, ACTION_W + ELASTIC_TRAVEL);
+check(
+  'PANEL_W adds the give to the reveal',
+  PANEL_W,
+  ACTION_W + ELASTIC_TRAVEL,
+);
 
 for (const dir of [LTR, RTL]) {
   for (const side of ['leading', 'trailing']) {
@@ -134,7 +138,10 @@ for (let over = 1; over <= 400; over += 7) {
   if (value < previous) monotonic = false;
   previous = value;
 }
-ok('the resistance is monotonic — dragging further never pulls back', monotonic);
+ok(
+  'the resistance is monotonic — dragging further never pulls back',
+  monotonic,
+);
 
 ok(
   'the give is symmetric',
@@ -146,9 +153,17 @@ ok(
 section('RTL mirrors the intent, not the action');
 
 check('LTR leading sits to the right', settleTarget('leading', LTR), ACTION_W);
-check('LTR trailing sits to the left', settleTarget('trailing', LTR), -ACTION_W);
+check(
+  'LTR trailing sits to the left',
+  settleTarget('trailing', LTR),
+  -ACTION_W,
+);
 check('RTL leading sits to the left', settleTarget('leading', RTL), -ACTION_W);
-check('RTL trailing sits to the right', settleTarget('trailing', RTL), ACTION_W);
+check(
+  'RTL trailing sits to the right',
+  settleTarget('trailing', RTL),
+  ACTION_W,
+);
 check('rest is zero in both directions', settleTarget(null, RTL), 0);
 
 // ---------------------------------------------------------------------------
