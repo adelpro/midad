@@ -12,6 +12,7 @@ import {
   TextInput,
   useWindowDimensions,
   View,
+  type GestureResponderEvent,
 } from 'react-native';
 import {
   useAnimatedScrollHandler,
@@ -25,7 +26,10 @@ import {
   GalleryHeader,
 } from '@/components/gallery/gallery-header';
 import { ProjectRow, type SwipeSide } from '@/components/gallery/project-row';
-import { useDeferredDelete } from '@/components/gallery/use-deferred-delete';
+import {
+  UNDO_WINDOW_MS,
+  useDeferredDelete,
+} from '@/components/gallery/use-deferred-delete';
 import {
   Button,
   EmptyState,
@@ -161,6 +165,29 @@ export default function GalleryScreen() {
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollY.value = event.contentOffset.y;
   });
+
+  // A tap — not a scroll — anywhere on the list closes an open row, the same
+  // platform convention as tapping the card. Movement is what separates a tap
+  // from a scroll: a drag past the threshold leaves the row alone (the list's
+  // own `onScrollBeginDrag` already closes on scroll).
+  const listTapStart = useRef<{ x: number; y: number } | null>(null);
+  const handleListTouchStart = useCallback((e: GestureResponderEvent) => {
+    listTapStart.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+  }, []);
+  const handleListTouchEnd = useCallback((e: GestureResponderEvent) => {
+    const start = listTapStart.current;
+    listTapStart.current = null;
+    if (!start) {
+      return;
+    }
+    const moved = Math.hypot(
+      e.nativeEvent.pageX - start.x,
+      e.nativeEvent.pageY - start.y,
+    );
+    if (moved <= 10) {
+      setOpenRow(null);
+    }
+  }, []);
 
   // Pinned designs float to the top. Pins are device-local, so the ordering
   // lives here rather than in `listProjects()` — the stored documents never
@@ -523,6 +550,8 @@ export default function GalleryScreen() {
           keyExtractor={(item) => item.id}
           onScroll={onScroll}
           scrollEventThrottle={16}
+          onTouchStart={handleListTouchStart}
+          onTouchEnd={handleListTouchEnd}
           // A row being scrolled away is no longer the thing being touched, so
           // it returns to rest — the platform convention.
           onScrollBeginDrag={() => setOpenRow(null)}
@@ -589,6 +618,8 @@ export default function GalleryScreen() {
         actionLabel={t.common.undo}
         onAction={handleUndo}
         bottomOffset={spacing.lg}
+        durationMs={UNDO_WINDOW_MS}
+        resetKey={pendingDelete?.id ?? ''}
       />
 
       <Sheet visible={!!menuProject} onClose={closeMenu} title={sheetTitle}>

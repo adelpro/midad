@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AccessibilityInfo,
   Platform,
@@ -8,12 +8,17 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
@@ -30,6 +35,16 @@ import {
   typeScale,
 } from '@/theme';
 
+import { countdownDashOffset, secondsFromProgress } from './snackbar-timing';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+/** Countdown ring geometry, in pt. */
+const RING_SIZE = 22;
+const RING_STROKE = 2.5;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
 export interface SnackbarProps {
   visible: boolean;
   message: string;
@@ -38,6 +53,16 @@ export interface SnackbarProps {
   onAction?: () => void;
   /** Distance from the bottom of the containing screen. */
   bottomOffset?: number;
+  /**
+   * Window length for a visible countdown. When set, a ring drains over this
+   * time with the whole seconds left inside it. Omit for a plain message bar.
+   */
+  durationMs?: number;
+  /**
+   * Changes every time the window restarts (e.g. the pending item's id), so a
+   * second delete re-arms the ring instead of inheriting the first one's arc.
+   */
+  resetKey?: string | number;
 }
 
 /**
@@ -60,6 +85,8 @@ export function Snackbar({
   actionLabel,
   onAction,
   bottomOffset = 0,
+  durationMs,
+  resetKey,
 }: SnackbarProps) {
   const { colors: c } = useTheme();
   const { language, isRTL } = useT();
@@ -80,6 +107,45 @@ export function Snackbar({
       ? withSpring(1, springs.sheet)
       : withSpring(0, springs.exit);
   }, [visible, reduceMotion, progress]);
+
+  // Countdown runs 1 → 0 over the same window the real commit timer uses, so the
+  // ring and the delete stay in step. Linear on purpose: this is a clock, not an
+  // interactive element, and DESIGN.md's springs-only rule covers things a user
+  // touches. `resetKey` re-arms it for a second delete.
+  const countdown = useSharedValue(1);
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!visible || !durationMs) {
+      // The reaction below mirrors this back to 0 for the label.
+      countdown.value = 1;
+      return;
+    }
+    countdown.value = 1;
+    countdown.value = withTiming(0, {
+      duration: durationMs,
+      easing: Easing.linear,
+    });
+  }, [visible, resetKey, durationMs, countdown]);
+
+  // Only cross the JS boundary when the whole-second label actually changes,
+  // never per frame.
+  useAnimatedReaction(
+    () =>
+      visible && durationMs
+        ? secondsFromProgress(countdown.value, durationMs)
+        : 0,
+    (current, previous) => {
+      if (current !== previous) {
+        runOnJS(setSeconds)(current);
+      }
+    },
+    [visible, durationMs],
+  );
+
+  const ringProps = useAnimatedProps(() => ({
+    strokeDashoffset: countdownDashOffset(RING_CIRCUMFERENCE, countdown.value),
+  }));
 
   // `accessibilityLiveRegion` covers Android; iOS needs an explicit
   // announcement, and doing both would double-speak.
@@ -115,6 +181,42 @@ export function Snackbar({
           elevationStyle(c, shadows.float),
         ]}
       >
+        {durationMs ? (
+          // Decorative: the seconds duplicate the window the live region already
+          // announces, so the whole ring stays out of the a11y tree.
+          <View
+            style={styles.ringWrap}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Svg width={RING_SIZE} height={RING_SIZE}>
+              <Circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RING_RADIUS}
+                stroke={c.border}
+                strokeWidth={RING_STROKE}
+                fill="none"
+              />
+              <AnimatedCircle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RING_RADIUS}
+                stroke={c.accentText}
+                strokeWidth={RING_STROKE}
+                strokeLinecap="round"
+                fill="none"
+                strokeDasharray={RING_CIRCUMFERENCE}
+                animatedProps={ringProps}
+              />
+            </Svg>
+            <Text
+              style={[styles.seconds, { color: c.muted, fontFamily: fonts.ui }]}
+            >
+              {seconds}
+            </Text>
+          </View>
+        ) : null}
         <Text
           numberOfLines={2}
           style={[styles.message, { color: c.ink, fontFamily: fonts.ui }]}
@@ -167,6 +269,17 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typeScale.small.size,
     lineHeight: typeScale.small.lineHeight,
+  },
+  ringWrap: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seconds: {
+    position: 'absolute',
+    fontSize: typeScale.micro.size,
+    fontVariant: ['tabular-nums'],
   },
   action: {
     // 44pt minimum target via hit-slop rather than padding, so the bar stays thin.
