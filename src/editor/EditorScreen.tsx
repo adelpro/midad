@@ -1494,8 +1494,16 @@ export function EditorScreen() {
   }, [project?.name]);
 
   const saveTitle = useCallback(() => {
-    setProjectName(titleDraft.trim());
+    const name = titleDraft.trim();
+    setProjectName(name);
     setTitleSheetOpen(false);
+    // Persist on the spot rather than waiting on auto-save: this Save is the
+    // user's explicit commit, and auto-save may be off. `setProjectName` is
+    // synchronous, so `getState()` already carries the new name.
+    const current = useEditorStore.getState().project;
+    if (current) {
+      void saveProject({ ...current, updatedAt: new Date().toISOString() });
+    }
   }, [setProjectName, titleDraft]);
 
   if (!project) {

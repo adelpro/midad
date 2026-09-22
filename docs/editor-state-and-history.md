@@ -181,8 +181,10 @@ these are document writes that are **not undoable**:
 - the project name (`setProjectName`)
 
 They are still saved — they live in `project` and auto-save persists the whole
-document. If undoable backgrounds are wanted, that is a new decision, not
-something the current code implies.
+document. The project name is the exception: the rename sheet's Save calls
+`saveProject` directly, so the commit does not depend on auto-save being on. If
+undoable backgrounds are wanted, that is a new decision, not something the
+current code implies.
 
 Separately, `selectAll` sets `multiSelectMode: true`. Select-all _is_ a
 multi-selection, so leaving the mode off would show the count badge and the align

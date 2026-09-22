@@ -206,14 +206,6 @@ export default function GalleryScreen() {
     };
   }, [fetchAll]);
 
-  // A latched row does not survive leaving the screen: coming back to a row that
-  // is still open reads as input the app is still waiting on.
-  useFocusEffect(
-    useCallback(() => {
-      setOpenRow(null);
-    }, []),
-  );
-
   /** Reads storage into state, without touching the pull-to-refresh spinner. */
   const reload = useCallback(async () => {
     const { list, thumbs: nextThumbs } = await fetchAll();
@@ -258,6 +250,25 @@ export default function GalleryScreen() {
       setRefreshing(false);
     }
   }, [flushDeferredDelete, reload]);
+
+  /**
+   * A latched row does not survive leaving the screen: coming back to a row that
+   * is still open reads as input the app is still waiting on.
+   *
+   * The tab stays mounted while the editor is open, so the mount fetch is not
+   * enough on its own: without re-reading storage here, a design renamed or
+   * edited in the editor keeps showing its stale card until the app restarts.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      setOpenRow(null);
+      // An undo window means the file is still on disk, so reloading now would
+      // resurrect the card the user just deleted; `refresh` settles it instead.
+      if (pendingDelete === null) {
+        void reload();
+      }
+    }, [pendingDelete, reload]),
+  );
 
   const handleImportText = useCallback(
     async (text: string) => {
@@ -349,10 +360,13 @@ export default function GalleryScreen() {
 
   const renameProject = useCallback(async () => {
     if (!menuProject) return;
-    const name = renameText.trim();
+    // Read the document back before writing: this row's copy can be older than
+    // the file if the design was edited in the editor since the list loaded,
+    // and saving the stale snapshot would silently discard those edits.
+    const src = (await loadProject(menuProject.id)) ?? menuProject;
     await saveProject({
-      ...menuProject,
-      name,
+      ...src,
+      name: renameText.trim(),
       updatedAt: new Date().toISOString(),
     });
     closeMenu();
