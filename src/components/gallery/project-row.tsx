@@ -26,42 +26,20 @@ import {
 } from '@/theme';
 
 import { useContextMenu } from './use-context-menu';
+import {
+  ACTION_W,
+  PANEL_W,
+  clampSettleVelocity,
+  resolveSwipeSide,
+  rubberband,
+  settleTarget,
+  type SwipeSide,
+} from './swipe';
+
+export type { SwipeSide } from './swipe';
 
 const THUMB_RATIO = 4 / 3;
 const ROW_THUMB_W = 116;
-/** Reveal width per side. Wide enough for an icon + label, ≥44pt in both axes. */
-const ACTION_W = 84;
-/**
- * Room each panel keeps beyond the reveal width, for the two things that push
- * the card past `ACTION_W`: the rubber-band give in the drag, whose asymptote is
- * exactly this, and the overshoot of the latch spring.
- *
- * It is a *static* width — DESIGN.md §6 animates transform and opacity only —
- * and the card's own translate does the clipping, so the panel's inner edge and
- * the card's leading edge stay welded together and no sliver of page background
- * can open up between them. A panel exactly `ACTION_W` wide is what makes that
- * sliver visible, because a reveal can always travel further than the action.
- */
-const ELASTIC_TRAVEL = 48;
-/** Panel width: the reveal plus its give. Also the far limit of the drag. */
-const PANEL_W = ACTION_W + ELASTIC_TRAVEL;
-/**
- * Fastest release velocity handed to the settle spring (dp/s).
- *
- * The bounce past a latch is ≈ `0.0288 · v` for ζ 0.6 / stiffness 300, so an
- * unclamped 2000dp/s flick would travel ~58dp — past `ELASTIC_TRAVEL`, and back
- * into the sliver this layout exists to prevent. The commit decision still uses
- * the raw velocity; only the spring is damped into range.
- */
-const MAX_SETTLE_VELOCITY = 1200;
-/** Fraction of ACTION_W the release point must pass to latch open. */
-const COMMIT_RATIO = 0.4;
-/**
- * Least distance a flick must travel before its velocity may decide the commit.
- * Velocity alone would latch a row the finger barely moved, which then reads as
- * a swipe that refused to go back.
- */
-const FLICK_FLOOR = ACTION_W * 0.15;
 
 /**
  * The settle preset is chosen by *destination*, not by who asked for it.
@@ -74,9 +52,6 @@ const FLICK_FLOOR = ACTION_W * 0.15;
  */
 const LATCH_SPRING = springs.elastic;
 const REST_SPRING = springs.exit;
-
-/** Which action a row has revealed, if any. */
-export type SwipeSide = 'leading' | 'trailing' | null;
 
 export interface ProjectRowProps {
   project: MidadProject;
@@ -159,15 +134,9 @@ export function ProjectRow({
   const x = useSharedValue(0);
   const startX = useSharedValue(0);
 
-  const targetFor = useCallback(
-    (side: SwipeSide) =>
-      side === null ? 0 : (side === 'trailing' ? -1 : 1) * ACTION_W * dir,
-    [dir],
-  );
-
   // Follow the parent's state (another row opened, or this one was closed).
   useEffect(() => {
-    const target = targetFor(openSide);
+    const target = settleTarget(openSide, dir);
     if (x.value === target) {
       return;
     }
@@ -181,7 +150,7 @@ export function ProjectRow({
           ...(openSide === null ? REST_SPRING : LATCH_SPRING),
           velocity: 0,
         });
-  }, [openSide, targetFor, reduceMotion, x]);
+  }, [openSide, dir, reduceMotion, x]);
 
   const pan = Gesture.Pan()
     .enabled(swipeable)
@@ -195,34 +164,24 @@ export function ProjectRow({
     .onUpdate((e) => {
       // Past the reveal the drag gives instead of stopping at a wall: the
       // resistance grows with the distance, so the gesture reads as a material
-      // under tension rather than a slider that hit its end. `ELASTIC_TRAVEL` is
-      // the asymptote — which is also exactly how much extra panel there is to
+      // under tension rather than a slider that hit its end. The asymptote is
+      // `ELASTIC_TRAVEL`, which is also exactly how much extra panel there is to
       // reveal, so the stretched panel still covers what the card uncovers.
-      const next = startX.value + e.translationX;
-      const over = Math.abs(next) - ACTION_W;
       // eslint-disable-next-line react-hooks/immutability
-      x.value =
-        over <= 0
-          ? next
-          : Math.sign(next) *
-            (ACTION_W + (ELASTIC_TRAVEL * over) / (over + ELASTIC_TRAVEL));
+      x.value = rubberband(startX.value + e.translationX);
     })
     .onEnd((e) => {
       // Where the row would come to rest if released now, so a flick latches
       // open without the user having to drag all the way. The floor stops the
       // velocity deciding on its own: a twitch that never moved the card has to
       // return it, not latch it.
-      const projected = startX.value + e.translationX + e.velocityX * 0.15;
-      const ratio = (projected * dir) / ACTION_W;
-      const travelled = Math.abs(e.translationX) >= FLICK_FLOOR;
-      const side: SwipeSide =
-        ratio < -COMMIT_RATIO && travelled
-          ? 'trailing'
-          : ratio > COMMIT_RATIO && travelled
-            ? 'leading'
-            : null;
-      const target =
-        side === null ? 0 : (side === 'trailing' ? -1 : 1) * ACTION_W * dir;
+      const side: SwipeSide = resolveSwipeSide({
+        startX: startX.value,
+        translationX: e.translationX,
+        velocityX: e.velocityX,
+        dir,
+      });
+      const target = settleTarget(side, dir);
       // Hand the release velocity to the settling spring, so a flick carries
       // through instead of restarting from a standstill — the same handoff the
       // onboarding pager makes (step-pager.tsx) — and settle with the preset the
@@ -232,10 +191,7 @@ export function ProjectRow({
         ? withTiming(target, { duration: motion.fast })
         : withSpring(target, {
             ...(side === null ? REST_SPRING : LATCH_SPRING),
-            velocity: Math.min(
-              MAX_SETTLE_VELOCITY,
-              Math.max(-MAX_SETTLE_VELOCITY, e.velocityX),
-            ),
+            velocity: clampSettleVelocity(e.velocityX),
           });
       runOnJS(onOpenChange)(side);
     });
