@@ -1,10 +1,37 @@
+import type { StoredImage } from '@/storage/design-file';
 import type { MidadProject } from '@/storage/project-schema';
 
 /**
  * Platform-split module (`projects.native.ts` / `projects.web.ts`).
  * This file is types-only; Metro resolves the platform implementation.
+ *
+ * A design is a **package**: a small document plus, when it has one, its
+ * background image as raw bytes. On native that is a folder per design; on web
+ * it is a key per file, because `localStorage` is string-only. `saveProject`
+ * writes the document only — the image is written once, when it is picked or
+ * imported — which is what keeps autosave cheap.
  */
 export declare function listProjects(): Promise<MidadProject[]>;
 export declare function loadProject(id: string): Promise<MidadProject | null>;
 export declare function saveProject(project: MidadProject): Promise<void>;
 export declare function deleteProject(id: string): Promise<void>;
+
+/** Write the picked image and return its reference. Replaces any previous one. */
+export declare function writeBackgroundImage(
+  id: string,
+  base64: string,
+  mime: string,
+): Promise<StoredImage>;
+
+/** Write image bytes (import path) and return their reference. */
+export declare function writeBackgroundBytes(
+  id: string,
+  bytes: Uint8Array,
+  mime: string,
+): Promise<StoredImage>;
+
+/** Read the raw image bytes, for packing an exported `.midad`. */
+export declare function readBackgroundBytes(
+  id: string,
+  imageFile: string,
+): Promise<Uint8Array | null>;

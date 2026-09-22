@@ -21,6 +21,7 @@ one before changing that area. When a document and the code disagree, fix the co
 | `shortcuts.ts`, `use-keyboard-shortcuts*`, `modifier-keys*`                | `docs/editor-keyboard.md`            |
 | `editor/help/**`                                                           | `docs/editor-help-and-learn-mode.md` |
 | selection semantics, multi-select, background flow                         | `docs/editor-selection.md`           |
+| `storage/**`, the `.midad` format, import/export                           | `docs/storage-format.md`             |
 
 ## Checks
 

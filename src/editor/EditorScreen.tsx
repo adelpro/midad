@@ -92,9 +92,12 @@ import type {
   ObjectTransform,
   TextAlign,
 } from '@/storage/project-schema';
+import { PROJECT_FILE_EXT } from '@/storage/project-schema';
+import { exportProjectFile } from '@/storage/project-io';
 import {
   loadProject as loadProjectFile,
   saveProject,
+  writeBackgroundImage,
 } from '@/storage/projects';
 import { useSettings } from '@/storage/settings';
 import { saveThumb, THUMB_MAX_WIDTH_PX } from '@/storage/thumbs';
@@ -1153,10 +1156,10 @@ export function EditorScreen() {
     const dialogTitle = t.editor.exportProjectFile;
     void runExport('file', async () => {
       await shareFile({
-        data: JSON.stringify(project),
-        fileName: `${project.name || 'midad'}.midad.json`,
-        mimeType: 'application/json',
-        uti: 'public.json',
+        data: await exportProjectFile(project),
+        fileName: `${project.name || 'midad'}.${PROJECT_FILE_EXT}`,
+        mimeType: 'application/zip',
+        uti: 'public.zip-archive',
         dialogTitle,
       });
     });
@@ -1190,20 +1193,30 @@ export function EditorScreen() {
 
   /**
    * Launch the system image picker and set the chosen image as the design's
-   * background. The image is embedded in the project file as a base64 data URI,
-   * so it travels with `.midad.json` export/import.
+   * background.
+   *
+   * The bytes are written beside the document immediately — not on the next
+   * autosave — so the periodic write never has to touch the image, and the
+   * `.midad` export carries it without re-encoding.
    */
   const setBgImage = useCallback(async () => {
-    const uri = await pickBackgroundImage();
-    if (uri) {
-      useEditorStore.getState().setCanvas({
-        background: { type: 'image', imageUri: uri },
-      });
-      // The picker is a modal flow; return to Select so the canvas is
-      // immediately draggable again. Silent (`setTool`, not `selectTool`) —
-      // the picker already gave the user feedback.
-      setTool('select');
+    const picked = await pickBackgroundImage();
+    const current = useEditorStore.getState().project;
+    if (!picked || !current) {
+      return;
     }
+    const stored = await writeBackgroundImage(
+      current.id,
+      picked.base64,
+      picked.mime,
+    );
+    useEditorStore.getState().setCanvas({
+      background: { type: 'image', ...stored },
+    });
+    // The picker is a modal flow; return to Select so the canvas is
+    // immediately draggable again. Silent (`setTool`, not `selectTool`) —
+    // the picker already gave the user feedback.
+    setTool('select');
   }, []);
 
   /** Revert an image background to the default paper colour. */

@@ -39,11 +39,18 @@ import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { rowStyle } from '@/i18n/rtl';
 import { formatGalleryCount } from '@/i18n/strings';
-import { importProjectFromJson } from '@/storage/import-project';
+import { importProjectFile } from '@/storage/import-project';
 import { sortPinnedFirst, usePins } from '@/storage/pins';
 import { isWeb } from '@/storage/platform';
+import { PROJECT_FILE_VERSION } from '@/storage/project-schema';
 import type { MidadProject } from '@/storage/project-schema';
-import { listProjects, loadProject, saveProject } from '@/storage/projects';
+import {
+  listProjects,
+  loadProject,
+  readBackgroundBytes,
+  saveProject,
+  writeBackgroundBytes,
+} from '@/storage/projects';
 import { DEFAULT_CANVASES, useSettings } from '@/storage/settings';
 import { getThumb } from '@/storage/thumbs';
 import {
@@ -93,7 +100,7 @@ function makeNewProject(index: number): MidadProject {
   const now = new Date().toISOString();
   const size = DEFAULT_CANVASES[index];
   return {
-    version: 1,
+    version: PROJECT_FILE_VERSION,
     id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     // Empty name so the UI localizes "Untitled" per language.
     name: '',
@@ -270,9 +277,9 @@ export default function GalleryScreen() {
     }, [pendingDelete, reload]),
   );
 
-  const handleImportText = useCallback(
-    async (text: string) => {
-      const status = await importProjectFromJson(text);
+  const handleImportBytes = useCallback(
+    async (bytes: Uint8Array) => {
+      const status = await importProjectFile(bytes);
       if (status !== 'ok') {
         setImportError(t.gallery.importFailed);
         return;
@@ -288,13 +295,13 @@ export default function GalleryScreen() {
     if (Platform.OS === 'web') {
       const el = document.createElement('input');
       el.type = 'file';
-      el.accept = '.midad,application/json,.json';
+      el.accept = '.midad,application/zip';
       el.onchange = () => {
         const file = el.files?.[0];
         if (!file) return;
         file
-          .text()
-          .then(handleImportText)
+          .arrayBuffer()
+          .then((buffer) => handleImportBytes(new Uint8Array(buffer)))
           .catch(() => setImportError(t.gallery.importFailed));
       };
       el.click();
@@ -303,19 +310,18 @@ export default function GalleryScreen() {
     try {
       const DocumentPicker = await import('expo-document-picker');
       const res = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
+        type: '*/*',
         copyToCacheDirectory: true,
       });
       if (res.canceled || !res.assets?.length) {
         return;
       }
       const { File } = await import('expo-file-system');
-      const text = await new File(res.assets[0].uri).text();
-      await handleImportText(text);
+      await handleImportBytes(await new File(res.assets[0].uri).bytes());
     } catch {
       setImportError(t.gallery.importFailed);
     }
-  }, [handleImportText, t]);
+  }, [handleImportBytes, t]);
 
   const createNew = useCallback(async () => {
     const project = makeNewProject(defaultCanvasIndex);
@@ -346,12 +352,31 @@ export default function GalleryScreen() {
     if (!menuProject) return;
     const src = (await loadProject(menuProject.id)) ?? menuProject;
     const now = new Date().toISOString();
+    const id = `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // The image lives beside the document, so the copy needs its own bytes:
+    // `saveProject` writes the document alone.
+    const bg = src.canvas.background;
+    let background = bg;
+    if (bg.type === 'image' && bg.imageFile) {
+      const bytes = await readBackgroundBytes(src.id, bg.imageFile);
+      if (bytes) {
+        background = {
+          ...bg,
+          ...(await writeBackgroundBytes(
+            id,
+            bytes,
+            bg.imageMime ?? 'image/jpeg',
+          )),
+        };
+      }
+    }
     const copy: MidadProject = {
       ...src,
-      id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id,
       name: src.name ? `${src.name}${t.gallery.copySuffix}` : '',
       createdAt: now,
       updatedAt: now,
+      canvas: { ...src.canvas, background },
     };
     await saveProject(copy);
     closeMenu();

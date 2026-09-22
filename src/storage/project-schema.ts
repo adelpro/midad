@@ -1,11 +1,15 @@
 /**
  * Project file schema for midad designs.
- * A design is serialized as a `.midad.json` file. The schema is versioned so
- * future migrations can upgrade saved projects.
+ *
+ * A design is a `.midad` container: a ZIP holding `design.json` plus the raw
+ * background image bytes. The document itself is this JSON; the image travels
+ * beside it rather than inside it, so a photo does not bloat the document or
+ * the autosave. The schema is versioned, and v2 is the only version this code
+ * reads — there is no v1 path.
  */
 
 export const PROJECT_FILE_EXT = 'midad';
-export const PROJECT_FILE_VERSION = 1;
+export const PROJECT_FILE_VERSION = 2;
 
 /** Transform of an object on the canvas (design units). */
 export interface ObjectTransform {
@@ -17,14 +21,28 @@ export interface ObjectTransform {
   flipV: boolean;
 }
 
+export interface CanvasBackground {
+  type: 'paper' | 'transparent' | 'image';
+  color?: string;
+  /**
+   * Name of the stored image inside the design's package. Persisted, and only
+   * meaningful for `type: 'image'`.
+   */
+  imageFile?: string;
+  /** MIME type of the stored image. Persisted. */
+  imageMime?: string;
+  /**
+   * Data URI rebuilt from the stored bytes when the design is loaded. It is
+   * **in-memory only** and stripped before the document is written — that is
+   * what keeps the image out of `design.json`.
+   */
+  imageUri?: string;
+}
+
 export interface CanvasConfig {
   width: number;
   height: number;
-  background: {
-    type: 'paper' | 'transparent' | 'image';
-    color?: string;
-    imageUri?: string;
-  };
+  background: CanvasBackground;
 }
 
 export type TextAlign = 'left' | 'center' | 'right';

@@ -82,7 +82,8 @@ export async function shareImage({
 }
 
 export interface FileShareOptions {
-  data: string | Blob;
+  /** Text (SVG/JSON), bytes (a `.midad` container), or a Blob. */
+  data: string | Blob | Uint8Array;
   fileName: string;
   mimeType: string;
   /** iOS UTI hint for the share sheet. */
@@ -106,7 +107,7 @@ export async function shareFile({
   }
   if (typeof navigator !== 'undefined' && 'share' in navigator) {
     try {
-      const file = new File([data], fileName, { type: mimeType });
+      const file = new File([data as BlobPart], fileName, { type: mimeType });
       const shareData = { files: [file] } as ShareData;
       if (navigator.canShare?.(shareData)) {
         await navigator.share(shareData);
@@ -121,7 +122,7 @@ export async function shareFile({
 }
 
 interface SharePayload {
-  data: string | Blob;
+  data: string | Blob | Uint8Array;
   fileName: string;
   mimeType: string;
   uti?: string;
@@ -149,6 +150,8 @@ async function writeTempAndShare({
       const base64 = data.includes(',') ? data.split(',')[1] : data;
       tmp.write(base64, { encoding: 'base64' });
     }
+  } else if (data instanceof Uint8Array) {
+    tmp.write(data);
   } else {
     tmp.write(new Uint8Array(await data.arrayBuffer()));
   }

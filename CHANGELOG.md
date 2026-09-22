@@ -35,6 +35,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The project file is a `.midad` container now, and the format is v2.** A
+  design is a ZIP holding `design.json` plus its background image as raw bytes,
+  instead of one JSON with the image inlined as a base64 `data:` URI. The image
+  no longer pays a ~33% base64 tax, and the document stays small enough that
+  autosave no longer re-stringifies a multi-megabyte file on every quiet period.
+  An exported design is one self-contained `.midad` that opens in any zip tool,
+  and import reads it back on native and web alike. **This is a breaking change:
+  designs saved by earlier versions do not open.** There is no migration path —
+  v1 documents, the old `.midad.json` files and their `.index.json` are simply
+  ignored. On device a design is now a folder (`midad-projects/<id>/`); on web it
+  is a key per file, because `localStorage` is string-only.
 - **The selection rail is actions only.** The member track left it for the
   collection bar, so the rail no longer shares its width budget with navigation:
   on a 390pt phone with a three-part word selected it went from `fit = 3` — three
@@ -56,6 +67,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **The `.midad.json` format and the project index.** A design is a `.midad`
+  container now, and the gallery discovers designs by enumerating the store
+  rather than reading an `.index.json` that could disagree with it.
 - **`outline` and `locked` are gone from the project schema and every path that
   carried them.** `outline` was the worse of the two: it was plumbed into the
   Skia layout and the layout signature, but only the SVG exporter ever rendered

@@ -1,15 +1,20 @@
 import { Platform } from 'react-native';
 
-/** Trigger a browser download for a Blob (or data URI). */
+/** Trigger a browser download for bytes, a Blob, or a base64 data URI. */
 export function downloadBlob(
-  data: string | Blob,
+  data: string | Blob | Uint8Array,
   fileName: string,
   mimeType: string,
 ): void {
   if (Platform.OS !== 'web' || typeof document === 'undefined') {
     return;
   }
-  const blob = typeof data === 'string' ? base64ToBlob(data, mimeType) : data;
+  const blob =
+    typeof data === 'string'
+      ? base64ToBlob(data, mimeType)
+      : data instanceof Uint8Array
+        ? new Blob([data as BlobPart], { type: mimeType })
+        : data;
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
