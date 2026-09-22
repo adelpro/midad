@@ -38,6 +38,8 @@ import {
   Sheet,
   Snackbar,
 } from '@/components/ui';
+import { saveProjectThumbnail } from '@/editor/render/thumbnail';
+import { useParagraphFonts } from '@/editor/skia/text';
 import { hapticDelete, hapticTick } from '@/haptics';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
@@ -130,6 +132,8 @@ export default function GalleryScreen() {
   const pinnedIds = usePins((s) => s.pinnedIds);
   const { width: windowWidth } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
+  // Loaded so an imported design can be rasterized into its thumbnail.
+  const skiaFonts = useParagraphFonts();
 
   // Phone-first: one card per line on narrow screens; multi-column grid on
   // wide surfaces, capped so the list stays centered and scannable.
@@ -306,15 +310,23 @@ export default function GalleryScreen() {
 
   const handleImportBytes = useCallback(
     async (bytes: Uint8Array) => {
-      const status = await importProjectFile(bytes);
+      const { status, project } = await importProjectFile(bytes);
       if (status !== 'ok') {
         setImportError(t.gallery.importFailed);
         return;
       }
       setImportError(null);
+      if (project) {
+        try {
+          await saveProjectThumbnail(project, skiaFonts);
+        } catch {
+          // Thumbnail is best-effort; the design itself is imported and the
+          // next editor save regenerates it.
+        }
+      }
       await refresh();
     },
-    [refresh, t],
+    [refresh, skiaFonts, t],
   );
 
   const importProject = useCallback(async () => {

@@ -11,6 +11,17 @@ import {
 
 export type ImportStatus = 'ok' | 'bad-file' | 'bad-shape' | 'io-error';
 
+export interface ImportResult {
+  status: ImportStatus;
+  /**
+   * The persisted design on `ok`, ready to render (its `imageUri`, if any, is
+   * attached). `null` on every failure. Thumbnails are the caller's job —
+   * rendering needs the Skia font provider, which this storage module has no
+   * business loading.
+   */
+  project: MidadProject | null;
+}
+
 /**
  * Read a `.midad` container and persist it as a new design. Always stamps a
  * fresh `updatedAt` and regenerates the id when it collides with an existing
@@ -21,10 +32,10 @@ export type ImportStatus = 'ok' | 'bad-file' | 'bad-shape' | 'io-error';
  */
 export async function importProjectFile(
   bytes: Uint8Array,
-): Promise<ImportStatus> {
+): Promise<ImportResult> {
   const unpacked = unpackDesign(bytes);
   if (!unpacked) {
-    return 'bad-file';
+    return { status: 'bad-file', project: null };
   }
   const { project: src, image } = unpacked;
   const canvasOk =
@@ -35,7 +46,7 @@ export async function importProjectFile(
     Number.isFinite(src.canvas.height) &&
     src.canvas.height > 0;
   if (!canvasOk || !Array.isArray(src.objects)) {
-    return 'bad-shape';
+    return { status: 'bad-shape', project: null };
   }
   try {
     const list = await listProjects();
@@ -65,8 +76,8 @@ export async function importProjectFile(
       updatedAt: now,
     };
     await saveProject(imported);
-    return 'ok';
+    return { status: 'ok', project: imported };
   } catch {
-    return 'io-error';
+    return { status: 'io-error', project: null };
   }
 }
