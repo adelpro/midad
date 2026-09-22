@@ -136,12 +136,14 @@ the same nominal value.
 | `transparent` | `<Rect color="transparent">`       | **skipped** (`c.clear` transparent)      | no background element at all                   |
 | `image`       | `<SkiaImage fit="cover">`          | manual cover: `max(W/iw, H/ih)` + centre | `<image preserveAspectRatio="xMidYMid slice">` |
 
-`slice` is SVG's "cover", so all three crop rather than letterbox. Only the
-canvas has a transient state: `useImage` decodes asynchronously and returns
-`null` until ready, so the first frame paints a white `<Rect>` and the image pops
-in. The exports have no equivalent — they decode synchronously and fall back to
-white only on failure (PNG) or keep the reference (SVG, which the viewer
-resolves).
+`slice` is SVG's "cover", so all three crop rather than letterbox. All three
+decode the embedded base64 synchronously through `Skia.Data.fromBase64`; the
+canvas memoises the decode per data URI, and each path falls back to white only
+on failure (PNG) or keeps the reference (SVG, which the viewer resolves). The
+canvas deliberately does **not** use Skia's `useImage`: that hook loads by URI,
+and the native `Data.fromURI` cannot read a `data:` URI (the Android loader
+hands it to `java.net.URL`, which has no `data:` handler), so it would resolve
+to `null` forever and paint white behind every object.
 
 ## 8. Where SVG genuinely differs
 

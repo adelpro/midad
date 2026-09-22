@@ -340,9 +340,18 @@ export function EditorScreen() {
    * add capability (a paper, an ink) and none of them owns the canvas, so a tap
    * that did nothing would read as a dead canvas — most visibly right after
    * picking a background image, the one flow that leaves its tool selected.
+   *
+   * Selecting a design while the background tool is open is a request to work
+   * on that design, not to keep picking a paper: hand the canvas back to Select
+   * so its icon lights up and the selection rail replaces the background
+   * toolbox. A tap that hits nothing leaves the tool alone, so the paper can
+   * still be adjusted.
    */
   const handleTapResult = useCallback(
     (objId: string | null) => {
+      if (objId !== null && tool === 'background') {
+        selectTool('select');
+      }
       const store = useEditorStore.getState();
       if (store.gs.selectionHandledOnDown) {
         store.setGs({ selectionHandledOnDown: false });
@@ -365,7 +374,7 @@ export function EditorScreen() {
       }
       setEditingId(null);
     },
-    [select],
+    [select, selectTool, tool],
   );
 
   const selectedObject = useMemo(
@@ -1656,8 +1665,11 @@ export function EditorScreen() {
             style={[styles.contextRow, rowStyle(isRTL)]}
             onLayout={(e) => setRailWidth(e.nativeEvent.layout.width)}
           >
-            {/* Selection rail — truncates to what fits; the rest live in `⋯` */}
-            {selectedIds.length > 0 && (
+            {/* Selection rail — truncates to what fits; the rest live in `⋯`.
+                Hidden while the background tool is active: that tool is about
+                the canvas, so its controls own the rail and the selection
+                actions would otherwise crowd them out of the same row. */}
+            {selectedIds.length > 0 && tool !== 'background' && (
               <View style={styles.selectionRail}>
                 <SelectionRailActions
                   actions={railActions}

@@ -202,6 +202,18 @@ Content about the current _tool_, and nothing else: the ink swatches for the col
 tool, the paper swatches and the image picker for the background tool, and the
 transient refusal notice. So the zone is empty in the editor's most common state.
 
+The background tool is the one case where the zone is the **whole** row: it is
+about the canvas, not the selection, so the selection rail is hidden while it is
+active (`tool !== "background"`). Leaving both rendered put the paper swatches
+and the image picker in the same row as the selection actions, which read as one
+crowded toolbox. The selection itself is kept — the canvas handles stay put — so
+returning to Select restores the rail untouched.
+
+Selecting a design is the way back: a canvas tap that **hits an element** while
+the background tool is active switches the tool to Select, so the Select button
+lights up and the selection rail replaces the toolbox. A tap that hits nothing
+leaves the tool alone, so the paper can still be adjusted.
+
 That state used to be charged anyway. The zone's scroller always reports _some_
 width — `contextTrack` keeps `paddingHorizontal: spacing.md`, and the
 `contentContainerStyle`'s padding counts as content — so an empty zone went on

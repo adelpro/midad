@@ -6,9 +6,10 @@ import {
   Line,
   Paragraph,
   Rect,
+  Skia,
   Image as SkiaImage,
-  useImage,
   vec,
+  type SkImage,
 } from '@shopify/react-native-skia';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
@@ -32,6 +33,7 @@ import {
   type TextLayouts,
 } from '@/editor/skia/use-text-layouts';
 import { useEditorStore } from '@/editor/store';
+import { dataUriToBase64 } from '@/storage/background-image';
 import type { DesignObject, MidadProject } from '@/storage/project-schema';
 
 export interface EditorCanvasProps {
@@ -60,12 +62,31 @@ function objectBox(
 }
 
 /**
+ * Decodes the design's background image from its embedded base64 payload.
+ *
+ * Deliberately not `useImage`: that hook loads by URI, and Skia's native
+ * `Data.fromURI` cannot read a `data:` URI — the Android loader hands it to
+ * `java.net.URL`, which has no `data:` handler — so the promise never resolves
+ * and the canvas keeps the white fallback forever. Decoding through
+ * `Skia.Data.fromBase64` is the same path the PNG export already takes, so the
+ * live canvas and the export agree on what the image is.
+ */
+function useBackgroundImage(uri: string): SkImage | null {
+  return useMemo(() => {
+    try {
+      const data = Skia.Data.fromBase64(dataUriToBase64(uri));
+      return Skia.Image.MakeImageFromEncoded(data);
+    } catch {
+      return null;
+    }
+  }, [uri]);
+}
+
+/**
  * The design's background image, drawn behind every object.
  *
- * `useImage` decodes the data URI asynchronously and returns `null` until it is
- * ready, so the first frame falls back to a white rect and the image pops in
- * once decoded. `fit="cover"` scales the image to fill the canvas and crops the
- * overflow — the same mapping the PNG and SVG export paths use.
+ * `fit="cover"` scales the image to fill the canvas and crops the overflow —
+ * the same mapping the PNG and SVG export paths use.
  */
 function BackgroundImage({
   uri,
@@ -76,7 +97,7 @@ function BackgroundImage({
   width: number;
   height: number;
 }) {
-  const image = useImage(uri);
+  const image = useBackgroundImage(uri);
   if (!image) {
     return <Rect x={0} y={0} width={width} height={height} color="#FFFFFF" />;
   }
