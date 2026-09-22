@@ -97,17 +97,56 @@ for (const dir of [LTR, RTL]) {
   }
 }
 
-// The widest the card can be pushed: a max-velocity latch overshoots past
-// ACTION_W, and the rubber-band pushes further still — both must stay inside
-// PANEL_W or a sliver of page background shows between card and panel.
+// The widest a *drag* can push the card is the rubber-band asymptote, PANEL_W
+// itself. A still release from rest adds the latch spring's overshoot —
+// 0.0288·v at ζ 0.6 / stiffness 300 (tokens.ts `springs.elastic`) — worst case at
+// MAX_SETTLE_VELOCITY. Both must stay inside PANEL_W or a sliver of page
+// background opens between card and panel.
 const MAX_OVERSHOOT = 0.0288 * MAX_SETTLE_VELOCITY;
 ok(
-  `the worst-case latch overshoot (${MAX_OVERSHOOT.toFixed(1)}dp) fits the give`,
+  `a from-rest latch overshoot (${MAX_OVERSHOOT.toFixed(1)}dp) fits the give`,
   ACTION_W + MAX_OVERSHOOT <= PANEL_W,
 );
 ok(
   'the rubber-band asymptote is the panel width, not past it',
   rubberband(1e6) <= PANEL_W + EPS && rubberband(1e6) > PANEL_W - 1,
+);
+
+// Known, pre-existing limitation this bound does NOT cover: releasing *outward
+// from inside the give* (an already-open row flicked further out) springs from a
+// start already past ACTION_W, so the peak can exceed PANEL_W and show background
+// for ~150ms. The plan freezes geometry, so this is a product ruling (see the
+// ledger), not a regression. Simulating the spring here keeps the honest number
+// in view and fails if the gap grows.
+function peakAfterRelease(x0, v0, target) {
+  // springs.elastic: ζ 0.6, stiffness 300, mass 1.
+  const k = 300;
+  const c = 2 * 0.6 * Math.sqrt(k);
+  const dt = 1 / 2000;
+  let x = x0;
+  let v = v0;
+  let peak = x0;
+  for (let i = 0; i < 2000; i += 1) {
+    const a = -k * (x - target) - c * v;
+    v += a * dt;
+    x += v * dt;
+    if (x > peak) peak = x;
+  }
+  return peak;
+}
+
+let worstGiveZonePeak = 0;
+for (const drag of [1, 30, 100, 200, 300, 400]) {
+  const x0 = rubberband(ACTION_W + drag);
+  worstGiveZonePeak = Math.max(
+    worstGiveZonePeak,
+    peakAfterRelease(x0, MAX_SETTLE_VELOCITY, settleTarget('leading', LTR)),
+  );
+}
+const GIVE_ZONE_LIMIT = 20;
+ok(
+  `the known give-zone release peak (${worstGiveZonePeak.toFixed(1)}dp) stays within ${GIVE_ZONE_LIMIT}dp of the panel`,
+  worstGiveZonePeak < PANEL_W + GIVE_ZONE_LIMIT,
 );
 
 // ---------------------------------------------------------------------------
@@ -289,13 +328,31 @@ ok(
   'swipe.ts declares no imports (the check transpiles it standalone)',
   !/^\s*import\b/m.test(source),
 );
+
 // Five helpers are called from gesture worklets. Strip the directive and the
 // gesture throws on the UI thread at runtime — this repo has no device test, so
-// the source is the only place to pin it.
-ok(
-  'the worklet-called helpers carry the worklet directive',
-  (source.match(/'worklet'|"worklet"/g) ?? []).length >= 5,
-);
+// the source is the only place to pin it. Comments are stripped first: the file
+// header mentions 'worklet' in prose, so a naive count would pass even after a
+// directive had been deleted — the exact false negative this guard exists to
+// catch. Each helper is checked by name, not counted.
+const codeOnly = source
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/\/\/[^\n]*/g, '');
+const WORKLET_HELPERS = [
+  'settleTarget',
+  'rubberband',
+  'projectPosition',
+  'resolveSwipeSide',
+  'clampSettleVelocity',
+];
+for (const name of WORKLET_HELPERS) {
+  ok(
+    `${name} declares the worklet directive`,
+    new RegExp(
+      `function ${name}\\s*\\([^]*?\\)\\s*(?::[^{]+)?\\{\\s*'worklet';`,
+    ).test(codeOnly),
+  );
+}
 
 console.log(
   failures === 0
