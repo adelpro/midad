@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -25,9 +25,9 @@ import {
   typeScale,
 } from '@/theme';
 
+import { RowAction } from './row-action';
 import { useContextMenu } from './use-context-menu';
 import {
-  ACTION_W,
   PANEL_W,
   clampSettleVelocity,
   resolveSwipeSide,
@@ -351,32 +351,14 @@ export function ProjectRow({
             { backgroundColor: c.surfaceAlt },
           ]}
         >
-          <Pressable
+          <RowAction
+            icon="pin"
+            label={pinned ? t.gallery.unpin : t.gallery.pin}
             onPress={onTogglePin}
+            color={pinned ? c.accentText : c.muted}
+            weight={pinned ? 'fill' : 'regular'}
             focusable={open}
-            accessibilityRole="button"
-            accessibilityLabel={pinned ? t.gallery.unpin : t.gallery.pin}
-            style={styles.action}
-          >
-            <Icon
-              name="pin"
-              size={18}
-              color={pinned ? c.accentText : c.muted}
-              weight={pinned ? 'fill' : 'regular'}
-            />
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.actionLabel,
-                {
-                  color: pinned ? c.accentText : c.muted,
-                  fontFamily: fonts.ui,
-                },
-              ]}
-            >
-              {pinned ? t.gallery.unpin : t.gallery.pin}
-            </Text>
-          </Pressable>
+          />
         </View>
         <View
           style={[
@@ -386,24 +368,13 @@ export function ProjectRow({
             { backgroundColor: c.danger },
           ]}
         >
-          <Pressable
+          <RowAction
+            icon="trash"
+            label={t.common.delete}
             onPress={onDelete}
+            color={c.onInk}
             focusable={open}
-            accessibilityRole="button"
-            accessibilityLabel={t.common.delete}
-            style={styles.action}
-          >
-            <Icon name="trash" size={18} color={c.onInk} />
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.actionLabel,
-                { color: c.onInk, fontFamily: fonts.ui },
-              ]}
-            >
-              {t.common.delete}
-            </Text>
-          </Pressable>
+          />
         </View>
       </View>
       <GestureDetector gesture={pan}>
@@ -445,15 +416,6 @@ const styles = StyleSheet.create({
     // trailing edge is `flex-end` in LTR and in an auto-mirrored RTL layout
     // alike, and `row-reverse` swaps it for the pre-restart case.
     justifyContent: 'flex-end',
-  },
-  action: {
-    width: ACTION_W,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xxs,
-  },
-  actionLabel: {
-    fontSize: typeScale.micro.size,
   },
   cardRow: {
     flexDirection: 'row',
