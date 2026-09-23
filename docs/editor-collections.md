@@ -174,7 +174,7 @@ real, accessible control. Its layer is `box-none`, so the canvas keeps every tou
 that is not on the bar. It follows pan and zoom because it is positioned from the
 frame through the published `Viewport` (which now carries the canvas box size for
 exactly this reason), and its layer is **the canvas drawing box** — inset by the
-wrapper's own padding *plus the card's border* (`layout.canvasBorder`), the box
+wrapper's own padding _plus the card's border_ (`layout.canvasBorder`), the box
 `EditorCanvas` measures and draws into and the box the `Viewport` maps design space
 into. Aligning to the card's outer edge instead (padding only) left the bar a
 border-width off centre, because the anchor is relative to the drawing box. The

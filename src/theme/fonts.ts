@@ -97,9 +97,5 @@ export const fontRoles: { ar: FontRoles; en: FontRoles } = {
   },
 };
 
-export {
-  familyForVariant,
-  fontFamilies,
-  variantFor,
-} from './font-families';
+export { familyForVariant, fontFamilies, variantFor } from './font-families';
 export type { FontFamily, FontVariant } from './font-families';
