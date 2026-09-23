@@ -50,6 +50,7 @@ builds/
 
 # inline plan-execution scratch (ledger, briefs, review packages)
 .superpowers/
+docs/superpowers/
 
 # generated native folders
 /ios

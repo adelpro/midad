@@ -15,6 +15,9 @@ public/
 yarn.lock
 assets/fonts/
 
+# Superpowers skill scratch (not app docs; gitignored via .gitignore)
+docs/superpowers/
+
 # Verification caches (see AGENTS.md "Checks")
 *.tsbuildinfo
 .eslintcache
