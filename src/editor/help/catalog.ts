@@ -255,6 +255,15 @@ export const HELP_ENTRIES = [
     shortcutId: 'flipH',
   },
   {
+    key: 'sel.flipV',
+    group: 'selection',
+    label: { hint: 'flipV' },
+    roleAr: 'قلب التحديد رأسيًا.',
+    roleEn: 'Mirror the selection top to bottom.',
+    icon: 'flipV',
+    shortcutId: 'flipV',
+  },
+  {
     key: 'sel.fitText',
     group: 'selection',
     label: { hint: 'fitText' },
@@ -735,14 +744,6 @@ export const HELP_ENTRIES = [
     roleAr: 'تحريك التحديد وحدة واحدة إلى الأسفل.',
     roleEn: 'Move the selection one unit down.',
     shortcutId: 'nudgeDown',
-  },
-  {
-    key: 'key.flipV',
-    group: 'keyboard',
-    label: { ar: 'قلب رأسي', en: 'Flip vertically' },
-    roleAr: 'قلب التحديد رأسيًا. لا زرّ له في المحرّر.',
-    roleEn: 'Mirror the selection top to bottom. No button carries it.',
-    shortcutId: 'flipV',
   },
 ] as const satisfies readonly HelpEntry[];
 

@@ -1521,6 +1521,7 @@ export function EditorScreen() {
       rotateCcw: () => rotateSelection(-90),
       rotateCw: () => rotateSelection(90),
       flipH: () => flipSelection('h'),
+      flipV: () => flipSelection('v'),
       fitText: fitTextToContent,
       split: splitSelected,
       rejoin: rejoinSelected,

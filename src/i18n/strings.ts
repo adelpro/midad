@@ -224,6 +224,7 @@ export interface Translation {
       rotateCcw: string;
       rotateCw: string;
       flipH: string;
+      flipV: string;
       fitText: string;
       duplicate: string;
       bringToFront: string;
@@ -503,6 +504,7 @@ export const strings: Record<Language, Translation> = {
         rotateCcw: 'تدوير إلى اليسار',
         rotateCw: 'تدوير إلى اليمين',
         flipH: 'قلب أفقي',
+        flipV: 'قلب رأسي',
         fitText: 'ملاءمة النص لمحتواه',
         duplicate: 'تكرار العنصر',
         bringToFront: 'إحضار إلى الأمام',
@@ -779,6 +781,7 @@ export const strings: Record<Language, Translation> = {
         rotateCcw: 'Rotate left',
         rotateCw: 'Rotate right',
         flipH: 'Flip horizontally',
+        flipV: 'Flip vertically',
         fitText: 'Fit text to its content',
         duplicate: 'Duplicate',
         bringToFront: 'Bring to front',

@@ -67,6 +67,7 @@ export type SelectionActionId =
   | 'rotateCcw'
   | 'rotateCw'
   | 'flipH'
+  | 'flipV'
   | 'fitText'
   | 'split'
   | 'rejoin'
@@ -159,6 +160,7 @@ const OVERFLOW_ACTIONS: readonly SelectionActionId[] = [
   'rotateCcw',
   'rotateCw',
   'flipH',
+  'flipV',
   'alignLeft',
   'alignCenterH',
   'alignRight',

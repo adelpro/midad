@@ -25,6 +25,7 @@ import {
   DownloadSimple,
   Export,
   FlipHorizontal,
+  FlipVertical,
   GearSix,
   GridFour,
   Image,
@@ -75,6 +76,7 @@ export type IconName =
   | 'redo'
   | 'settings'
   | 'flip'
+  | 'flipV'
   | 'rotateCw'
   | 'rotateCcw'
   | 'layerUp'
@@ -120,6 +122,7 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   redo: ArrowClockwise,
   settings: GearSix,
   flip: FlipHorizontal,
+  flipV: FlipVertical,
   rotateCw: ArrowsClockwise,
   rotateCcw: ArrowsCounterClockwise,
   layerUp: ArrowUp,
