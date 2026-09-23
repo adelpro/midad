@@ -12,6 +12,13 @@
  *  - NotoKufiArabic   → Kufi (400/700)
  *  - ReemKufi         → Modern Kufi (400/700)
  *  - Lemonada         → Modern display (400/700)
+ *  - Lateef           → Traditional Naskh (400/700)
+ *  - Rakkas           → Ruq'a display (400)
+ *  - Qahiri           → Antique Kufic (400)
+ *  - Katibeh          → Thuluth-inspired (400)
+ *  - Jomhuria         → Thuluth display (400)
+ *  - Vibes            → Ornamental display (400)
+ *  - AmiriQuran       → Quranic Naskh (400)
  *  - Geist            → Latin UI sans (400/500/600/700)
  */
 
@@ -34,6 +41,14 @@ export const fontAssets = {
   'Geist-Medium': require('@/assets/fonts/geist-latin-500.ttf'),
   'Geist-SemiBold': require('@/assets/fonts/geist-latin-600.ttf'),
   'Geist-Bold': require('@/assets/fonts/geist-latin-700.ttf'),
+  Lateef: require('@/assets/fonts/lateef-arabic-400.ttf'),
+  'Lateef-Bold': require('@/assets/fonts/lateef-arabic-700.ttf'),
+  Rakkas: require('@/assets/fonts/rakkas-arabic-400.ttf'),
+  Qahiri: require('@/assets/fonts/qahiri-arabic-400.ttf'),
+  Katibeh: require('@/assets/fonts/katibeh-arabic-400.ttf'),
+  Jomhuria: require('@/assets/fonts/jomhuria-arabic-400.ttf'),
+  Vibes: require('@/assets/fonts/vibes-arabic-400.ttf'),
+  AmiriQuran: require('@/assets/fonts/amiri-quran-arabic-400.ttf'),
 } as const;
 
 export type FontKey = keyof typeof fontAssets;
