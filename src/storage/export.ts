@@ -1,6 +1,7 @@
 import * as Sharing from 'expo-sharing';
 
 import { downloadBlob } from '@/storage/download';
+import { base64BodyOf, stringWriteEncoding } from '@/storage/export-payload';
 import { saveImageToPhotoLibrary } from '@/storage/photo-library';
 import { hasShareSheet } from '@/storage/platform';
 
@@ -143,12 +144,11 @@ async function writeTempAndShare({
   }
   tmp.create();
   if (typeof data === 'string') {
-    if (!mimeType.startsWith('image/')) {
-      // Text payloads (svg/json) are written as UTF-8, not base64.
-      tmp.write(data);
+    if (stringWriteEncoding(data) === 'base64') {
+      tmp.write(base64BodyOf(data), { encoding: 'base64' });
     } else {
-      const base64 = data.includes(',') ? data.split(',')[1] : data;
-      tmp.write(base64, { encoding: 'base64' });
+      // Text payloads (svg/json) are written as UTF-8, never base64-decoded.
+      tmp.write(data);
     }
   } else if (data instanceof Uint8Array) {
     tmp.write(data);
