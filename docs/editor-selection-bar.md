@@ -10,7 +10,7 @@
 
 Three constraints shape the whole design:
 
-- **One row can never hold them all.** A selection owns up to twenty-three
+- **One row can never hold them all.** A selection owns up to twenty-six
   controls; a phone rail is far narrower. Letting the row scroll would park the
   trailing controls off-screen — and **in Arabic that is the _left_ edge**, where
   nothing signals they exist. So the rail renders the highest-priority actions
@@ -51,8 +51,8 @@ seen from two sides; `group`/`ungroup` are the two ends of another — a selecti
 is either a set of loose elements (which can be grouped) or one whole group
 (which can be dissolved), never both. See `editor-groups.md` §7.
 
-`OVERFLOW_ACTIONS` — sheet-only, 13 ids: `rotateCcw`, `rotateCw`, `flipH`, the
-six `align*`, `centerH`, `centerV`, `stylePrev`, `styleNext`.
+`OVERFLOW_ACTIONS` — sheet-only, 14 ids: `rotateCcw`, `rotateCw`, `flipH`,
+`flipV`, the six `align*`, `centerH`, `centerV`, `stylePrev`, `styleNext`.
 
 The reasons differ per group, and they are worth keeping in mind before promoting
 anything into the rail:
@@ -414,7 +414,7 @@ mirrors with direction through `rowStyle`.
 
 Both readings of the sheet scroll: the body is a `ScrollView` with
 `flexShrink: 1`, because the panel is capped at 82% of the window and a full
-sheet holds up to twenty controls. The panel itself is capped at
+sheet holds up to twenty-six controls. The panel itself is capped at
 `layout.maxContent` and centred (`ui/sheet.tsx`), like every other surface's
 content — without that, a row list on a wide display would stretch to the width
 of the window and read as a ledger.
