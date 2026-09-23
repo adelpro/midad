@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -23,6 +23,11 @@ import {
   selectionFrame,
   type CollectionFrame,
 } from '@/editor/groups';
+import {
+  ROTATE_GRIP_RADIUS,
+  ROTATE_HANDLE_GAP,
+  SELECTION_HANDLE_PAD,
+} from '@/editor/hit-test';
 import { useEditorStore } from '@/editor/store';
 import { usePressFeedback } from '@/hooks/use-press-feedback';
 import { useTheme } from '@/hooks/use-theme';
@@ -277,10 +282,26 @@ export function CollectionBar({
 
   // The frame's two edge midpoints, in view px, so the bar tracks pan and zoom
   // with the box rather than with where the selection happened to be on mount.
+  //
+  // A *whole* collection draws its rotate grip centred on the frame's top edge,
+  // 30pt above it (`ROTATE_HANDLE_GAP`) plus the 6pt handle pad and the grip's
+  // own 7pt radius. The bar's preferred side is that same top edge, so it used to
+  // be painted straight over the grip — the one handle with no other route. The
+  // top anchor is therefore lifted past the whole grip, along the frame's own up
+  // direction so a rotated frame keeps it clear too. An *entered* collection draws
+  // no handles on its frame, so there is nothing to clear.
+  const clearance =
+    mode === 'whole'
+      ? SELECTION_HANDLE_PAD + ROTATE_HANDLE_GAP + ROTATE_GRIP_RADIUS
+      : 0;
+  const rad = (frame.rotation * Math.PI) / 180;
   const top = frameTopCentre(frame);
   const bottom = frameBottomCentre(frame);
   const placement = collectionBarPlacement({
-    topAnchor: { x: top.x * scale + offsetX, y: top.y * scale + offsetY },
+    topAnchor: {
+      x: top.x * scale + offsetX + Math.sin(rad) * clearance,
+      y: top.y * scale + offsetY - Math.cos(rad) * clearance,
+    },
     bottomAnchor: {
       x: bottom.x * scale + offsetX,
       y: bottom.y * scale + offsetY,
@@ -368,11 +389,14 @@ export function CollectionBar({
               {members.map((member, index) => (
                 <MemberTile
                   key={member.id}
+                  memberId={member.id}
+                  kind={member.type}
+                  text={member.type === 'text' ? member.text : ''}
+                  fontKey={member.type === 'text' ? member.fontKey : ''}
                   label={memberLabel(member, index, members.length, language)}
-                  member={member}
                   index={index}
                   active={index === activeIndex}
-                  onPress={() => onEnterMember(member.id)}
+                  onEnter={onEnterMember}
                 />
               ))}
             </ScrollView>
@@ -402,19 +426,31 @@ export function CollectionBar({
  *
  * Split out of the bar because it owns press feedback — hooks cannot be called
  * from inside the bar's `map`.
+ *
+ * Memoized on primitives. The bar repositions on every drag frame (the box it
+ * labels moves with the selection), and without this every tile re-rendered each
+ * of those frames although none of its content had changed. The member is passed
+ * as the few fields the tile draws — not the object — so a transform-only frame
+ * cannot break the memo by handing it a new object reference.
  */
-function MemberTile({
+const MemberTile = memo(function MemberTile({
+  memberId,
+  kind,
+  text,
+  fontKey,
   label,
-  member,
   index,
   active,
-  onPress,
+  onEnter,
 }: {
+  memberId: string;
+  kind: DesignObject['type'];
+  text: string;
+  fontKey: string;
   label: string;
-  member: DesignObject;
   index: number;
   active: boolean;
-  onPress: () => void;
+  onEnter: (id: string) => void;
 }) {
   const { colors: c } = useTheme();
   const { language } = useT();
@@ -426,7 +462,7 @@ function MemberTile({
 
   return (
     <AnimatedPressable
-      onPress={onPress}
+      onPress={() => onEnter(memberId)}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       accessibilityRole="button"
@@ -443,21 +479,18 @@ function MemberTile({
         animStyle,
       ]}
     >
-      {member.type === 'text' ? (
+      {kind === 'text' ? (
         // The member's own font, so the tile shows the glyph exactly as the
         // canvas does.
         <Text
           numberOfLines={1}
-          style={[
-            styles.tileGlyph,
-            { color: c.ink, fontFamily: member.fontKey },
-          ]}
+          style={[styles.tileGlyph, { color: c.ink, fontFamily: fontKey }]}
         >
-          {member.text}
+          {text}
         </Text>
       ) : (
         <Icon
-          name={member.type === 'shape' ? 'shapes' : 'sparkle'}
+          name={kind === 'shape' ? 'shapes' : 'sparkle'}
           size={TILE_GLYPH_SIZE}
           color={c.ink}
         />
@@ -469,7 +502,7 @@ function MemberTile({
       </Text>
     </AnimatedPressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   /**
@@ -513,8 +546,14 @@ const styles = StyleSheet.create({
    * `minWidth: 0` is what lets the track shrink below its content on web, where
    * a flex item's automatic minimum size is its content — without it a long word
    * would push the next arrow out of the bar instead of scrolling.
+   *
+   * `flexGrow: 0` is the other half: React Native's ScrollView carries
+   * `flexGrow: 1` in its own base style, so an absolutely-positioned bar left the
+   * track to swallow every spare pixel — the bar stretched to the full card and
+   * the tiles sat in the middle of a wide empty strip. The bar must size to its
+   * content and only shrink (scroll) once the tiles genuinely outgrow the card.
    */
-  trackScroll: { flexShrink: 1, minWidth: 0 },
+  trackScroll: { flexGrow: 0, flexShrink: 1, minWidth: 0 },
   track: { alignItems: 'center', gap: spacing.xs },
   tile: {
     minWidth: TILE_MIN_WIDTH,

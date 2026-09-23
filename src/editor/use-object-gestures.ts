@@ -233,6 +233,42 @@ function snapRotationTarget(rotation: number): number | null {
 let cancelSettle: (() => void) | null = null;
 
 /**
+ * The latest pan translation awaiting a write, and the animation frame that will
+ * apply it.
+ *
+ * RNGH delivers touch moves faster than the display refreshes, so writing to the
+ * store on every `onUpdate` can queue several React renders per painted frame.
+ * A plain translation is *absolute* — measured from the touch-down point, not
+ * accumulated — so only the last one in a frame matters; the rest are dropped
+ * rather than applied. Handle drags are not coalesced (their haptics and release
+ * velocity read every update), which is why this only ever holds a plain drag.
+ */
+let pendingDrag: { x: number; y: number } | null = null;
+let dragFrame = 0;
+
+/** Drop a scheduled translation without applying it (a new gesture wins). */
+function cancelPendingDrag() {
+  pendingDrag = null;
+  if (dragFrame !== 0) {
+    cancelAnimationFrame(dragFrame);
+    dragFrame = 0;
+  }
+}
+
+/** Apply a scheduled translation now, before teardown can drop it. */
+function flushPendingDrag() {
+  const p = pendingDrag;
+  if (dragFrame !== 0) {
+    cancelAnimationFrame(dragFrame);
+    dragFrame = 0;
+  }
+  pendingDrag = null;
+  if (p) {
+    applyTranslate(p.x, p.y);
+  }
+}
+
+/**
  * A new grab always wins over a settle: the next drag starts from the live
  * on-screen rotation, so interrupting mid-settle is seamless.
  */
@@ -425,6 +461,8 @@ function settleCollectionRotation(
  */
 function beginDrag(viewX: number, viewY: number, enabled: boolean) {
   cancelRotationSettle();
+  // A new grab beats any translation still queued from the previous gesture.
+  cancelPendingDrag();
   const store = useEditorStore.getState();
   // Additive = the multi-select tool, or a selection modifier (Shift/Cmd/Ctrl
   // on web). Recorded in the scratch so the trailing tap reads the SAME value
@@ -611,6 +649,10 @@ function updateDrag(
   // A collection drag has no single id to key on, so the captured member list is
   // what marks one as running.
   if (resizeId || store.gs.collectionOrigins.length > 0) {
+    // A handle drag reads every update (haptics, release velocity), so it is not
+    // coalesced — and a translation left over from a previous frame must not land
+    // on top of it.
+    cancelPendingDrag();
     updateResize(store, resizeId, translationX, translationY);
     return;
   }
@@ -619,6 +661,30 @@ function updateDrag(
   if (store.gs.transformTargetId) {
     return;
   }
+  if (store.gs.dragOrigins.length === 0) {
+    return;
+  }
+  // Coalesce to one write per animation frame. The translation is absolute, so
+  // the latest value fully describes the frame; applying it on a frame boundary
+  // caps the store at one render per painted frame however fast RNGH fires.
+  pendingDrag = { x: translationX, y: translationY };
+  if (dragFrame === 0) {
+    dragFrame = requestAnimationFrame(flushDrag);
+  }
+}
+
+/** Apply a coalesced translation: every selected object moves by the same delta. */
+function flushDrag() {
+  dragFrame = 0;
+  const p = pendingDrag;
+  pendingDrag = null;
+  if (p) {
+    applyTranslate(p.x, p.y);
+  }
+}
+
+function applyTranslate(translationX: number, translationY: number) {
+  const store = useEditorStore.getState();
   const origins = store.gs.dragOrigins;
   if (origins.length === 0) {
     return;
@@ -773,6 +839,10 @@ function updateResize(
 
 /** Reset transient gesture scratch when a pan interaction ends. */
 function clearResize() {
+  // The last frame of a drag can be queued but not yet painted; apply it before
+  // the origins are cleared, or the object would settle a frame short of where
+  // the finger released.
+  flushPendingDrag();
   useEditorStore.getState().setGs({
     resizeTargetId: null,
     resizeHandle: null,

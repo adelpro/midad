@@ -11,7 +11,15 @@ import {
   vec,
   type SkImage,
 } from '@shopify/react-native-skia';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 
 import { selectionFrame, type CollectionFrame } from '@/editor/groups';
@@ -19,6 +27,7 @@ import {
   frameBox,
   hitTest,
   resizeHandles,
+  ROTATE_GRIP_RADIUS,
   rotateHandle,
   safeObjectScale,
   selectionPad,
@@ -159,7 +168,12 @@ export function EditorCanvas({
   );
 
   // Report sized objects to the store so gesture closures can hit-test.
-  useEffect(() => {
+  //
+  // Laid out *before paint* on purpose. A drag frame publishes the new boxes in
+  // this commit; published in a passive effect the collection bar re-rendered a
+  // frame later, so the "Group · N" label visibly trailed the objects it labels.
+  // A layout effect makes the bar's repositioning land in the same painted frame.
+  useLayoutEffect(() => {
     useEditorStore.getState().setSizedObjects(sized);
   }, [sized]);
 
@@ -415,7 +429,7 @@ const CollectionOverlay = memo(function CollectionOverlay({
   const hh = box.height / 2 + pad;
   const border = 1.5 / unit;
   const handleR = 5 / unit;
-  const gripR = 7 / unit;
+  const gripR = ROTATE_GRIP_RADIUS / unit;
   const positions = resizeHandles(box, unit);
   const grip = rotateHandle(box, unit);
   return (
@@ -550,7 +564,7 @@ const SelectionOverlay = memo(function SelectionOverlay({
   const hh = box.height / 2 + chromePad;
   const border = 1.5 / unit;
   const handleR = 5 / unit;
-  const gripR = 7 / unit;
+  const gripR = ROTATE_GRIP_RADIUS / unit;
   const positions = resizeHandles(box, unit);
   const grip = rotateHandle(box, unit);
   return (

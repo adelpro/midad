@@ -34,6 +34,9 @@ export const SELECTION_HANDLE_PAD = 6;
 /** Gap (screen pt) between the box top edge and the rotate grip. */
 export const ROTATE_HANDLE_GAP = 30;
 
+/** Radius (screen pt) of the drawn rotate grip. */
+export const ROTATE_GRIP_RADIUS = 7;
+
 /**
  * Grab tolerance (screen pt) around an object's box: a press this far outside
  * the drawn edge is still accepted, so a thin text line or a small shape stays

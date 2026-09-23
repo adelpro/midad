@@ -159,6 +159,14 @@ this replaced only ever clamped, which is fine for a one-line label and not fine
 for a row of tiles: a clamped bar sits _over_ the very members it offers to
 navigate.
 
+The "top edge" it clears is the **chrome's** top edge, not the frame's: a whole
+collection draws its rotate grip 30pt above the frame plus the 6pt handle pad and
+the grip's 7pt radius (`SELECTION_HANDLE_PAD + ROTATE_HANDLE_GAP +
+ROTATE_GRIP_RADIUS`), so the bar's anchor is lifted past the grip along the
+frame's own up direction. Placed on the raw edge it covered the one handle with no
+other route. An _entered_ collection draws no handles on its frame, so it clears
+nothing.
+
 It is a plain React Native view in the canvas wrapper — the same place
 `LearnOverlay` lives, and outside the gesture detector — so it cannot resize the
 canvas (which would re-run fit-to-view and visibly zoom the design) and it can be a
@@ -188,7 +196,12 @@ reading order (`part.index` when every member is a part, document order otherwis
   multi-selection has no members at all (`collectionMembers` returns none for it),
   so the bar is a bare head reading `Selected: 3`.
 - The track is the **only** part of the bar that scrolls, and only when the tiles
-  genuinely outgrow the card; the head and both arrows stay put.
+  genuinely outgrow the card; the head and both arrows stay put. It must also
+  **hug its tiles**: React Native's `ScrollView` carries `flexGrow: 1`, which in
+  the absolutely-positioned bar stretched the track — and with it the bar — across
+  the whole card, leaving the tiles in the middle of an empty strip. The track
+  therefore sets `flexGrow: 0` and keeps `flexShrink: 1`, so the bar sizes to its
+  content and shrinks to scroll only when the tiles no longer fit.
 
 ## 7. What a collection does not do
 

@@ -160,6 +160,27 @@ visual), so its `unit` is the view scale alone. See
    by the same delta from **its own captured origin** — so a group drag preserves
    relative layout. N objects cost **one render per frame instead of N**.
 
+**A plain translation is coalesced to one write per animation frame.** RNGH
+delivers touch moves faster than the display refreshes, so `updateDrag` stores the
+latest translation and applies it from a `requestAnimationFrame` instead of
+writing on every `onUpdate`. The translation is _absolute_ (measured from the
+touch-down point), so dropping the intermediate values loses nothing — the last
+one in a frame fully describes it. The pending write is flushed synchronously by
+`clearResize` before it clears `dragOrigins`, or the object would settle a frame
+short of where the finger released, and `beginDrag` cancels any leftover so a new
+grab never inherits the previous gesture's translation. Handle drags are **not**
+coalesced: their haptics and release velocity read every update (`updateResize`).
+
+**A transform-only frame does not re-render the editor screen.** The store hands
+out a new `project` on every drag frame; subscribing to it raw re-rendered the
+whole `EditorScreen` — top bar, both rails, the collection bar and eight sheets —
+once per frame to move an object. `EditorScreen` subscribes through
+`useScreenProject`, which keeps the last project that differed _structurally_
+(everything but `transform`), and `CanvasStage` subscribes to the raw project so
+the moving transforms still reach Skia. Anything that must read a live transform
+(export, save, rejoin) reads `useEditorStore.getState().project` at press time
+rather than closing over the screen's snapshot.
+
 ## 5. Resizing and rotating
 
 `updateResize` works from the **gesture's start state** (`gs.resizeOrigin*`), so a
@@ -306,6 +327,7 @@ state behind.
 | ------------------------------------------------------------------- | ----------------------------------- |
 | Composition, `useObjectGestures`, `tapRelay`                        | `src/editor/use-object-gestures.ts` |
 | `beginDrag` decision table, `updateDrag`                            | `src/editor/use-object-gestures.ts` |
+| `applyTranslate`, per-frame coalescing (`pendingDrag`/`flushDrag`)  | `src/editor/use-object-gestures.ts` |
 | `updateResize`, `resizeFactor`, `anchorFor`, `centerForAnchor`      | `src/editor/use-object-gestures.ts` |
 | `hitHandle`, `hitFrameHandle`                                       | `src/editor/use-object-gestures.ts` |
 | `pickHandle`, `pickObject`, `HANDLE_TOUCH_RADIUS`, `RIM_FRACTION`   | `src/editor/hit-test.ts`            |
@@ -316,5 +338,6 @@ state behind.
 | Gesture scratch fields the handlers read and write                  | `src/editor/store.ts`               |
 | Shift/Cmd/Ctrl tracking (web)                                       | `src/editor/modifier-keys.web.ts`   |
 | Tap relay destination, hit-test effect                              | `src/editor/EditorCanvas.tsx`       |
+| `CanvasStage`, `useScreenProject` (per-frame render isolation)      | `src/editor/EditorScreen.tsx`       |
 | The press race, multi-select, background flow                       | `docs/editor-selection.md`          |
 | Screen-pt regression checks                                         | `scripts/check-handles.mjs`         |

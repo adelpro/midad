@@ -1,5 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -89,6 +97,7 @@ import { hasMediaLibrary } from '@/storage/platform';
 import type {
   CalligraphyTextObject,
   DesignObject,
+  MidadProject,
   ObjectTransform,
   TextAlign,
 } from '@/storage/project-schema';
@@ -216,6 +225,119 @@ function nudgeStep(context: ShortcutContext): number {
 }
 
 /**
+ * True when a project differs from another only by object transforms.
+ *
+ * A canvas drag rewrites `transform` on the moved objects and leaves every other
+ * field — and every other object — referentially intact. None of the screen's
+ * chrome reads a transform, so a frame that only moves objects must not re-render
+ * the top bar, both rails and every sheet. The canvas keeps the moving transforms
+ * out of this comparison by subscribing to the raw project itself (`CanvasStage`).
+ *
+ * Everything that is not `transform` is compared, including fields this file does
+ * not render, because a structural edit must always win: comparing a curated list
+ * would silently strand the screen the day a new object field is added.
+ */
+function sameScreenObject(a: DesignObject, b: DesignObject): boolean {
+  const ra = a as unknown as Record<string, unknown>;
+  const rb = b as unknown as Record<string, unknown>;
+  for (const key in ra) {
+    if (key === 'transform') {
+      continue;
+    }
+    if (ra[key] !== rb[key]) {
+      return false;
+    }
+  }
+  for (const key in rb) {
+    if (key !== 'transform' && !(key in ra)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function sameScreenProject(a: MidadProject, b: MidadProject): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a.name !== b.name || a.gridEnabled !== b.gridEnabled) {
+    return false;
+  }
+  if (a.canvas !== b.canvas) {
+    return false;
+  }
+  const ao = a.objects;
+  const bo = b.objects;
+  if (ao.length !== bo.length) {
+    return false;
+  }
+  for (let i = 0; i < ao.length; i++) {
+    const x = ao[i];
+    const y = bo[i];
+    if (x !== y && !sameScreenObject(x, y)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * The project, but only as often as the *screen* needs to render it.
+ *
+ * The store hands out a new `project` on every drag frame. Subscribed raw, that
+ * re-rendered this 2400-line screen — top bar, both rails, the collection bar and
+ * eight sheets — once per frame just to move an object. This snapshot keeps the
+ * last project that differed structurally, so a transform-only frame is a no-op
+ * here. The canvas does not use it: `CanvasStage` subscribes to the raw project so
+ * the moving transforms still reach Skia.
+ */
+function useScreenProject(): MidadProject | null {
+  const subscribe = useEditorStore.subscribe;
+  const snapshot = useRef<MidadProject | null>(
+    useEditorStore.getState().project,
+  );
+  const getSnapshot = useCallback(() => {
+    const next = useEditorStore.getState().project;
+    const prev = snapshot.current;
+    if (next === prev || (prev && next && sameScreenProject(prev, next))) {
+      return prev;
+    }
+    snapshot.current = next;
+    return next;
+  }, []);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+/**
+ * The Skia canvas, subscribed to the store itself.
+ *
+ * A drag writes the project every frame; keeping that subscription here rather
+ * than in `EditorScreen` is what confines the per-frame render to the canvas
+ * subtree. `selectedIds` rides along because the canvas draws the selection chrome.
+ */
+const CanvasStage = memo(function CanvasStage({
+  tapPoint,
+  onTapResult,
+}: {
+  tapPoint: { x: number; y: number } | null;
+  onTapResult: (id: string | null) => void;
+}) {
+  const project = useEditorStore((s) => s.project);
+  const selectedIds = useEditorStore((s) => s.selectedIds);
+  if (!project) {
+    return null;
+  }
+  return (
+    <EditorCanvasHost
+      project={project}
+      selectedIds={selectedIds}
+      tapPoint={tapPoint}
+      onTapResult={onTapResult}
+    />
+  );
+});
+
+/**
  * Full editor screen body. Lives outside `src/app/` so that on web it is only
  * evaluated through a dynamic import after CanvasKit (WASM) has loaded — every
  * module statically imported here reaches `@shopify/react-native-skia`, and
@@ -233,7 +355,7 @@ export function EditorScreen() {
     textAlign: isRTL ? ('right' as const) : ('left' as const),
   };
 
-  const project = useEditorStore((s) => s.project);
+  const project = useScreenProject();
   const loadProject = useEditorStore((s) => s.loadProject);
   const addObject = useEditorStore((s) => s.addObject);
   const undo = useEditorStore((s) => s.undo);
@@ -507,23 +629,36 @@ export function EditorScreen() {
   }, [liveText, skiaFonts, splitFailureMessage, t]);
 
   const rejoinSelected = useCallback(() => {
-    if (rejoinParts.length === 0) {
+    // The parts are read live rather than from `rejoinParts`: the screen's
+    // project can lag a drag by its transforms, and the merged word has to land
+    // where its pieces actually are now, not where they were before the drag.
+    const rootId = liveText()?.part?.rootId;
+    if (!rootId) {
       return;
     }
-    const text = mergePartTexts(rejoinParts);
+    const parts = (useEditorStore.getState().project?.objects ?? [])
+      .filter(
+        (o): o is CalligraphyTextObject =>
+          o.type === 'text' && o.part?.rootId === rootId,
+      )
+      .sort((a, b) => (a.part?.index ?? 0) - (b.part?.index ?? 0));
+    if (parts.length < 2) {
+      return;
+    }
+    const text = mergePartTexts(parts);
     if (text === null) {
       // Incomplete group — refuse rather than silently drop a part.
       setSplitNotice(t.editor.splitFailed);
       return;
     }
-    const first = rejoinParts[0];
+    const first = parts[0];
     // The parts may have drifted apart, so the merged object is centred on the
     // group's centroid: the word reappears where its pieces were, instead of
     // jumping to whichever part happened to sort first.
-    const centre = rejoinParts.reduce(
+    const centre = parts.reduce(
       (acc, p) => ({
-        x: acc.x + p.transform.x / rejoinParts.length,
-        y: acc.y + p.transform.y / rejoinParts.length,
+        x: acc.x + p.transform.x / parts.length,
+        y: acc.y + p.transform.y / parts.length,
       }),
       { x: 0, y: 0 },
     );
@@ -546,9 +681,9 @@ export function EditorScreen() {
     setSplitNotice(null);
     useEditorStore.getState().mergeObjectParts(
       merged,
-      rejoinParts.map((p) => p.id),
+      parts.map((p) => p.id),
     );
-  }, [rejoinParts, t]);
+  }, [liveText, t]);
 
   /**
    * Moves the focus to the neighbouring member of the selected collection.
@@ -1083,22 +1218,26 @@ export function EditorScreen() {
   }, [selectedIds]);
 
   const save = useCallback(async () => {
-    if (!project) {
+    // Read the live project, not the render snapshot: `useScreenProject` holds
+    // the last *structural* project, so a save after a drag would otherwise
+    // persist pre-drag transforms.
+    const live = useEditorStore.getState().project;
+    if (!live) {
       return;
     }
-    await saveProject({ ...project, updatedAt: new Date().toISOString() });
+    await saveProject({ ...live, updatedAt: new Date().toISOString() });
     try {
-      const png = renderProjectToPng(project, skiaFonts, {
+      const png = renderProjectToPng(live, skiaFonts, {
         maxWidthPx: THUMB_MAX_WIDTH_PX,
       });
-      await saveThumb(project.id, png.base64DataUri);
+      await saveThumb(live.id, png.base64DataUri);
     } catch {
       // Thumbnail is best-effort; the project itself is saved.
       // Fires for the explicit save button and for the save that precedes every
       // export — both are "the work is safely on disk" moments.
       hapticSuccess();
     }
-  }, [project, skiaFonts]);
+  }, [skiaFonts]);
 
   const runExport = useCallback(
     async (
@@ -1121,49 +1260,55 @@ export function EditorScreen() {
   );
 
   const exportImage = useCallback(() => {
-    if (!project || exporting) return;
+    if (exporting) return;
     void runExport('image', async () => {
-      const png = renderProjectToPng(project, skiaFonts, { maxWidthPx: 2048 });
+      const live = useEditorStore.getState().project;
+      if (!live) return;
+      const png = renderProjectToPng(live, skiaFonts, { maxWidthPx: 2048 });
       await shareImage({
         data: png.base64DataUri,
         format: 'png',
-        fileName: `${project.name || 'midad-design'}.png`,
+        fileName: `${live.name || 'midad-design'}.png`,
       });
     });
-  }, [project, exporting, runExport, skiaFonts]);
+  }, [exporting, runExport, skiaFonts]);
 
   const exportSvg = useCallback(() => {
-    if (!project || exporting) return;
+    if (exporting) return;
     const dialogTitle = t.editor.exportSvgAction;
     void runExport('svg', async () => {
-      const faces = await collectSvgFontFaces(collectUsedFamilies(project));
+      const live = useEditorStore.getState().project;
+      if (!live) return;
+      const faces = await collectSvgFontFaces(collectUsedFamilies(live));
       // SVG cannot re-flow Arabic text itself, so resolve the visual line
       // breaks from the same layout the canvas uses.
-      const lineBreaks = skiaFonts ? textLineBreaks(project, skiaFonts) : {};
-      const svg = projectToSvg(project, faces, lineBreaks);
+      const lineBreaks = skiaFonts ? textLineBreaks(live, skiaFonts) : {};
+      const svg = projectToSvg(live, faces, lineBreaks);
       await shareFile({
         data: svg,
-        fileName: `${project.name || 'midad-design'}.svg`,
+        fileName: `${live.name || 'midad-design'}.svg`,
         mimeType: 'image/svg+xml',
         uti: 'public.svg-image',
         dialogTitle,
       });
     });
-  }, [project, exporting, runExport, t, skiaFonts]);
+  }, [exporting, runExport, t, skiaFonts]);
 
   const exportFile = useCallback(() => {
-    if (!project || exporting) return;
+    if (exporting) return;
     const dialogTitle = t.editor.exportProjectFile;
     void runExport('file', async () => {
+      const live = useEditorStore.getState().project;
+      if (!live) return;
       await shareFile({
-        data: await exportProjectFile(project),
-        fileName: `${project.name || 'midad'}.${PROJECT_FILE_EXT}`,
+        data: await exportProjectFile(live),
+        fileName: `${live.name || 'midad'}.${PROJECT_FILE_EXT}`,
         mimeType: 'application/zip',
         uti: 'public.zip-archive',
         dialogTitle,
       });
     });
-  }, [project, exporting, runExport, t]);
+  }, [exporting, runExport, t]);
 
   /**
    * Native only: write the design straight into the device photo library. A
@@ -1171,19 +1316,21 @@ export function EditorScreen() {
    * the sheet's own error line rather than a silent no-op.
    */
   const exportSaveToPhotos = useCallback(() => {
-    if (!project || exporting) return;
+    if (exporting) return;
     void runExport('photos', async () => {
-      const png = renderProjectToPng(project, skiaFonts, { maxWidthPx: 2048 });
+      const live = useEditorStore.getState().project;
+      if (!live) return;
+      const png = renderProjectToPng(live, skiaFonts, { maxWidthPx: 2048 });
       const saved = await saveImageToLibrary({
         data: png.base64DataUri,
         format: 'png',
-        fileName: `${project.name || 'midad-design'}.png`,
+        fileName: `${live.name || 'midad-design'}.png`,
       });
       if (!saved) {
         throw new Error(t.editor.saveToPhotosDenied);
       }
     });
-  }, [project, exporting, runExport, skiaFonts, t]);
+  }, [exporting, runExport, skiaFonts, t]);
 
   const setBgColor = useCallback((color: string) => {
     useEditorStore.getState().setCanvas({
@@ -1626,9 +1773,7 @@ export function EditorScreen() {
           >
             <GestureDetector gesture={gestures}>
               <View style={styles.canvasGestureLayer}>
-                <EditorCanvasHost
-                  project={project}
-                  selectedIds={selectedIds}
+                <CanvasStage
                   tapPoint={tapPoint}
                   onTapResult={handleTapResult}
                 />
