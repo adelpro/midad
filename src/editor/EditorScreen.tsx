@@ -2466,7 +2466,7 @@ const styles = StyleSheet.create({
   canvasCard: {
     flex: 1,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: layout.canvasBorder,
     overflow: 'hidden',
     // RNGH sets touch-action:none on its wrapper, but style resets or browser
     // default-drags can break pointer capture mid-gesture on web. Belt-and-

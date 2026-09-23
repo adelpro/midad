@@ -173,10 +173,13 @@ canvas (which would re-run fit-to-view and visibly zoom the design) and it can b
 real, accessible control. Its layer is `box-none`, so the canvas keeps every touch
 that is not on the bar. It follows pan and zoom because it is positioned from the
 frame through the published `Viewport` (which now carries the canvas box size for
-exactly this reason), and its layer is **inset by the wrapper's own padding** so
-that "inset 4 from the canvas edge" means the card's edge — the chip measured
-against a box a whole padding-step larger, so its `left: 4` was 8dp _outside_ the
-card it was labelling.
+exactly this reason), and its layer is **the canvas drawing box** — inset by the
+wrapper's own padding *plus the card's border* (`layout.canvasBorder`), the box
+`EditorCanvas` measures and draws into and the box the `Viewport` maps design space
+into. Aligning to the card's outer edge instead (padding only) left the bar a
+border-width off centre, because the anchor is relative to the drawing box. The
+chip this replaced measured against a box a whole padding-step larger, so its
+`left: 4` was 8dp _outside_ the card it was labelling.
 
 ## 6. The member track
 

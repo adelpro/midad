@@ -232,6 +232,12 @@ export const layout = {
   maxControl: 320,
   /** Widest a horizontal chrome bar's content may grow before it centres. */
   maxToolbar: 560,
+  /**
+   * Border width of the editor's canvas card. `EditorCanvas` measures and draws
+   * into the box inside it, and on-canvas chrome (the collection bar) positions
+   * against that drawing box — so this has to be shared, not restated per file.
+   */
+  canvasBorder: 1,
 } as const;
 
 export const motion = {

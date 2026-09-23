@@ -44,6 +44,7 @@ import type { DesignObject } from '@/storage/project-schema';
 import {
   elevationStyle,
   fontRoles,
+  layout,
   radius,
   shadows,
   spacing,
@@ -506,21 +507,34 @@ const MemberTile = memo(function MemberTile({
 
 const styles = StyleSheet.create({
   /**
-   * The bar's layer, inset by the canvas wrapper's own padding so its box is the
-   * **canvas card's** box — the same reasoning `LearnOverlay` documents.
+   * The bar's layer: exactly the canvas **drawing box** — the wrapper's padding
+   * plus the card's border, which is the box `EditorCanvas` measures and draws
+   * into, and the box the published `Viewport` maps design space into.
    *
    * The chip that preceded this component sat on a full-bleed layer instead, and
    * clamped its own position against the card's width from a box that was a
    * whole padding-step larger. Its `left: 4` was therefore 8dp *outside* the card
    * it was labelling. An absolutely positioned fill spans the wrapper's border
    * box, so the inset has to be explicit.
+   *
+   * Aligning to the card's *outer* box instead (padding only) is what left the bar
+   * a border-width off centre: the anchor is relative to the drawing box, so the
+   * layer has to be the drawing box for the two spaces to coincide.
    */
   layer: {
     position: 'absolute',
-    top: spacing.md,
-    left: spacing.md,
-    right: spacing.md,
-    bottom: spacing.md,
+    // The canvas drawing box, not the card's outer box: `EditorCanvas` measures
+    // and draws into the box *inside* the card's border, and the bar's anchor
+    // coordinates are relative to that box (the published `Viewport` maps design
+    // space into it). Insetting only by the wrapper's padding would leave the
+    // layer one border-width outside the drawing box, so the bar would sit a
+    // border-width off centre on every selection. Adding the card's border makes
+    // the layer's origin and width exactly the drawing box, so the placement
+    // maths and its canvas-edge clamp run in the same space the anchor does.
+    top: spacing.md + layout.canvasBorder,
+    left: spacing.md + layout.canvasBorder,
+    right: spacing.md + layout.canvasBorder,
+    bottom: spacing.md + layout.canvasBorder,
   },
   bar: {
     position: 'absolute',
