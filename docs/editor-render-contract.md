@@ -182,8 +182,10 @@ ids are not guaranteed to be XML-id-safe.
 `collectSvgFontFaces`. On web, Metro resolves the font asset to a URI that is
 fetched; on native the `require()` id goes through `expo-asset` and
 `expo-file-system`. **An unembeddable family is silently skipped** — the export
-succeeds and the viewer falls back to a substitute font. `familyForKey` also
-falls back to `Amiri` for an unknown key.
+succeeds and the viewer falls back to a substitute font. `familyForKey` returns
+the stored `fontKey` itself when it names a known asset, so the exact variant is
+embedded — a bold object embeds its bold file, not the regular one — and falls
+back to `Amiri` for an unknown key.
 
 ## 9. PNG specifics
 

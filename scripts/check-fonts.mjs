@@ -101,6 +101,15 @@ for (const key of assets) {
   }
 }
 
+// The SVG exporter must not fall back to the retired flat list.
+const svgSource = readFileSync(
+  join(here, '..', 'src', 'editor', 'export', 'svg.ts'),
+  'utf8',
+);
+if (svgSource.includes('calligraphyFonts')) {
+  fail('svg.ts still references the retired calligraphyFonts');
+}
+
 if (failures > 0) {
   console.error(`\ncheck-fonts: ${failures} failure(s)`);
   process.exit(1);
