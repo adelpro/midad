@@ -53,6 +53,13 @@ export function FontPickerSheet({
 
   const label = (ar: string, en: string) => (language === 'ar' ? ar : en);
 
+  // Clear on close so reopening always shows the full catalogue, not the last
+  // search term (the sheet stays mounted while hidden).
+  const closeSheet = () => {
+    setQuery('');
+    onClose();
+  };
+
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return fontFamilies;
@@ -68,7 +75,7 @@ export function FontPickerSheet({
   return (
     <Sheet
       visible={visible}
-      onClose={onClose}
+      onClose={closeSheet}
       title={t.editor.fontFamily}
       closeButton
       presentation={Platform.OS === 'web' ? 'modal' : 'bottom'}
@@ -188,7 +195,7 @@ export function FontPickerSheet({
         )}
       </ScrollView>
 
-      <Button label={t.common.done} onPress={onClose} fullWidth />
+      <Button label={t.common.done} onPress={closeSheet} fullWidth />
     </Sheet>
   );
 }

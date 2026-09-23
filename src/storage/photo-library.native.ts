@@ -1,16 +1,21 @@
+import { File, Paths } from 'expo-file-system';
+import { Asset, requestPermissionsAsync } from 'expo-media-library';
+
 import type { ExportOptions } from '@/storage/export';
 
 /**
  * Native: write bytes to a temp file, then into the photo library
  * (with permission). Lives in a `.native.ts` file so web/SSR bundles
- * never load `expo-media-library` (it crashes at import time in Node).
+ * never load `expo-media-library` (it crashes at import time in Node), and
+ * imports **statically** — a runtime `import()` resolves through Expo
+ * async-require in development and fails with "could not load bundle" when the
+ * dev server is unreachable.
  */
 export async function saveImageToPhotoLibrary({
   data,
   format,
   fileName,
 }: ExportOptions): Promise<boolean> {
-  const { File, Paths } = await import('expo-file-system');
   const tmp = new File(
     Paths.cache,
     `${fileName ?? 'midad-design'}-${Date.now()}.${format}`,
@@ -26,7 +31,6 @@ export async function saveImageToPhotoLibrary({
     tmp.write(new Uint8Array(await data.arrayBuffer()));
   }
 
-  const { Asset, requestPermissionsAsync } = await import('expo-media-library');
   // Write-only: saving needs the "add to library" permission, not read access.
   // `Asset.create` and the top-level `requestPermissionsAsync` are the current
   // API — the `MediaLibrary.*` namespace methods are legacy and throw at

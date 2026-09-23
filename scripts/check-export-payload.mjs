@@ -53,6 +53,20 @@ eq(
 );
 eq('json text is utf8', stringWriteEncoding('{"a":1}'), 'utf8');
 
+// The export/share path must not resolve native modules at runtime: a dynamic
+// import() goes through Expo async-require in dev and fails with
+// "could not load bundle" whenever the dev server is unreachable.
+for (const rel of [
+  ['src', 'storage', 'share-temp.native.ts'],
+  ['src', 'storage', 'photo-library.native.ts'],
+]) {
+  const file = join(here, '..', ...rel);
+  const src = readFileSync(file, 'utf8');
+  if (src.includes('await import(')) {
+    fail(`${rel.join('/')} still uses a runtime import()`);
+  }
+}
+
 if (failures > 0) {
   console.error(`\ncheck-export-payload: ${failures} failure(s)`);
   process.exit(1);
