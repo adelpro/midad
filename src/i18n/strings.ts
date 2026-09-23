@@ -191,6 +191,12 @@ export interface Translation {
     fontFamily: string;
     /** Grouping label above the variant chips. */
     variant: string;
+    /** Opens the full-height font picker. */
+    chooseFont: string;
+    /** Placeholder for the picker's search field. */
+    searchFont: string;
+    /** Shown when a search matches no family. */
+    noFontResults: string;
     lineHeight: string;
     opacity: string;
     align: string;
@@ -469,6 +475,9 @@ export const strings: Record<Language, Translation> = {
       fontSize: 'حجم الخط',
       fontFamily: 'الخط',
       variant: 'النمط',
+      chooseFont: 'اختيار الخط',
+      searchFont: 'ابحث عن خط',
+      noFontResults: 'لا توجد نتائج',
       lineHeight: 'تباعد الأسطر',
       opacity: 'العتامة',
       align: 'المحاذاة',
@@ -742,6 +751,9 @@ export const strings: Record<Language, Translation> = {
       fontSize: 'Font size',
       fontFamily: 'Font',
       variant: 'Style',
+      chooseFont: 'Choose font',
+      searchFont: 'Search fonts',
+      noFontResults: 'No fonts found',
       lineHeight: 'Line height',
       opacity: 'Opacity',
       align: 'Alignment',
