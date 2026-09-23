@@ -112,10 +112,12 @@ export interface Translation {
   };
   privacyPage: {
     title: string;
-    summary: string;
-    localData: string;
-    analytics: string;
-    contact: string;
+    lastUpdated: string;
+    intro: string;
+    sections: readonly { title: string; body: string }[];
+    contactTitle: string;
+    contactBody: string;
+    hostedLabel: string;
   };
   editor: {
     newProject: string;
@@ -346,19 +348,63 @@ export const strings: Record<Language, Translation> = {
       mission:
         'نهدف إلى جعل الفن العربي أكثر قربًا من كل مستخدم، مع أدوات بسيطة تركز على الإبداع لا على التعقيد.',
       versionLabel: 'الإصدار الحالي',
-      developedBy:
-        'تم تطوير التطبيق ليخدم كتابة ولوحات الخط العربي في كل مكان.',
+      developedBy: 'طُوِّر تطبيق مداد بواسطة adelpro (com.adelpro.midad).',
     },
     privacyPage: {
       title: 'سياسة الخصوصية',
-      summary:
-        'نحترم خصوصيتك. لا نبيع أو نشارك بياناتك الشخصية مع أطراف خارجية.',
-      localData:
-        'يُحفظ محتوى لوحاتك محليًا على جهازك، ويُستخدم فقط لعرض أعمالك داخل التطبيق.',
-      analytics:
-        'لا نستخدم تحليلات متتبعة أو إعلانات تابعة في التطبيق، ولا نجمع بيانات استخدام مستمرة.',
-      contact:
-        'إذا كان لديك أي سؤال حول الخصوصية، يمكنك التواصل مباشرة من خلال التطبيق أو مراجعة إعدادات المشروع.',
+      lastUpdated: 'آخر تحديث: 23 سبتمبر 2026',
+      intro:
+        'تشرح هذه السياسة كيف يجمع تطبيق مداد بياناتك ويستخدمها ويشاركها، ومن المسؤول عن التطبيق.',
+      sections: [
+        {
+          title: 'من نحن',
+          body: 'تخصّ سياسة الخصوصية هذه تطبيق مداد (Midad) للخط العربي، ورقمه التعريفي com.adelpro.midad، والمطوّر adelpro. تسري على استخدامك للتطبيق على أندرويد وiOS والويب.',
+        },
+        {
+          title: 'بياناتك وتصميماتك',
+          body: 'تُحفظ لوحاتك وإعداداتك محليًا على جهازك فقط، ولا تُرفع إلى أي خادم نملكه. حذف التصميم من داخل التطبيق أو إزالة التطبيق يزيل هذه البيانات نهائيًا.',
+        },
+        {
+          title: 'الصور التي تختارها',
+          body: 'عند اختيار صورة خلفية من مكتبة الصور، يُقرأ الملف الذي تختاره فقط ويُستخدم كخلفية للتصميم، ثم يُحفظ محليًا مع عملك. لا نصل إلى بقية مكتبة صورك.',
+        },
+        {
+          title: 'الإعلانات',
+          body: 'قد يعرض التطبيق مستقبلًا إعلانات عبر شبكات إعلان خارجية مثل Google AdMob. قد تجمع هذه الشبكات مُعرّف الإعلان ومعلومات تقنية عن الجهاز وموقعًا تقريبيًا مستخلصًا من عنوان IP وبيانات تفاعلك مع الإعلان، لعرض الإعلانات وقياس أدائها. نحن لا نبيع بياناتك الشخصية.',
+        },
+        {
+          title: 'الموافقة والاختيار',
+          body: 'نطلب موافقتك حيث يفرض القانون ذلك (مثل الاتحاد الأوروبي والمملكة المتحدة)، ويمكنك التحكم في الإعلانات المخصّصة من إعدادات جهازك، مثل إعادة تعيين مُعرّف الإعلان أو حذفه في إعدادات أندرويد. راجع أيضًا سياسات خصوصية شركاء الإعلان.',
+        },
+        {
+          title: 'التحليلات',
+          body: 'لا نستخدم حاليًا أي تحليلات سلوكية أو تتبّع يتجاوز الإعلانات المذكورة أعلاه. وإذا أضفنا تحليلات لاحقًا فسنحدّث هذه السياسة.',
+        },
+        {
+          title: 'مشاركة البيانات',
+          body: 'لا نشارك بياناتك إلا بالقدر اللازم مع شركاء الإعلان المذكورين أعلاه أو عندما يقتضي القانون ذلك. نحن لا نبيع بياناتك الشخصية.',
+        },
+        {
+          title: 'خصوصية الأطفال',
+          body: 'التطبيق غير موجّه للأطفال دون سن 13 عامًا، ولا نجمع بياناتهم عن قصد. إذا اعتقدت أن طفلًا قدّم بيانات، فتواصل معنا لنحذفها.',
+        },
+        {
+          title: 'الأمان والاحتفاظ',
+          body: 'تبقى بيانات تصميماتك على جهازك، وتعتمد سلامتها على حماية جهازك. أما بيانات الإعلانات فيتبع الاحتفاظ بها سياسات شركاء الإعلان.',
+        },
+        {
+          title: 'حقوقك',
+          body: 'يمكنك حذف تصميماتك في أي وقت من داخل التطبيق أو بإزالة التطبيق. ولأي طلب يخصّ بياناتك، تواصل معنا عبر البريد الإلكتروني أدناه.',
+        },
+        {
+          title: 'تحديثات هذه السياسة',
+          body: 'قد نحدّث هذه السياسة من وقت لآخر. سنغيّر تاريخ آخر تحديث أدناه، ونشعرك داخل التطبيق عند إجراء تغييرات جوهرية. استمرارك في الاستخدام يعني موافقتك على النسخة المحدّثة.',
+        },
+      ],
+      contactTitle: 'اتصل بنا',
+      contactBody:
+        'لأي سؤال حول الخصوصية أو بياناتك، راسلنا على البريد التالي:',
+      hostedLabel: 'النسخة الكاملة من السياسة على الويب',
     },
     editor: {
       newProject: 'لوحة جديدة',
@@ -574,19 +620,62 @@ export const strings: Record<Language, Translation> = {
       mission:
         'Our goal is to make Arabic art more accessible to everyone by focusing on creativity, clarity, and a smooth creative flow.',
       versionLabel: 'Current version',
-      developedBy:
-        'Built to support personal calligraphy practice and custom design work on your device.',
+      developedBy: 'The Midad app is developed by adelpro (com.adelpro.midad).',
     },
     privacyPage: {
       title: 'Privacy policy',
-      summary:
-        'We respect your privacy. We do not sell or share your personal data with third parties.',
-      localData:
-        'Your design content is stored locally on your device and remains available only inside the app for your own work.',
-      analytics:
-        'The app does not use advertising trackers or persistent analytics services to monitor your activity.',
-      contact:
-        'If you have any privacy questions, contact the app support or review the project settings for the latest information.',
+      lastUpdated: 'Last updated: September 23, 2026',
+      intro:
+        'This policy explains how the Midad app collects, uses and shares your data, and who is responsible for the app.',
+      sections: [
+        {
+          title: 'Who we are',
+          body: 'This policy covers the Midad app (مداد) for Arabic calligraphy, package name com.adelpro.midad, developed and operated by adelpro. It applies to your use of the app on Android, iOS and the web.',
+        },
+        {
+          title: 'Your work and data',
+          body: 'Your designs and settings are stored locally on your device only and are not uploaded to any server we control. Deleting a design in the app, or uninstalling the app, removes that data.',
+        },
+        {
+          title: 'Photos you choose',
+          body: 'When you pick a background image from your photo library, only the file you select is read and used as the design background, then stored locally with your work. We do not access the rest of your library.',
+        },
+        {
+          title: 'Advertising',
+          body: 'The app may in future display ads served by third-party ad networks such as Google AdMob. Those networks may collect your advertising identifier, technical device information, an approximate location derived from your IP address, and your interactions with ads, in order to serve and measure ads. We do not sell your personal data.',
+        },
+        {
+          title: 'Consent and your choices',
+          body: 'We ask for your consent where the law requires it (for example in the EEA and the UK), and you can control personalised advertising through your device settings, such as resetting or deleting the advertising ID in Android settings. See also the ad partners’ privacy policies.',
+        },
+        {
+          title: 'Analytics',
+          body: 'We currently use no behavioural analytics or tracking beyond the advertising described above. If we add analytics later, we will update this policy.',
+        },
+        {
+          title: 'Sharing',
+          body: 'We share your data only as needed with the advertising partners described above, or where the law requires it. We do not sell your personal data.',
+        },
+        {
+          title: 'Children’s privacy',
+          body: 'The app is not directed to children under 13, and we do not knowingly collect their data. If you believe a child has provided data, contact us and we will remove it.',
+        },
+        {
+          title: 'Security and retention',
+          body: 'Your design data stays on your device, and its safety depends on your device’s protection. Advertising data is retained by our ad partners under their own policies.',
+        },
+        {
+          title: 'Your rights',
+          body: 'You can delete your designs at any time in the app, or by uninstalling it. For any request about your data, contact us using the email below.',
+        },
+        {
+          title: 'Changes to this policy',
+          body: 'We may update this policy from time to time. We will change the “last updated” date below and notify you in the app about material changes. Continued use means you accept the updated version.',
+        },
+      ],
+      contactTitle: 'Contact us',
+      contactBody: 'For any privacy or data question, email us at:',
+      hostedLabel: 'Full policy on the web',
     },
     editor: {
       newProject: 'New artwork',
