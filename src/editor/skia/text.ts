@@ -1,12 +1,13 @@
 import {
   Skia,
-  useFonts,
   vec,
   type DataModule,
   type SkParagraph,
   type SkTextStyle,
   type SkTypefaceFontProvider,
 } from '@shopify/react-native-skia';
+import { Platform as SkiaPlatform } from '@shopify/react-native-skia/lib/module/Platform';
+import { useEffect, useState } from 'react';
 
 import type { MidadProject } from '@/storage/project-schema';
 import { fontAssets } from '@/theme';
@@ -33,16 +34,52 @@ function toFontSource(asset: unknown): DataModule {
   return asset as DataModule;
 }
 
+/**
+ * Build the ParagraphBuilder typeface provider outside React.
+ *
+ * Every family in `fontAssets` is loaded and registered under its key, so a
+ * design can name any one of them (`buildParagraph` still falls back to Amiri).
+ * Kept separate from the hook because the gallery needs the same provider for a
+ * single one-off render, after it has loaded CanvasKit on demand — see
+ * `renderImportedThumbnail`. The provider is a native/WASM handle, so a one-off
+ * caller should `dispose()` it when the render is done.
+ */
+export async function loadParagraphFonts(): Promise<SkTypefaceFontProvider> {
+  const provider = Skia.TypefaceFontProvider.Make();
+  await Promise.all(
+    Object.entries(fontAssets).map(async ([family, asset]) => {
+      const data = await Skia.Data.fromURI(
+        SkiaPlatform.resolveAsset(toFontSource(asset)),
+      );
+      const typeface = Skia.Typeface.MakeFreeTypeFaceFromData(data);
+      if (typeface) {
+        provider.registerFont(typeface, family);
+      }
+    }),
+  );
+  return provider;
+}
+
 /** Loads a typeface provider usable by ParagraphBuilder. */
 export function useParagraphFonts(): SkTypefaceFontProvider | null {
-  // Skia's useFonts expects each family to map to an *array* of sources.
-  const sources = Object.fromEntries(
-    Object.entries(fontAssets).map(([family, asset]) => [
-      family,
-      [toFontSource(asset)],
-    ]),
-  );
-  return useFonts(sources);
+  const [fonts, setFonts] = useState<SkTypefaceFontProvider | null>(null);
+  useEffect(() => {
+    let active = true;
+    loadParagraphFonts()
+      .then((provider) => {
+        if (active) {
+          setFonts(provider);
+        }
+      })
+      .catch(() => {
+        // A failed load leaves text unrendered rather than crashing the screen;
+        // callers already treat a missing provider as "fonts not loaded yet".
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  return fonts;
 }
 
 export interface TextLayoutSpec {

@@ -31,9 +31,10 @@ literals are not accepted here.
 
 ## 2. Fonts: a provider is mandatory
 
-`useParagraphFonts()` loads every family in `fontAssets` into a
-`SkTypefaceFontProvider`, which is then passed to the builder. Each family maps
-to an **array** of sources, because that is what Skia's `useFonts` expects.
+`loadParagraphFonts()` loads every family in `fontAssets` into a
+`SkTypefaceFontProvider`; `useParagraphFonts()` is its render-time wrapper,
+holding the provider in state until it resolves. The provider is then passed to
+the builder.
 
 `toFontSource` normalizes the Metro asset shape, which differs by platform:
 
@@ -46,8 +47,27 @@ it also guarantees the bundled calligraphy fonts are used rather than a system
 substitute. Until it resolves, `useTextLayouts` returns a stable empty map
 (`EMPTY_LAYOUTS`) — text objects render nothing rather than crashing.
 
-An unknown `fontKey` falls back to `Amiri` (`spec.fontKey in fontAssets ? … :
-"Amiri"`), so a project referencing a retired font still renders.
+### The web CanvasKit gate is a hard boundary
+
+Skia's web singleton captures `global.CanvasKit` at **module-evaluation** time:
+`export const Skia = JsiSkApi(global.CanvasKit)`. If any module in the startup
+graph is evaluated before `LoadSkiaWeb` runs, that `Skia` holds an undefined
+CanvasKit forever, and the first Skia call throws
+`can't access property "Typeface", this.CanvasKit is undefined`.
+
+That is why `src/app/editor.tsx` only re-exports a host whose `.web` variant
+loads CanvasKit through `WithSkiaWeb`, and why the gallery — the web landing
+route — must not statically import this module or hook `useParagraphFonts` at
+render time. The gallery reaches Skia only through
+`renderImportedThumbnail` (`src/editor/render/thumbnail-on-demand.ts`), which
+loads CanvasKit on demand inside the import handler and then dynamic-imports the
+font loader. Anything that needs Skia from a non-editor route must follow the
+same on-demand (or `WithSkiaWeb`-gated) shape; a static import in the route is
+the bug.
+
+An unknown `fontKey` falls back to `Amiri` (`Object.hasOwn(fontAssets,
+spec.fontKey) ? … : "Amiri"`), so a project referencing a retired font still
+renders.
 
 ## 3. Auto width is a two-pass measure
 
@@ -235,15 +255,16 @@ they keep an object selectable rather than collapsing it to zero.
 
 ## 10. Code map
 
-| Concern                                                  | File                                  |
-| -------------------------------------------------------- | ------------------------------------- |
-| `layoutArabicText`, `buildParagraph`, `resolveTextWidth` | `src/editor/skia/text.ts`             |
-| `useParagraphFonts`, `toFontSource`                      | `src/editor/skia/text.ts`             |
-| `paragraphLines`, `textLineBreaks`                       | `src/editor/skia/text.ts`             |
-| `TextLayoutSpec`, `RenderedParagraph`, the constants     | `src/editor/skia/text.ts`             |
-| `useTextLayouts`, `layoutSignature`, disposal queue      | `src/editor/skia/use-text-layouts.ts` |
-| `textObjectSize`                                         | `src/editor/skia/use-text-layouts.ts` |
-| Text objects painted on the canvas                       | `src/editor/EditorCanvas.tsx`         |
-| Offscreen re-shaping + immediate dispose                 | `src/editor/render/offscreen.ts`      |
-| Font registry and calligraphy families                   | `src/theme/fonts.ts`                  |
-| Style presets that patch these fields                    | `src/theme/presentations.ts`          |
+| Concern                                                   | File                                       |
+| --------------------------------------------------------- | ------------------------------------------ |
+| `layoutArabicText`, `buildParagraph`, `resolveTextWidth`  | `src/editor/skia/text.ts`                  |
+| `loadParagraphFonts`, `useParagraphFonts`, `toFontSource` | `src/editor/skia/text.ts`                  |
+| On-demand web CanvasKit load + one-off thumbnail render   | `src/editor/render/thumbnail-on-demand.ts` |
+| `paragraphLines`, `textLineBreaks`                        | `src/editor/skia/text.ts`                  |
+| `TextLayoutSpec`, `RenderedParagraph`, the constants      | `src/editor/skia/text.ts`                  |
+| `useTextLayouts`, `layoutSignature`, disposal queue       | `src/editor/skia/use-text-layouts.ts`      |
+| `textObjectSize`                                          | `src/editor/skia/use-text-layouts.ts`      |
+| Text objects painted on the canvas                        | `src/editor/EditorCanvas.tsx`              |
+| Offscreen re-shaping + immediate dispose                  | `src/editor/render/offscreen.ts`           |
+| Font registry and calligraphy families                    | `src/theme/fonts.ts`                       |
+| Style presets that patch these fields                     | `src/theme/presentations.ts`               |
