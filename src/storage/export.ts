@@ -1,9 +1,7 @@
-import * as Sharing from 'expo-sharing';
-
 import { downloadBlob } from '@/storage/download';
-import { base64BodyOf, stringWriteEncoding } from '@/storage/export-payload';
 import { saveImageToPhotoLibrary } from '@/storage/photo-library';
 import { hasShareSheet } from '@/storage/platform';
+import { writeTempAndShare } from '@/storage/share-temp';
 
 export type ImageExportFormat = 'png' | 'jpeg';
 
@@ -119,46 +117,5 @@ export async function shareFile({
     }
   }
   downloadBlob(data, fileName, mimeType);
-  return true;
-}
-
-interface SharePayload {
-  data: string | Blob | Uint8Array;
-  fileName: string;
-  mimeType: string;
-  uti?: string;
-  dialogTitle?: string;
-}
-
-async function writeTempAndShare({
-  data,
-  fileName,
-  mimeType,
-  uti,
-  dialogTitle,
-}: SharePayload): Promise<boolean> {
-  const { File, Paths } = await import('expo-file-system');
-  const tmp = new File(Paths.cache, `share-${Date.now()}-${fileName}`);
-  if (tmp.exists) {
-    tmp.delete();
-  }
-  tmp.create();
-  if (typeof data === 'string') {
-    if (stringWriteEncoding(data) === 'base64') {
-      tmp.write(base64BodyOf(data), { encoding: 'base64' });
-    } else {
-      // Text payloads (svg/json) are written as UTF-8, never base64-decoded.
-      tmp.write(data);
-    }
-  } else if (data instanceof Uint8Array) {
-    tmp.write(data);
-  } else {
-    tmp.write(new Uint8Array(await data.arrayBuffer()));
-  }
-  await Sharing.shareAsync(tmp.uri, {
-    mimeType,
-    dialogTitle: dialogTitle ?? fileName,
-    UTI: uti,
-  });
   return true;
 }
