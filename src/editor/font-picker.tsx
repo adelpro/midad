@@ -1,156 +1,90 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { AnimatedPressable } from '@/components/ui';
+import { AnimatedPressable, DirectionIcon } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
-import { fontFamilies, fontRoles, radius, spacing, typeScale } from '@/theme';
+import {
+  familyForVariant,
+  fontRoles,
+  radius,
+  spacing,
+  typeScale,
+  variantFor,
+} from '@/theme';
 
-export interface FontPickerProps {
-  /** The current `fontKey` (a variant key). */
+export interface FontFieldProps {
+  /** The current `fontKey`. */
   value: string;
-  /** Called with the chosen variant key. */
-  onChange: (fontKey: string) => void;
+  onPress: () => void;
 }
 
 /**
- * Family grid + inline variant chips (design: Layout A).
- *
- * The family tile renders its own name in its own face, so the letterform is
- * the specimen. Selecting a family reveals only the variants that family
- * ships; a single-variant family shows no chip row.
+ * A single Font row for the Text sheet. Shows the current face set in that face
+ * and opens the full-height picker; the catalogue itself lives in
+ * `FontPickerSheet` so it never crowds this sheet.
  */
-export function FontPicker({ value, onChange }: FontPickerProps) {
+export function FontField({ value, onPress }: FontFieldProps) {
   const { colors: c } = useTheme();
-  const { t, language } = useT();
+  const { t, language, isRTL } = useT();
   const uiFont = fontRoles[language].ui;
-  const activeFamily = fontFamilies.find((f) =>
-    f.variants.some((v) => v.key === value),
-  );
-
-  const label = (ar: string, en: string) => (language === 'ar' ? ar : en);
+  const family = familyForVariant(value);
+  const variant = variantFor(value);
+  const name = family
+    ? `${language === 'ar' ? family.labelAr : family.labelEn} · ${
+        language === 'ar' ? variant?.labelAr : variant?.labelEn
+      }`
+    : value;
 
   return (
-    <View style={styles.root}>
-      <Text
-        style={[styles.sectionLabel, { color: c.muted, fontFamily: uiFont }]}
-      >
+    <View style={styles.wrap}>
+      <Text style={[styles.label, { color: c.muted, fontFamily: uiFont }]}>
         {t.editor.fontFamily}
       </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.grid}
+      <AnimatedPressable
+        accessibilityRole="button"
+        accessibilityLabel={`${t.editor.chooseFont}: ${name}`}
+        onPress={onPress}
+        style={[
+          styles.field,
+          { borderColor: c.border, backgroundColor: c.surfaceAlt },
+        ]}
       >
-        {fontFamilies.map((family) => {
-          const selected = activeFamily?.key === family.key;
-          return (
-            <AnimatedPressable
-              key={family.key}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              accessibilityLabel={`${label(
-                family.labelAr,
-                family.labelEn,
-              )}, ${label(family.styleTagAr, family.styleTagEn)}`}
-              onPress={() => onChange(family.defaultVariant)}
-              style={[
-                styles.tile,
-                {
-                  borderColor: selected ? c.ink : c.border,
-                  backgroundColor: selected ? c.surfaceAlt : c.surface,
-                },
-              ]}
-            >
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.tileSpecimen,
-                  { color: c.ink, fontFamily: family.defaultVariant },
-                ]}
-              >
-                {label(family.labelAr, family.labelEn)}
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[styles.tileTag, { color: c.muted, fontFamily: uiFont }]}
-              >
-                {label(family.styleTagAr, family.styleTagEn)}
-              </Text>
-            </AnimatedPressable>
-          );
-        })}
-      </ScrollView>
-
-      {activeFamily && activeFamily.variants.length > 1 && (
-        <>
-          <Text
-            style={[styles.sectionLabel, { color: c.muted, fontFamily: uiFont }]}
-          >
-            {t.editor.variant}
+        <Text
+          numberOfLines={1}
+          style={[styles.specimen, { color: c.ink, fontFamily: value }]}
+        >
+          بسم الله
+        </Text>
+        <View style={styles.right}>
+          <Text style={[styles.name, { color: c.muted, fontFamily: uiFont }]}>
+            {name}
           </Text>
-          <View style={styles.chips}>
-            {activeFamily.variants.map((variant) => {
-              const selected = variant.key === value;
-              return (
-                <AnimatedPressable
-                  key={variant.key}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={label(variant.labelAr, variant.labelEn)}
-                  onPress={() => onChange(variant.key)}
-                  style={[
-                    styles.chip,
-                    {
-                      borderColor: selected ? c.ink : c.border,
-                      backgroundColor: selected ? c.ink : c.surfaceAlt,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      color: selected ? c.onInk : c.ink,
-                      fontFamily: uiFont,
-                      fontSize: typeScale.caption.size,
-                    }}
-                  >
-                    {label(variant.labelAr, variant.labelEn)}
-                  </Text>
-                </AnimatedPressable>
-              );
-            })}
-          </View>
-        </>
-      )}
+          {/* RTL-aware chevron — points the way the reading direction expects. */}
+          <DirectionIcon isRTL={isRTL} size={18} color={c.muted} />
+        </View>
+      </AnimatedPressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { gap: spacing.xs },
-  sectionLabel: {
+  wrap: { gap: spacing.xs },
+  label: {
     fontSize: typeScale.caption.size,
     lineHeight: typeScale.caption.lineHeight,
   },
-  grid: { gap: spacing.sm, paddingVertical: spacing.xs },
-  tile: {
-    minWidth: 132,
+  field: {
     minHeight: 56,
     borderWidth: 1,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    justifyContent: 'center',
-    gap: 2,
-  },
-  tileSpecimen: { fontSize: 20 },
-  tileTag: { fontSize: typeScale.caption.size },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: {
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-    minHeight: 44,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
   },
+  specimen: { fontSize: 22, flexShrink: 1 },
+  right: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  name: { fontSize: typeScale.caption.size },
 });

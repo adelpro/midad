@@ -26,7 +26,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Icon, IconButton, Reveal, Sheet } from '@/components/ui';
 import { EditorCanvasHost } from '@/editor/EditorCanvasHost';
-import { FontPicker } from '@/editor/font-picker';
+import { FontField } from '@/editor/font-picker';
+import { FontPickerSheet } from '@/editor/font-picker-sheet';
 import { CollectionBarHost } from '@/editor/collection-bar';
 import {
   collectSvgFontFaces,
@@ -398,6 +399,8 @@ export function EditorScreen() {
     setTool(next);
   }, []);
   const [textSheetOpen, setTextSheetOpen] = useState(false);
+  /** The full-height font picker, opened from the Text sheet's Font field. */
+  const [fontPickerOpen, setFontPickerOpen] = useState(false);
   const [draftText, setDraftText] = useState('');
   const [draftFont, setDraftFont] = useState<string>(
     fontFamilies[0].defaultVariant,
@@ -2129,7 +2132,10 @@ export function EditorScreen() {
               step={FONT_SIZE_STEP}
               onChange={setDraftFontSize}
             />
-            <FontPicker value={draftFont} onChange={setDraftFont} />
+            <FontField
+              value={draftFont}
+              onPress={() => setFontPickerOpen(true)}
+            />
           </ScrollView>
           <Button
             label={t.common.done}
@@ -2138,6 +2144,14 @@ export function EditorScreen() {
             style={styles.sheetFooter}
           />
         </Sheet>
+
+        {/* Full-height font picker, opened from the Text sheet's Font field */}
+        <FontPickerSheet
+          visible={fontPickerOpen}
+          value={draftFont}
+          onChange={setDraftFont}
+          onClose={() => setFontPickerOpen(false)}
+        />
 
         {/* Ornament and shape library */}
         <InsertSheet
