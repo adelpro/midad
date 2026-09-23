@@ -187,6 +187,10 @@ export interface Translation {
     // Style navigator and per-object style sheet.
     style: string;
     fontSize: string;
+    /** Grouping label above the family grid in the text sheet. */
+    fontFamily: string;
+    /** Grouping label above the variant chips. */
+    variant: string;
     lineHeight: string;
     opacity: string;
     align: string;
@@ -463,6 +467,8 @@ export const strings: Record<Language, Translation> = {
       splitFailed: 'تعذّر تقسيم النص.',
       style: 'النمط',
       fontSize: 'حجم الخط',
+      fontFamily: 'الخط',
+      variant: 'النمط',
       lineHeight: 'تباعد الأسطر',
       opacity: 'العتامة',
       align: 'المحاذاة',
@@ -734,6 +740,8 @@ export const strings: Record<Language, Translation> = {
       splitFailed: 'Couldn’t split the text.',
       style: 'Style',
       fontSize: 'Font size',
+      fontFamily: 'Font',
+      variant: 'Style',
       lineHeight: 'Line height',
       opacity: 'Opacity',
       align: 'Alignment',

@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Icon, IconButton, Reveal, Sheet } from '@/components/ui';
 import { EditorCanvasHost } from '@/editor/EditorCanvasHost';
+import { FontPicker } from '@/editor/font-picker';
 import { CollectionBarHost } from '@/editor/collection-bar';
 import {
   collectSvgFontFaces,
@@ -2123,19 +2124,7 @@ export function EditorScreen() {
               step={FONT_SIZE_STEP}
               onChange={setDraftFontSize}
             />
-            <View style={styles.fontRow}>
-              {fontFamilies.flatMap((f) =>
-                f.variants.map((v) => (
-                  <Button
-                    key={v.key}
-                    label={language === 'ar' ? v.labelAr : v.labelEn}
-                    variant={draftFont === v.key ? 'primary' : 'secondary'}
-                    onPress={() => setDraftFont(v.key)}
-                    style={styles.fontBtn}
-                  />
-                )),
-              )}
-            </View>
+            <FontPicker value={draftFont} onChange={setDraftFont} />
           </ScrollView>
           <Button
             label={t.common.done}
@@ -2560,8 +2549,6 @@ const styles = StyleSheet.create({
   },
   /** The text sheet's confirm button, outside the scrolling body. */
   sheetFooter: { marginTop: spacing.md },
-  fontRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  fontBtn: { minWidth: 84 },
   colorStrip: {
     flexDirection: 'row',
     alignItems: 'center',
