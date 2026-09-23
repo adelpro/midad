@@ -112,6 +112,7 @@ import {
 import { useSettings } from '@/storage/settings';
 import { saveThumb, THUMB_MAX_WIDTH_PX } from '@/storage/thumbs';
 import {
+  boldSiblingForKey,
   familyForVariant,
   fontFamilies,
   fontRoles,
@@ -2152,22 +2153,28 @@ export function EditorScreen() {
             {selectedText ? (
               <>
                 <View style={styles.presetRow}>
-                  {presentations.map((preset) => {
-                    const active = activePresentation.key === preset.key;
-                    const label =
-                      language === 'ar' ? preset.labelAr : preset.labelEn;
-                    return (
-                      <Button
-                        key={preset.key}
-                        label={label}
-                        accessibilityLabel={label}
-                        variant={active ? 'primary' : 'secondary'}
-                        selected={active}
-                        onPress={() => applyPresentation(preset.key)}
-                        style={styles.presetBtn}
-                      />
-                    );
-                  })}
+                  {presentations
+                    .filter(
+                      (preset) =>
+                        preset.key !== 'bold' ||
+                        boldSiblingForKey(selectedText.fontKey) !== null,
+                    )
+                    .map((preset) => {
+                      const active = activePresentation.key === preset.key;
+                      const label =
+                        language === 'ar' ? preset.labelAr : preset.labelEn;
+                      return (
+                        <Button
+                          key={preset.key}
+                          label={label}
+                          accessibilityLabel={label}
+                          variant={active ? 'primary' : 'secondary'}
+                          selected={active}
+                          onPress={() => applyPresentation(preset.key)}
+                          style={styles.presetBtn}
+                        />
+                      );
+                    })}
                 </View>
 
                 {/* One snapshot per drag — bracketed by the gauge — then live

@@ -8,6 +8,7 @@ import {
   SHADOW_INK,
 } from '@/theme/content-palette';
 import { fontAssets } from '@/theme/fonts';
+import { familyForVariant } from './font-families';
 
 /**
  * Presentation presets — the looks the Style navigator cycles through.
@@ -67,6 +68,11 @@ export function regularSiblingForKey(fontKey: string): string | null {
   return base in fontAssets ? base : null;
 }
 
+/** The variant a family declares as its default, for the Classic reset. */
+export function defaultVariantForKey(fontKey: string): string {
+  return familyForVariant(fontKey)?.defaultVariant ?? fontKey;
+}
+
 export const presentations: readonly PresentationPreset[] = [
   {
     key: 'classic',
@@ -74,7 +80,7 @@ export const presentations: readonly PresentationPreset[] = [
     labelEn: 'Classic',
     // The escape hatch: undoes every other preset, including weight.
     resolve: (obj) => ({
-      fontKey: regularSiblingForKey(obj.fontKey) ?? obj.fontKey,
+      fontKey: defaultVariantForKey(obj.fontKey),
       lineHeight: Math.round(obj.fontSize * DEFAULT_LEADING_RATIO),
       opacity: 1,
       shadows: undefined,
