@@ -113,7 +113,7 @@ export interface CalligraphyTextObject extends GroupMember {
   id: string;
   type: 'text';
   text: string;
-  fontKey: string; // one of calligraphyFonts keys
+  fontKey: string; // one of fontFamilies' variant keys
   fontSize: number;
   lineHeight: number;
   /**

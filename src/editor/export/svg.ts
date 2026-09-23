@@ -12,7 +12,7 @@ import type {
   MidadProject,
   ShapeObject,
 } from '@/storage/project-schema';
-import { calligraphyFonts, fontAssets } from '@/theme';
+import { fontAssets } from '@/theme';
 
 export interface SvgFontFace {
   family: string;
@@ -28,9 +28,15 @@ function escapeXml(s: string): string {
     .replace(/'/g, '&apos;');
 }
 
+/**
+ * The `@font-face` family name for a stored fontKey.
+ *
+ * The key names the exact variant, and its own asset is embedded under that
+ * name — so `Amiri-Bold` exports the bold file rather than collapsing to the
+ * regular Amiri face. Unknown keys fall back to Amiri.
+ */
 function familyForKey(fontKey: string): string {
-  const entry = calligraphyFonts.find((f) => f.key === fontKey);
-  return entry ? entry.family : 'Amiri';
+  return fontKey in fontAssets ? fontKey : 'Amiri';
 }
 
 /** XML id for an object's drop-shadow filter. */

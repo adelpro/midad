@@ -111,12 +111,14 @@ import {
 import { useSettings } from '@/storage/settings';
 import { saveThumb, THUMB_MAX_WIDTH_PX } from '@/storage/thumbs';
 import {
-  calligraphyFonts,
+  familyForVariant,
+  fontFamilies,
   fontRoles,
   layout,
   radius,
   spacing,
   typeScale,
+  variantFor,
 } from '@/theme';
 import {
   DEFAULT_INK,
@@ -395,7 +397,9 @@ export function EditorScreen() {
   }, []);
   const [textSheetOpen, setTextSheetOpen] = useState(false);
   const [draftText, setDraftText] = useState('');
-  const [draftFont, setDraftFont] = useState<string>(calligraphyFonts[0].key);
+  const [draftFont, setDraftFont] = useState<string>(
+    fontFamilies[0].defaultVariant,
+  );
   const [draftFontSize, setDraftFontSize] = useState(DEFAULT_FONT_SIZE);
   const [editingId, setEditingId] = useState<string | null>(null);
   /** The ornament and shape library. */
@@ -570,10 +574,14 @@ export function EditorScreen() {
     presentationByKey(selectedText?.presentation?.key) ?? presentations[0];
 
   /** The face the text sheet is previewing, for the preview's caption. */
-  const draftFontMeta =
-    calligraphyFonts.find((f) => f.key === draftFont) ?? calligraphyFonts[0];
-  const draftFontLabel =
-    language === 'ar' ? draftFontMeta.labelAr : draftFontMeta.labelEn;
+  const draftFontMeta = familyForVariant(draftFont);
+  const draftFontLabel = draftFontMeta
+    ? `${language === 'ar' ? draftFontMeta.labelAr : draftFontMeta.labelEn} · ${
+        language === 'ar'
+          ? variantFor(draftFont)?.labelAr
+          : variantFor(draftFont)?.labelEn
+      }`
+    : '';
 
   // The refusal message is transient — it explains a rejected action rather than
   // describing persistent state.
@@ -1081,7 +1089,7 @@ export function EditorScreen() {
       setEditingId(obj.id);
     } else {
       setDraftText('');
-      setDraftFont(calligraphyFonts[0].key);
+      setDraftFont(fontFamilies[0].defaultVariant);
       setDraftFontSize(DEFAULT_FONT_SIZE);
       setEditingId(null);
     }
@@ -2116,15 +2124,17 @@ export function EditorScreen() {
               onChange={setDraftFontSize}
             />
             <View style={styles.fontRow}>
-              {calligraphyFonts.map((f) => (
-                <Button
-                  key={f.key}
-                  label={language === 'ar' ? f.labelAr : f.labelEn}
-                  variant={draftFont === f.key ? 'primary' : 'secondary'}
-                  onPress={() => setDraftFont(f.key)}
-                  style={styles.fontBtn}
-                />
-              ))}
+              {fontFamilies.flatMap((f) =>
+                f.variants.map((v) => (
+                  <Button
+                    key={v.key}
+                    label={language === 'ar' ? v.labelAr : v.labelEn}
+                    variant={draftFont === v.key ? 'primary' : 'secondary'}
+                    onPress={() => setDraftFont(v.key)}
+                    style={styles.fontBtn}
+                  />
+                )),
+              )}
             </View>
           </ScrollView>
           <Button
