@@ -1114,11 +1114,15 @@ export function EditorScreen() {
         existing.fontSize > 0
           ? existing.lineHeight / existing.fontSize
           : DEFAULT_LEADING_RATIO;
+      // A font change invalidates any style-preset highlight: the look no longer
+      // reflects the preset the object was wearing.
+      const fontChanged = existing.fontKey !== draftFont;
       store.updateObject(existing.id, {
         text: draftText.trim(),
         fontKey: draftFont,
         fontSize: draftFontSize,
         lineHeight: Math.round(draftFontSize * ratio),
+        ...(fontChanged ? { presentation: undefined } : {}),
       } as never);
     } else {
       addObject({

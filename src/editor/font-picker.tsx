@@ -23,9 +23,9 @@ export function FontPicker({ value, onChange }: FontPickerProps) {
   const { colors: c } = useTheme();
   const { t, language } = useT();
   const uiFont = fontRoles[language].ui;
-  const activeFamily =
-    fontFamilies.find((f) => f.variants.some((v) => v.key === value)) ??
-    fontFamilies[0];
+  const activeFamily = fontFamilies.find((f) =>
+    f.variants.some((v) => v.key === value),
+  );
 
   const label = (ar: string, en: string) => (language === 'ar' ? ar : en);
 
@@ -42,7 +42,7 @@ export function FontPicker({ value, onChange }: FontPickerProps) {
         contentContainerStyle={styles.grid}
       >
         {fontFamilies.map((family) => {
-          const selected = family.key === activeFamily.key;
+          const selected = activeFamily?.key === family.key;
           return (
             <AnimatedPressable
               key={family.key}
@@ -81,7 +81,7 @@ export function FontPicker({ value, onChange }: FontPickerProps) {
         })}
       </ScrollView>
 
-      {activeFamily.variants.length > 1 && (
+      {activeFamily && activeFamily.variants.length > 1 && (
         <>
           <Text
             style={[styles.sectionLabel, { color: c.muted, fontFamily: uiFont }]}

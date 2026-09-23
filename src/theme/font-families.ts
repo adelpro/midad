@@ -222,3 +222,14 @@ export function variantFor(fontKey: string): FontVariant | undefined {
   const family = familyForVariant(fontKey);
   return family?.variants.find((v) => v.key === fontKey);
 }
+
+/**
+ * The variant a family declares as its default. A key the registry does not
+ * know (a legacy or removed face) falls back to stripping the `-Bold` suffix —
+ * how the old Classic preset un-bolded a face the registry never listed.
+ */
+export function defaultVariantForKey(fontKey: string): string {
+  return (
+    familyForVariant(fontKey)?.defaultVariant ?? fontKey.replace(/-Bold$/, '')
+  );
+}

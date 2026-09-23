@@ -110,6 +110,60 @@ if (svgSource.includes('calligraphyFonts')) {
   fail('svg.ts still references the retired calligraphyFonts');
 }
 
+// Unknown-key fallback must not be fooled by inherited names ('toString').
+if (svgSource.includes(' in fontAssets')) {
+  fail('svg.ts still uses `in fontAssets` (inherited keys) instead of hasOwn');
+}
+const skiaTextSource = readFileSync(
+  join(here, '..', 'src', 'editor', 'skia', 'text.ts'),
+  'utf8',
+);
+if (skiaTextSource.includes(' in fontAssets')) {
+  fail('skia/text.ts still uses `in fontAssets` instead of hasOwn');
+}
+
+// Classic must strip a legacy bold suffix for a family the registry dropped.
+const { defaultVariantForKey } = moduleShim.exports;
+for (const [input, expected] of [
+  ['Amiri-Bold', 'Amiri'],
+  ['Cairo-Bold', 'Cairo'],
+  ['Cairo', 'Cairo'],
+  ['Vibes', 'Vibes'],
+  ['does-not-exist', 'does-not-exist'],
+]) {
+  const got = defaultVariantForKey?.(input);
+  if (got !== expected) {
+    fail(`defaultVariantForKey(${input}) = ${got}, expected ${expected}`);
+  }
+}
+
+// Exported SVG text must actually name the embedded family, or @font-face is
+// dead weight (the viewer would render in its default font).
+let svgTextSource = '';
+try {
+  svgTextSource = readFileSync(
+    join(here, '..', 'src', 'editor', 'export', 'svg-text.ts'),
+    'utf8',
+  );
+} catch {
+  fail('src/editor/export/svg-text.ts is missing (text serializer)');
+}
+if (svgTextSource) {
+  const { outputText: textOut } = ts.transpileModule(svgTextSource, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020,
+    },
+  });
+  const textShim = { exports: {} };
+  new Function('exports', 'module', textOut)(textShim.exports, textShim);
+  const { textToSvg } = textShim.exports;
+  const svg = textToSvg?.(['أ'], 40, 50, '#000000', 'Amiri-Bold');
+  if (typeof svg !== 'string' || !svg.includes('font-family="Amiri-Bold"')) {
+    fail('textToSvg does not emit font-family for the object face');
+  }
+}
+
 if (failures > 0) {
   console.error(`\ncheck-fonts: ${failures} failure(s)`);
   process.exit(1);

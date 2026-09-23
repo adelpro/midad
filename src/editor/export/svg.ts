@@ -13,19 +13,11 @@ import type {
   ShapeObject,
 } from '@/storage/project-schema';
 import { fontAssets } from '@/theme';
+import { escapeXml, textToSvg } from './svg-text';
 
 export interface SvgFontFace {
   family: string;
   dataUri: string;
-}
-
-function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
 }
 
 /**
@@ -36,7 +28,7 @@ function escapeXml(s: string): string {
  * regular Amiri face. Unknown keys fall back to Amiri.
  */
 function familyForKey(fontKey: string): string {
-  return fontKey in fontAssets ? fontKey : 'Amiri';
+  return Object.hasOwn(fontAssets, fontKey) ? fontKey : 'Amiri';
 }
 
 /** XML id for an object's drop-shadow filter. */
@@ -252,35 +244,6 @@ function glyphToSvg(glyph: GlyphObject): string | null {
 }
 
 /**
- * Render a text object as a centred stack of `<tspan>` lines. `lines` are the
- * visual lines (soft wraps already resolved by the caller), so a narrowed text
- * box exports the same line breaks the canvas shows.
- */
-function textToSvg(
-  lines: string[],
-  fontSize: number,
-  lineHeight: number,
-  color: string,
-  filterId?: string,
-): string {
-  const sample = lines.join(' ');
-  const isArabic = /[\u0600-\u06FF]/.test(sample);
-  const rtl = isArabic ? ' direction="rtl" unicode-bidi="plaintext"' : '';
-  const filterAttr = filterId ? ` filter="url(#${filterId})"` : '';
-  const dy0 = -((lines.length - 1) * lineHeight) / 2;
-  const spans = lines
-    .map(
-      (line, i) =>
-        `<tspan x="0" dy="${i === 0 ? dy0 : lineHeight}">${escapeXml(line)}</tspan>`,
-    )
-    .join('');
-  return (
-    `<text x="0" y="0" text-anchor="middle" dominant-baseline="middle"` +
-    ` font-size="${fontSize}" fill="${escapeXml(color)}"${filterAttr}${rtl}>${spans}</text>`
-  );
-}
-
-/**
  * Serialize a project document to standalone SVG. Text uses real <text>
  * elements (shaped correctly by any browser honoring the embedded
  * @font-face); some desktop design tools may substitute fonts.
@@ -334,6 +297,7 @@ export function projectToSvg(
         obj.fontSize,
         obj.lineHeight,
         obj.color,
+        familyForKey(obj.fontKey),
         filterId,
       );
     } else if (obj.type === 'shape') {

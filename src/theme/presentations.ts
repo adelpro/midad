@@ -8,7 +8,7 @@ import {
   SHADOW_INK,
 } from '@/theme/content-palette';
 import { fontAssets } from '@/theme/fonts';
-import { familyForVariant } from './font-families';
+import { defaultVariantForKey } from './font-families';
 
 /**
  * Presentation presets — the looks the Style navigator cycles through.
@@ -56,7 +56,7 @@ const BOLD_SUFFIX = '-Bold';
 export function boldSiblingForKey(fontKey: string): string | null {
   const base = fontKey.replace(/-Bold$/, '');
   const bold = `${base}${BOLD_SUFFIX}`;
-  return bold in fontAssets ? bold : null;
+  return Object.hasOwn(fontAssets, bold) ? bold : null;
 }
 
 /** The regular sibling of a bold font key, or null when it is already regular. */
@@ -65,12 +65,7 @@ export function regularSiblingForKey(fontKey: string): string | null {
     return null;
   }
   const base = fontKey.slice(0, -BOLD_SUFFIX.length);
-  return base in fontAssets ? base : null;
-}
-
-/** The variant a family declares as its default, for the Classic reset. */
-export function defaultVariantForKey(fontKey: string): string {
-  return familyForVariant(fontKey)?.defaultVariant ?? fontKey;
+  return Object.hasOwn(fontAssets, base) ? base : null;
 }
 
 export const presentations: readonly PresentationPreset[] = [

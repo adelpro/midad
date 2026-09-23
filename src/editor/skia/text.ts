@@ -88,7 +88,9 @@ function buildParagraph(
   fonts: SkTypefaceFontProvider,
   width: number,
 ): SkParagraph {
-  const family = spec.fontKey in fontAssets ? spec.fontKey : 'Amiri';
+  const family = Object.hasOwn(fontAssets, spec.fontKey)
+    ? spec.fontKey
+    : 'Amiri';
   const isArabic = /[\u0600-\u06FF]/.test(spec.text);
 
   // TextAlign enum: Left=0, Right=1, Center=2, Justify=3, Start=4, End=5
