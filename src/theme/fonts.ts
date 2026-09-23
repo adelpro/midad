@@ -19,6 +19,7 @@
  *  - Jomhuria         → Thuluth display (400)
  *  - Vibes            → Ornamental display (400)
  *  - AmiriQuran       → Quranic Naskh (400)
+ *  - BouazziMaghribi  → Maghribi (400)
  *  - Geist            → Latin UI sans (400/500/600/700)
  */
 
@@ -49,6 +50,7 @@ export const fontAssets = {
   Jomhuria: require('@/assets/fonts/jomhuria-arabic-400.ttf'),
   Vibes: require('@/assets/fonts/vibes-arabic-400.ttf'),
   AmiriQuran: require('@/assets/fonts/amiri-quran-arabic-400.ttf'),
+  BouazziMaghribi: require('@/assets/fonts/bouazzi-maghribi-400.ttf'),
 } as const;
 
 export type FontKey = keyof typeof fontAssets;

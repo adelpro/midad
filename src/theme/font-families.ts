@@ -203,6 +203,22 @@ export const fontFamilies: readonly FontFamily[] = [
       { key: 'Vibes', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
     ],
   },
+  {
+    key: 'bouazzi-maghribi',
+    labelAr: 'بوزي مغربي',
+    labelEn: 'Bouazzi Maghribi',
+    styleTagAr: 'مغربي',
+    styleTagEn: 'Maghribi',
+    defaultVariant: 'BouazziMaghribi',
+    variants: [
+      {
+        key: 'BouazziMaghribi',
+        labelAr: 'عادي',
+        labelEn: 'Regular',
+        weight: 400,
+      },
+    ],
+  },
 ];
 
 const familyByVariant = new Map<string, FontFamily>();
