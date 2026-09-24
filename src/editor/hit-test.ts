@@ -268,8 +268,7 @@ export function pickObject(
     // An ink-hugging collection member gets a tighter tolerance: adjacent parts
     // of a split word sit close, and the object pad would let a neighbour swallow
     // the press. A grouped object with no ink keeps the full object tolerance.
-    const basePad =
-      o.ink === undefined ? OBJECT_HIT_PAD : MEMBER_HIT_PAD;
+    const basePad = o.ink === undefined ? OBJECT_HIT_PAD : MEMBER_HIT_PAD;
     const pad = basePad / (u * safeObjectScale(o.transform.scale));
     // Test against the ink box when there is one, offset by its centre.
     const cx = o.ink?.cx ?? 0;

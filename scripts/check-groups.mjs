@@ -450,12 +450,16 @@ const inkMember = (id, x, y, ink, rotation = 0, scale = 1) => ({
 });
 near(
   "a member's ink box replaces its advance box in the frame",
-  collectionFrame([inkMember('a', 0, 0, { cx: 0, cy: 0, width: 20, height: 40 })]),
+  collectionFrame([
+    inkMember('a', 0, 0, { cx: 0, cy: 0, width: 20, height: 40 }),
+  ]),
   { x: 0, y: 0, hw: 10, hh: 20, rotation: 0 },
 );
 near(
   'an ink centre offset moves the member within the frame',
-  collectionFrame([inkMember('a', 0, 0, { cx: 10, cy: 0, width: 20, height: 40 })]),
+  collectionFrame([
+    inkMember('a', 0, 0, { cx: 10, cy: 0, width: 20, height: 40 }),
+  ]),
   { x: 10, y: 0, hw: 10, hh: 20, rotation: 0 },
 );
 near(

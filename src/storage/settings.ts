@@ -106,7 +106,11 @@ export const useSettings = create<SettingsState>()(
         set({ selectionBarActions }),
       pushRecentColor: (color) =>
         set((state) => ({
-          recentColors: pushRecent(state.recentColors, color, RECENT_COLORS_MAX),
+          recentColors: pushRecent(
+            state.recentColors,
+            color,
+            RECENT_COLORS_MAX,
+          ),
         })),
       setHasCompletedOnboarding: (hasCompletedOnboarding) =>
         set({ hasCompletedOnboarding }),

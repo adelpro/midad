@@ -371,7 +371,9 @@ ok(
   pickObject([offsetPart], -30, 0, 1) === null,
 );
 
-section('an offset ink box moves the drawn handles and the grabbed ones together');
+section(
+  'an offset ink box moves the drawn handles and the grabbed ones together',
+);
 const inkOffset = { x: 25, y: 0 };
 {
   const drawn = [

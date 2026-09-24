@@ -519,8 +519,10 @@ export function collectionFrame<T extends FramedMember>(
     const rotRad = (m.transform.rotation * Math.PI) / 180;
     const lx = (m.ink?.cx ?? 0) * (m.transform.flipH ? -s : s);
     const ly = (m.ink?.cy ?? 0) * (m.transform.flipV ? -s : s);
-    const centreX = m.transform.x + lx * Math.cos(rotRad) - ly * Math.sin(rotRad);
-    const centreY = m.transform.y + lx * Math.sin(rotRad) + ly * Math.cos(rotRad);
+    const centreX =
+      m.transform.x + lx * Math.cos(rotRad) - ly * Math.sin(rotRad);
+    const centreY =
+      m.transform.y + lx * Math.sin(rotRad) + ly * Math.cos(rotRad);
     const ux = centreX * toFrameCos - centreY * toFrameSin;
     const uy = centreX * toFrameSin + centreY * toFrameCos;
     if (ux - ex < left) left = ux - ex;

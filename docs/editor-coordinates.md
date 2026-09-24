@@ -155,13 +155,13 @@ is not a supported state, but it will not produce `Infinity` either.
 **Every chrome length below is the size the user sees**, and the helpers divide
 `unit` out on the way into a frame's own units:
 
-| Constant               | Screen pt | Meaning                       |
-| ---------------------- | --------- | ----------------------------- |
-| `SELECTION_HANDLE_PAD` | `6`       | Box edge → handle centre      |
-| `ROTATE_HANDLE_GAP`    | `30`      | Box top edge → rotate grip    |
-| `HANDLE_TOUCH_RADIUS`  | `22`      | Touch target around a handle  |
-| `ROTATE_TOUCH_RADIUS`  | `26`      | Touch target around the grip  |
-| `OBJECT_HIT_PAD`       | `10`      | Grab tolerance around the box |
+| Constant               | Screen pt | Meaning                           |
+| ---------------------- | --------- | --------------------------------- |
+| `SELECTION_HANDLE_PAD` | `6`       | Box edge → handle centre          |
+| `ROTATE_HANDLE_GAP`    | `30`      | Box top edge → rotate grip        |
+| `HANDLE_TOUCH_RADIUS`  | `22`      | Touch target around a handle      |
+| `ROTATE_TOUCH_RADIUS`  | `26`      | Touch target around the grip      |
+| `OBJECT_HIT_PAD`       | `10`      | Grab tolerance around the box     |
 | `MEMBER_HIT_PAD`       | `4`       | Grab tolerance around an ink part |
 
 `selectionPad(unit)` is `SELECTION_HANDLE_PAD / unit` and `rotateGap(unit)` the
