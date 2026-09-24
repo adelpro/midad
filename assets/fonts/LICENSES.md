@@ -10,6 +10,13 @@ upstream copyright, and the source it was obtained from.
 > Qahiri, Katibeh, Jomhuria, Lemonada, Vibes, Bouazzi Maghribi, Geist) are
 > not yet recorded and should be added in a later pass.
 
+> Runtime-downloaded faces (the Google Fonts picker, see
+> `docs/editor-remote-fonts.md`) are never bundled, so they are not recorded
+> here. They are OFL-1.1 Google Fonts fetched on demand from the Fontsource
+> mirror of `github.com/google/fonts`; that license permits the app embedding
+> one in an exported SVG, and the face's own OFL notice remains the attribution
+> when a user does so.
+
 ## AMoshref Thulth
 
 - File: `amoshref-thulth-arabic-400.ttf` (402,572 bytes)
