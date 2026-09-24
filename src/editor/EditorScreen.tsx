@@ -28,6 +28,7 @@ import { Button, Icon, IconButton, Reveal, Sheet } from '@/components/ui';
 import { EditorCanvasHost } from '@/editor/EditorCanvasHost';
 import { FontField } from '@/editor/font-picker';
 import { FontPickerSheet } from '@/editor/font-picker-sheet';
+import { ColorPickerSheet } from '@/editor/color-picker-sheet';
 import { CollectionBarHost } from '@/editor/collection-bar';
 import {
   collectSvgFontFaces,
@@ -126,7 +127,6 @@ import {
 import {
   DEFAULT_INK,
   DEFAULT_PAPER,
-  inkSwatches,
   paperSwatches,
 } from '@/theme/content-palette';
 import {
@@ -413,6 +413,8 @@ export function EditorScreen() {
   const [exporting, setExporting] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [styleSheetOpen, setStyleSheetOpen] = useState(false);
+  /** The Colors tool's picker sheet. */
+  const [colorSheetOpen, setColorSheetOpen] = useState(false);
   /** The selection bar's `⋯` overflow sheet. */
   const [moreOpen, setMoreOpen] = useState(false);
   /** The header's secondary actions. */
@@ -442,6 +444,8 @@ export function EditorScreen() {
   // and learn mode binds every selection control to its help entry.
   const selectionBarActions = useSettings((s) => s.selectionBarActions);
   const setSelectionBarActions = useSettings((s) => s.setSelectionBarActions);
+  const recentColors = useSettings((s) => s.recentColors);
+  const pushRecentColor = useSettings((s) => s.pushRecentColor);
   const help = useHelpMode();
   /** The learn-mode binder, held in a variable so the bar head's memo can key on it. */
   const helpPress = help.press;
@@ -790,11 +794,12 @@ export function EditorScreen() {
   }, []);
 
   /**
-   * Patches every selected object in one step.
+   * Patches every selected object in one step, snapshotting per call.
    *
-   * `color` and `opacity` are the two style fields all three object types carry,
-   * so these are the two controls that reach a group of mixed kinds; text-only
-   * fields stay in `patchStyle`.
+   * `opacity` is the field every object type carries, so it still reaches a
+   * group of mixed kinds; it keeps the one-snapshot-per-change shape. Colour has
+   * its own per-visit path in `applyColor` (see `docs/editor-color-picker.md`);
+   * text-only fields stay in `patchStyle`.
    */
   const patchSelectedAll = useCallback(
     (patch: { color?: string; opacity?: number }) => {
@@ -811,10 +816,36 @@ export function EditorScreen() {
     [],
   );
 
-  /** The ink swatch: recolours the whole selection. */
-  const setInk = useCallback(
-    (color: string) => patchSelectedAll({ color }),
-    [patchSelectedAll],
+  /**
+   * True once the current Colors-tool visit has snapshotted. Reset when the tool
+   * is pressed, so one visit is one undo step (`docs/editor-color-picker.md`
+   * §5) — the same shape as `beginFontSizeDrag`.
+   */
+  const colorSession = useRef(false);
+
+  /**
+   * Apply a colour to the whole selection. The first change of a visit
+   * snapshots; the rest update live and free. A custom entry is remembered.
+   */
+  const applyColor = useCallback(
+    (color: string, source: 'preset' | 'custom') => {
+      const store = useEditorStore.getState();
+      const objects = currentSelection();
+      if (objects.length === 0) {
+        return;
+      }
+      if (!colorSession.current) {
+        store.snapshot();
+        colorSession.current = true;
+      }
+      for (const obj of objects) {
+        store.updateObject(obj.id, { color } as never);
+      }
+      if (source === 'custom') {
+        pushRecentColor(color);
+      }
+    },
+    [pushRecentColor],
   );
 
   /**
@@ -1602,10 +1633,7 @@ export function EditorScreen() {
    * reserved either way — it is part of the fixed-height rail — but only its
    * contents may be charged against the actions' width budget.
    */
-  const hasContext =
-    splitNotice !== null ||
-    tool === 'background' ||
-    (tool === 'color' && !!selectedObject);
+  const hasContext = splitNotice !== null || tool === 'background';
 
   const railIds = railActionIds(shape, bar);
   const visibleCount = visibleActionCount({
@@ -1668,6 +1696,9 @@ export function EditorScreen() {
   const pressColorTool = useCallback(() => {
     setMultiSelectMode(false);
     selectTool('color');
+    // A new visit is a new undo step.
+    colorSession.current = false;
+    setColorSheetOpen(true);
   }, [selectTool, setMultiSelectMode]);
 
   const pressBackgroundTool = useCallback(() => {
@@ -1889,30 +1920,6 @@ export function EditorScreen() {
                     {splitNotice}
                   </Text>
                 </Reveal>
-              )}
-
-              {/* Colour picker for the 'color' tool — in the rail, so switching
-              tools cannot resize the canvas either. */}
-              {tool === 'color' && selectedObject && (
-                <View
-                  style={[
-                    styles.colorStrip,
-                    { borderColor: c.border, backgroundColor: c.surfaceAlt },
-                  ]}
-                >
-                  {inkSwatches.map((col) => (
-                    <Pressable
-                      key={col}
-                      style={[
-                        styles.colorSwatch,
-                        { backgroundColor: col, borderColor: c.border },
-                        selectedObject.color === col &&
-                          styles.colorSwatchActive,
-                      ]}
-                      onPress={() => setInk(col)}
-                    />
-                  ))}
-                </View>
               )}
 
               {/* Background tool */}
@@ -2152,6 +2159,16 @@ export function EditorScreen() {
           value={draftFont}
           onChange={setDraftFont}
           onClose={() => setFontPickerOpen(false)}
+        />
+
+        {/* Colour picker — opened by the Colors tool. Nothing colour-related
+            lives in the rail; the sheet owns the whole picker. */}
+        <ColorPickerSheet
+          visible={colorSheetOpen}
+          value={selectedObject?.color ?? DEFAULT_INK}
+          recentColors={recentColors}
+          onChange={applyColor}
+          onClose={() => setColorSheetOpen(false)}
         />
 
         {/* Ornament and shape library */}
@@ -2581,7 +2598,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   colorSwatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 1 },
-  colorSwatchActive: { borderWidth: 3, borderColor: '#B0894F' },
   /** The background toolbox sits at the start of the scrollable context zone. */
   bgToolWrap: {
     flexDirection: 'row',
