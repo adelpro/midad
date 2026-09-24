@@ -26,22 +26,24 @@ one before changing that area. When a document and the code disagree, fix the co
 
 ## Checks
 
-There is no test runner. `node scripts/verify.mjs` runs the typecheck, the lint
-and all ten checks **in parallel** — wall clock is the slowest one — printing
-each task's own output and failing if any of them did. Reach for it first; the
-individual scripts are the right tool when you already know what you touched.
+There is no test runner. `node scripts/verify.mjs` runs the typecheck, the lint,
+the format check and all ten checks **in parallel** — wall clock is the slowest
+one — printing each task's own output and failing if any of them did. Reach for
+it first; the individual scripts are the right tool when you already know what
+you touched.
 
 ```bash
 node scripts/verify.mjs          # everything, in parallel (also `yarn verify`)
 node scripts/verify.mjs --serial # same, one at a time
 ```
 
-Both slow tasks keep a cache, so a re-run only redoes what changed:
+The slow tasks keep a cache, so a re-run only redoes what changed:
 `.cache/tsconfig.tsbuildinfo` (`"incremental": true` and `tsBuildInfoFile` in
-`tsconfig.json`) and `.eslintcache` (`--cache` on eslint, at the repo root). Both
+`tsconfig.json`), `.eslintcache` (`--cache` on eslint, at the repo root) and
+`.prettiercache` (`--cache-location` on prettier, at the repo root). All three
 are gitignored — delete them to force a cold run. A
-`tsconfig.json`/`eslint.config.js` edit, a `yarn install` or a large branch switch
-invalidates them for you.
+`tsconfig.json`/`eslint.config.js`/`.prettierrc.json` edit, a `yarn install` or a
+large branch switch invalidates them for you.
 
 Run one on its own when it covers what you touched:
 

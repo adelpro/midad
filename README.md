@@ -80,23 +80,26 @@ You can start developing by editing the files inside the **`src/app`** directory
 - ESLint is configured in `eslint.config.js` — the flat config built on
   `eslint-config-expo` plus `eslint-config-prettier`. Run `yarn lint`.
 - There is no test runner. `yarn verify` is the gate: it runs the typecheck, the
-  lint and four standalone behaviour checks in parallel.
+  lint, the format check and ten standalone behaviour checks in parallel.
 
 ## Checking your work
 
-`node scripts/verify.mjs` (or `yarn verify`) runs the typecheck, the lint and the four standalone check scripts **in parallel** and fails if any of them did. `--serial` runs them one after another when you want to read them in order.
+`node scripts/verify.mjs` (or `yarn verify`) runs the typecheck, the lint, the
+format check and the ten standalone check scripts **in parallel** and fails if any
+of them did. `--serial` runs them one after another when you want to read them in order.
 
 ```bash
 yarn verify                      # everything, in parallel
 yarn typecheck                   # tsc --noEmit, incremental
 yarn lint                        # eslint src scripts, cached
+yarn format                      # prettier --check ., cached
 node scripts/check-clusters.mjs  # Arabic split segmentation + round-trip
 node scripts/check-groups.mjs    # group membership + the whole-groups invariant
 node scripts/check-shortcuts.mjs # binding table + matcher + chord text
 node scripts/check-help.mjs      # help catalog ↔ strings.ts ↔ shortcuts.ts
 ```
 
-The first run of each is the slow one: the typecheck writes `.cache/tsconfig.tsbuildinfo` and the lint writes `.eslintcache` at the repo root, both gitignored, and later runs only redo what changed. Delete those two to force a cold run.
+The first run of each is the slow one: the typecheck writes `.cache/tsconfig.tsbuildinfo`, the lint writes `.eslintcache` and the format check writes `.prettiercache` at the repo root — all gitignored — and later runs only redo what changed. Delete those three to force a cold run.
 
 ## Learn more
 

@@ -2,14 +2,14 @@
  * Runs the whole verification suite at once: the one command that answers "is
  * this tree OK?".
  *
- * It is exactly `yarn typecheck` + `yarn lint` + the ten `check-*` scripts, run
- * together — the repo has no test runner, and running them one after another
- * charges the sum of their times to every edit. None of them share state, so
- * they run as sibling processes and the wall clock is the slowest task rather
- * than the total.
+ * It is exactly `yarn typecheck` + `yarn lint` + `yarn format` + the ten
+ * `check-*` scripts, run together — the repo has no test runner, and running
+ * them one after another charges the sum of their times to every edit. None of
+ * them share state, so they run as sibling processes and the wall clock is the
+ * slowest task rather than the total.
  *
- * Read-only by design: no task here writes, fixes or formats, so it is safe to
- * run at any point.
+ * Read-only by design: no task here writes to the tree, fixes or reformats
+ * anything, so it is safe to run at any point.
  *
  * Output is buffered per task and printed verbatim under a header once the task
  * exits — deliberately without a per-line prefix, so the `$tsc` and
@@ -20,9 +20,10 @@
  * a shell, so every task is launched as `process.execPath` + the package's JS
  * entry point.
  *
- * Both slow tasks keep a repo-root cache, so a re-run only redoes what changed:
- * `tsconfig.tsbuildinfo` (from `"incremental": true`) and `.eslintcache`
- * (`--cache`). Delete them to force a cold run.
+ * The slow tasks keep repo-root caches, so a re-run only redoes what changed:
+ * `tsconfig.tsbuildinfo` (from `"incremental": true`), `.eslintcache`
+ * (`--cache`) and `.prettiercache` (`--cache-location`). Delete them to force
+ * a cold run.
  *
  * Run: node scripts/verify.mjs [--serial]
  */
@@ -50,6 +51,17 @@ const TASKS = [
       '--cache',
       '--cache-location',
       '.eslintcache',
+    ],
+  },
+  {
+    id: 'format',
+    command: [
+      join(root, 'node_modules/prettier/bin/prettier.cjs'),
+      '--check',
+      '.',
+      '--cache',
+      '--cache-location',
+      '.prettiercache',
     ],
   },
   { id: 'clusters', command: [join(here, 'check-clusters.mjs')] },
