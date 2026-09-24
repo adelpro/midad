@@ -227,7 +227,12 @@ export const fontFamilies: readonly FontFamily[] = [
     styleTagEn: 'Thuluth',
     defaultVariant: 'AMoshrefThulth',
     variants: [
-      { key: 'AMoshrefThulth', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+      {
+        key: 'AMoshrefThulth',
+        labelAr: 'عادي',
+        labelEn: 'Regular',
+        weight: 400,
+      },
     ],
   },
   {

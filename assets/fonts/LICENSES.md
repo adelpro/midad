@@ -14,7 +14,7 @@ upstream copyright, and the source it was obtained from.
 
 - File: `amoshref-thulth-arabic-400.ttf` (402,572 bytes)
 - Author: Ali Moshref (ali.moshref@yahoo.com)
-- Copyright: Copyright (c) 2020, Ali Moshref, with Reserved Font Name AMoshref-Thulth.
+- Copyright: Copyright (c) 2020, ali moshref (ali.moshref@yahoo.com), with Reserved Font Name AMoshref-Thulth.
 - License: OFL-1.1
 - Source: https://github.com/mokhtarbsaid/rare-arabic-fonts (redistribution mirror of the OFL release)
 
@@ -22,7 +22,8 @@ upstream copyright, and the source it was obtained from.
 
 - File: `layla-thuluth-arabic-400.ttf` (188,812 bytes)
 - Author: Mohammed Isam (Layla fonts project)
-- Copyright: Copyright 2014–2017, Mohammed Isam. Latin glyphs and numbers derived from the font Urdu Khush Khati v1.5, Basharat Ali (lfcsopensource), built with FontForge 2.0.
+- Copyright: Copyright 2014, 2015, 2016, 2017, Mohammed Isam. Latin glyphs and numbers taken from the font Urdu Khush Khati v1.5, Basharat Ali (lfcsopensource), built with FontForge 2.0.
+- Reserved Font Names: LaylaArcyArc, LaylaBasicArabic, LaylaBoxer, LaylaDigital, LaylaDiwani, LaylaThuluth, LaylaKoufi, LaylaRuqaa
 - License: OFL-1.1
 - Source: https://fontlibrary.org/en/font/layla-thuluth
 
@@ -54,7 +55,7 @@ upstream copyright, and the source it was obtained from.
 
 - Files: `mirza-arabic-400.ttf` (177,820 bytes), `mirza-arabic-700.ttf` (177,052 bytes)
 - Author: KB Studio
-- Copyright: Copyright 2015 The Mirza Project Authors (https://github.com/Tarobish/Mirza)
+- Copyright: Copyright 2015, 2016 KB-Studio (www.k-b-studio.com | tarobish@gmail.com). Copyright 2015, 2016 Lasse Fister (lasse@graphicore.de). Copyright 2015, 2016 Eduardo Tunni (edu@tipo.net.ar).
 - License: OFL-1.1
 - Source: https://github.com/google/fonts/tree/main/ofl/mirza
 
@@ -68,9 +69,10 @@ upstream copyright, and the source it was obtained from.
 
 ## Marhey
 
-- File: `marhey-arabic-400.ttf` (198,704 bytes; upstream variable `Marhey[wght].ttf`, used at its default 400 instance)
+- File: `marhey-arabic-400.ttf` (132,640 bytes; static weight-400 instance generated with fonttools `varLib.instancer` from the upstream variable `Marhey[wght].ttf`, whose default instance is Light/300)
 - Authors: Nur Syamsi, Bustanul Arifin
 - Copyright: Copyright 2022 The Marhey Project Authors (https://github.com/namelatype/Marhey)
+- Note: a Modified Version under OFL §3 (instanced, not renamed); Marhey declares no Reserved Font Names.
 - License: OFL-1.1
 - Source: https://github.com/google/fonts/tree/main/ofl/marhey
 

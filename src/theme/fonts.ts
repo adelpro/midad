@@ -27,7 +27,7 @@
  *  - ScheherazadeNew  → Quranic Naskh (400/700)
  *  - Mirza            → Persian text (400/700)
  *  - ElMessiri        → Elegant display, variable pinned to 400
- *  - Marhey           → Playful display, variable pinned to 400
+ *  - Marhey           → Playful display (400)
  *  - Geist            → Latin UI sans (400/500/600/700)
  */
 
@@ -62,8 +62,9 @@ export const fontAssets = {
   AMoshrefThulth: require('@/assets/fonts/amoshref-thulth-arabic-400.ttf'),
   LaylaThuluth: require('@/assets/fonts/layla-thuluth-arabic-400.ttf'),
   Gulzar: require('@/assets/fonts/gulzar-arabic-400.ttf'),
-  // Kufam, ElMessiri and Marhey ship upstream as variable fonts; the editor
-  // pins weight 400, so only each file's default instance is used.
+  // Kufam and ElMessiri ship upstream as variable fonts; the editor pins
+  // weight 400, so only each file's default instance is used. Marhey was
+  // instanced to a static weight 400 (its upstream default is Light).
   Kufam: require('@/assets/fonts/kufam-arabic-400.ttf'),
   ScheherazadeNew: require('@/assets/fonts/scheherazade-new-arabic-400.ttf'),
   'ScheherazadeNew-Bold': require('@/assets/fonts/scheherazade-new-arabic-700.ttf'),
