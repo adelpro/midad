@@ -37,10 +37,12 @@ so "what the selection is" → "what is available" stays a pure function.
 | 3   | `fitText`          | Text only                                                     |
 | 4   | `split`, `rejoin`  | **Share a slot** — only one can apply to a given selection    |
 | 5   | `group`, `ungroup` | **Share a slot** — a selection is loose elements or one group |
-| 6   | `duplicate`        |                                                               |
-| 7   | `bringToFront`     |                                                               |
-| 8   | `sendToBack`       |                                                               |
-| 9   | `delete`           |                                                               |
+| 6   | `flipH`            | Beside scale — flip has no canvas gesture (§2 note)           |
+| 7   | `flipV`            |                                                               |
+| 8   | `duplicate`        |                                                               |
+| 9   | `bringToFront`     |                                                               |
+| 10  | `sendToBack`       |                                                               |
+| 11  | `delete`           |                                                               |
 
 `styleOpen` leads because it is the **only route to the style panel**, so it has
 to survive every truncation. It costs one slot rather than the five a full preset
@@ -51,15 +53,18 @@ seen from two sides; `group`/`ungroup` are the two ends of another — a selecti
 is either a set of loose elements (which can be grouped) or one whole group
 (which can be dissolved), never both. See `editor-groups.md` §7.
 
-`OVERFLOW_ACTIONS` — sheet-only, 14 ids: `rotateCcw`, `rotateCw`, `flipH`,
-`flipV`, the six `align*`, `centerH`, `centerV`, `stylePrev`, `styleNext`.
+`OVERFLOW_ACTIONS` — sheet-only, 12 ids: `rotateCcw`, `rotateCw`, the six
+`align*`, `centerH`, `centerV`, `stylePrev`, `styleNext`.
 
 The reasons differ per group, and they are worth keeping in mind before promoting
 anything into the rail:
 
-- **Rotation and flip** are already gestures on the canvas (the grip above the
-  selection, a two-finger twist), so a rail button duplicates them.
-- **Scale** deliberately stays in the rail instead, because pinch-to-zoom is the
+- **Rotation** is already a gesture on the canvas (the grip above the selection,
+  a two-finger twist), so a rail button duplicates it.
+- **Flip is not a gesture** — an object mirrors only through a control — so its
+  pair sits in the rail beside scale, for exactly the reason scale is there:
+  nothing on the canvas expresses it.
+- **Scale** deliberately stays in the rail, because pinch-to-zoom is the
   **least discoverable** of the gestures.
 - **The align group** only applies to a multi-selection.
 - **The preset arrows** are a second route to what the style panel already lists,

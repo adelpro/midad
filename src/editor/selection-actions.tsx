@@ -131,6 +131,12 @@ export interface SelectionShape {
  * set of loose elements (which can be grouped) or one whole group (which can be
  * dissolved), never both at once.
  *
+ * The flip pair sits beside scale on purpose. Scale keeps its rail buttons
+ * because pinch-to-zoom is the least discoverable of the canvas gestures; flip
+ * has *no* gesture at all — an object mirrors only through these buttons (or
+ * `⇧H` / `⇧V` on a keyboard) — so hiding it behind `⋯` would hide the one edge
+ * of the transformation set the canvas cannot express.
+ *
  * `styleOpen` leads on purpose. It is the only route to the style panel, so it
  * has to survive every truncation — and it costs one slot rather than the five
  * a full preset navigator (arrows + name) used to take out of the same row.
@@ -142,6 +148,8 @@ const RAIL_SLOTS: readonly (readonly SelectionActionId[])[] = [
   ['fitText'],
   ['split', 'rejoin'],
   ['group', 'ungroup'],
+  ['flipH'],
+  ['flipV'],
   ['duplicate'],
   ['bringToFront'],
   ['sendToBack'],
@@ -151,11 +159,13 @@ const RAIL_SLOTS: readonly (readonly SelectionActionId[])[] = [
 /**
  * Actions that live only in the `⋯` sheet.
  *
- * Rotation and flip are already gestures on the canvas — the grip above the
- * selection and a two-finger twist — so a rail button for them is a duplicate.
- * Scale keeps its buttons in the rail instead, because pinch-to-zoom is the
- * least discoverable of the gestures. The align group only ever applies to a
- * multi-selection, and the canvas-centre pair is rare next to the rest.
+ * Rotation is already a gesture on the canvas — the grip above the selection and
+ * a two-finger twist — so a rail button for it is a duplicate. Flip is not: it
+ * has no gesture, which is why its pair sits in the rail beside scale (above)
+ * where every transform can be reached without the sheet.
+ *
+ * The align group only ever applies to a multi-selection, and the canvas-centre
+ * pair is rare next to the rest.
  *
  * The preset arrows land here for a different reason: they are a second route
  * to what the style panel already lists, and at two slots they cost more rail
@@ -165,8 +175,6 @@ const RAIL_SLOTS: readonly (readonly SelectionActionId[])[] = [
 const OVERFLOW_ACTIONS: readonly SelectionActionId[] = [
   'rotateCcw',
   'rotateCw',
-  'flipH',
-  'flipV',
   'alignLeft',
   'alignCenterH',
   'alignRight',
