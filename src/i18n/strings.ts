@@ -212,6 +212,16 @@ export interface Translation {
     // Text preview in the text sheet.
     preview: string;
     previewSample: string;
+    /** Title of the color picker sheet. */
+    pickColor: string;
+    /** Label above the custom color input. */
+    customColor: string;
+    /** Label above the recently used custom colors. */
+    recentColors: string;
+    /** Hint under the custom input, showing the accepted forms. */
+    colorFormatHint: string;
+    /** Shown in place of the hint when the input is not a color. */
+    invalidColor: string;
     hints: {
       back: string;
       undo: string;
@@ -492,6 +502,11 @@ export const strings: Record<Language, Translation> = {
       learnPaused: 'وضع التعلّم متوقف مؤقتًا.',
       preview: 'معاينة',
       previewSample: 'عيّنة',
+      pickColor: 'اختيار لون',
+      customColor: 'لون مخصّص',
+      recentColors: 'ألوان أخيرة',
+      colorFormatHint: 'مثال: ‎#7A1F1F أو rgb(122, 31, 31)',
+      invalidColor: 'صيغة اللون غير صحيحة.',
       hints: {
         back: 'رجوع',
         undo: 'تراجع',
@@ -769,6 +784,11 @@ export const strings: Record<Language, Translation> = {
       learnPaused: 'Learn mode is paused.',
       preview: 'Preview',
       previewSample: 'Sample',
+      pickColor: 'Pick a color',
+      customColor: 'Custom color',
+      recentColors: 'Recent colors',
+      colorFormatHint: 'e.g. #7A1F1F or rgb(122, 31, 31)',
+      invalidColor: 'Not a valid color.',
       hints: {
         back: 'Back',
         undo: 'Undo',
