@@ -2,7 +2,7 @@
  * Runs the whole verification suite at once: the one command that answers "is
  * this tree OK?".
  *
- * It is exactly `yarn typecheck` + `yarn lint` + the nine `check-*` scripts, run
+ * It is exactly `yarn typecheck` + `yarn lint` + the ten `check-*` scripts, run
  * together — the repo has no test runner, and running them one after another
  * charges the sum of their times to every edit. None of them share state, so
  * they run as sibling processes and the wall clock is the slowest task rather
@@ -61,6 +61,7 @@ const TASKS = [
   { id: 'help', command: [join(here, 'check-help.mjs')] },
   { id: 'fonts', command: [join(here, 'check-fonts.mjs')] },
   { id: 'export-payload', command: [join(here, 'check-export-payload.mjs')] },
+  { id: 'color', command: [join(here, 'check-color.mjs')] },
 ];
 
 const serial = process.argv.includes('--serial');
