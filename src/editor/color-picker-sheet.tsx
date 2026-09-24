@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -96,78 +97,90 @@ export function ColorPickerSheet({
       closeButton
       presentation={Platform.OS === 'web' ? 'modal' : 'bottom'}
     >
-      <View style={styles.previewRow}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollBody}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        showsVerticalScrollIndicator
+      >
+        <View style={styles.previewRow}>
+          <View
+            style={[
+              styles.previewSwatch,
+              { backgroundColor: preview, borderColor: c.border },
+            ]}
+          />
+          <Text
+            style={[styles.previewHex, { color: c.ink, fontFamily: uiFont }]}
+          >
+            {preview}
+          </Text>
+        </View>
+
+        <Text style={[styles.label, { color: c.muted, fontFamily: uiFont }]}>
+          {t.editor.colors}
+        </Text>
+        <View style={styles.grid}>{inkSwatches.map(renderSwatch)}</View>
+
+        {recentColors.length > 0 && (
+          <>
+            <Text
+              style={[styles.label, { color: c.muted, fontFamily: uiFont }]}
+            >
+              {t.editor.recentColors}
+            </Text>
+            <View style={styles.grid}>{recentColors.map(renderSwatch)}</View>
+          </>
+        )}
+
+        <Text style={[styles.label, { color: c.muted, fontFamily: uiFont }]}>
+          {t.editor.customColor}
+        </Text>
         <View
           style={[
-            styles.previewSwatch,
-            { backgroundColor: preview, borderColor: c.border },
-          ]}
-        />
-        <Text style={[styles.previewHex, { color: c.ink, fontFamily: uiFont }]}>
-          {preview}
-        </Text>
-      </View>
-
-      <Text style={[styles.label, { color: c.muted, fontFamily: uiFont }]}>
-        {t.editor.colors}
-      </Text>
-      <View style={styles.grid}>{inkSwatches.map(renderSwatch)}</View>
-
-      {recentColors.length > 0 && (
-        <>
-          <Text style={[styles.label, { color: c.muted, fontFamily: uiFont }]}>
-            {t.editor.recentColors}
-          </Text>
-          <View style={styles.grid}>{recentColors.map(renderSwatch)}</View>
-        </>
-      )}
-
-      <Text style={[styles.label, { color: c.muted, fontFamily: uiFont }]}>
-        {t.editor.customColor}
-      </Text>
-      <View
-        style={[
-          styles.input,
-          {
-            backgroundColor: c.surfaceAlt,
-            borderColor: invalid ? c.danger : c.border,
-          },
-        ]}
-      >
-        <TextInput
-          value={draft}
-          onChangeText={(text) => {
-            setDraft(text);
-            if (invalid) {
-              setInvalid(false);
-            }
-          }}
-          onBlur={commit}
-          onSubmitEditing={commit}
-          placeholder="#7A1F1F"
-          placeholderTextColor={c.faint}
-          autoCapitalize="none"
-          autoCorrect={false}
-          accessibilityLabel={t.editor.customColor}
-          style={[
-            styles.inputText,
+            styles.input,
             {
-              color: c.ink,
-              fontFamily: uiFont,
-              textAlign: isRTL ? 'right' : 'left',
-              writingDirection: isRTL ? 'rtl' : 'ltr',
+              backgroundColor: c.surfaceAlt,
+              borderColor: invalid ? c.danger : c.border,
             },
           ]}
-        />
-      </View>
-      <Text
-        style={[
-          styles.hint,
-          { color: invalid ? c.danger : c.muted, fontFamily: uiFont },
-        ]}
-      >
-        {invalid ? t.editor.invalidColor : t.editor.colorFormatHint}
-      </Text>
+        >
+          <TextInput
+            value={draft}
+            onChangeText={(text) => {
+              setDraft(text);
+              if (invalid) {
+                setInvalid(false);
+              }
+            }}
+            onBlur={commit}
+            onSubmitEditing={commit}
+            placeholder="#7A1F1F"
+            placeholderTextColor={c.faint}
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel={t.editor.customColor}
+            style={[
+              styles.inputText,
+              {
+                color: c.ink,
+                fontFamily: uiFont,
+                textAlign: isRTL ? 'right' : 'left',
+                writingDirection: isRTL ? 'rtl' : 'ltr',
+              },
+            ]}
+          />
+        </View>
+        <Text
+          style={[
+            styles.hint,
+            { color: invalid ? c.danger : c.muted, fontFamily: uiFont },
+          ]}
+        >
+          {invalid ? t.editor.invalidColor : t.editor.colorFormatHint}
+        </Text>
+      </ScrollView>
 
       <Button label={t.common.done} onPress={onClose} fullWidth />
     </Sheet>
@@ -175,6 +188,8 @@ export function ColorPickerSheet({
 }
 
 const styles = StyleSheet.create({
+  scroll: { flexShrink: 1 },
+  scrollBody: { paddingBottom: spacing.xxs },
   previewRow: {
     flexDirection: 'row',
     alignItems: 'center',

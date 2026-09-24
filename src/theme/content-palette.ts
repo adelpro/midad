@@ -10,28 +10,28 @@
 /** Ink and accent swatches offered by the colour tool. */
 export const inkSwatches = [
   '#111111',
-  '#7A1F1F',
-  '#1F4E79',
-  '#1F6C3B',
-  '#B0894F',
-  '#FFFFFF',
+  '#7a1f1f',
+  '#1f4e79',
+  '#1f6c3b',
+  '#b0894f',
+  '#ffffff',
 ] as const;
 
 /** Paper and ground tones offered by the background tool. */
 export const paperSwatches = [
-  '#F7F6F3',
-  '#FFFFFF',
+  '#f7f6f3',
+  '#ffffff',
   '#111111',
-  '#E8E2D5',
-  '#2C3E50',
-  '#5C4033',
+  '#e8e2d5',
+  '#2c3e50',
+  '#5c4033',
 ] as const;
 
 /** Default fill for a newly created text object. */
 export const DEFAULT_INK = '#111111';
 
 /** Default paper colour for a new project. */
-export const DEFAULT_PAPER = '#F7F6F3';
+export const DEFAULT_PAPER = '#f7f6f3';
 
 /**
  * Shadow colours used by the presentation presets. Kept as translucent rgba so

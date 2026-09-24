@@ -62,6 +62,11 @@ Custom entries are remembered in `useSettings.recentColors` under
 **device-local** — it never enters the project document, so there is no schema
 bump and nothing for `import-project.ts` to validate.
 
+The content palette (`inkSwatches`, `paperSwatches`, `DEFAULT_INK`,
+`DEFAULT_PAPER`) is **already canonical lowercase hex**, and `check-color.mjs`
+pins that: a preset tap writes the swatch value verbatim, so an uppercase preset
+would store a second spelling and miss the active-swatch highlight.
+
 `pushRecent(colors, color, max)` (`src/theme/color.ts`) moves a colour to the
 front, drops any earlier copy case-insensitively, and caps the list at
 `RECENT_COLORS_MAX = 8`. It is pure, so `check-color.mjs` pins the dedupe and the
@@ -97,6 +102,10 @@ sheet) without moving editor logic into it.
 The custom field commits on submit (`onSubmitEditing`) and on blur. Empty input
 is a no-op, not an error. An invalid entry turns the hint into the error copy and
 the field border to the danger colour; editing again clears it.
+
+The body scrolls (the panel is capped at 82% of the window) and the Done button
+sits outside the scroller, so a full recent list on a small screen cannot hide the
+confirm control. This mirrors `font-picker-sheet.tsx`.
 
 ## 7. Edge cases
 

@@ -100,12 +100,42 @@ checkRecent([], '#112233', 8, ['#112233']);
 checkRecent(['#111111'], '#222222', 8, ['#222222', '#111111']);
 checkRecent(['#111111', '#222222'], '#222222', 8, ['#222222', '#111111']);
 checkRecent(['#AABBCC', '#111111'], '#aabbcc', 8, ['#aabbcc', '#111111']);
-checkRecent(
-  ['#111111', '#222222', '#333333'],
+checkRecent(['#111111', '#222222', '#333333'], '#444444', 3, [
   '#444444',
-  3,
-  ['#444444', '#111111', '#222222'],
+  '#111111',
+  '#222222',
+]);
+
+// The content palette must already be canonical, or a preset tap would store a
+// different spelling than a typed one and the active-swatch highlight would miss.
+const paletteSource = readFileSync(
+  join(here, '..', 'src', 'theme', 'content-palette.ts'),
+  'utf8',
 );
+const { outputText: paletteOut } = ts.transpileModule(paletteSource, {
+  compilerOptions: {
+    module: ts.ModuleKind.CommonJS,
+    target: ts.ScriptTarget.ES2020,
+  },
+});
+const paletteShim = { exports: {} };
+new Function('exports', 'module', paletteOut)(paletteShim.exports, paletteShim);
+const { inkSwatches, paperSwatches, DEFAULT_INK, DEFAULT_PAPER } =
+  paletteShim.exports;
+for (const value of [
+  ...inkSwatches,
+  ...paperSwatches,
+  DEFAULT_INK,
+  DEFAULT_PAPER,
+]) {
+  cases += 1;
+  if (parseColor(value) !== value) {
+    failures += 1;
+    console.error(
+      `FAIL: palette value ${JSON.stringify(value)} is not canonical (parseColor → ${JSON.stringify(parseColor(value))})`,
+    );
+  }
+}
 
 if (failures > 0) {
   console.error(`\ncheck-color: ${failures} failure(s)`);
