@@ -113,6 +113,33 @@ export function normalizeRemoteWeight(weight: number): number {
 }
 
 /**
+ * Title-case a Fontsource slug for display: `'markazi-text'` → `'Markazi Text'`.
+ * A rough humanization, not a real name lookup — the catalog's `family` field
+ * is the authoritative display name, which this pure module cannot know.
+ */
+export function humanizeRemoteFontId(id: string): string {
+  return normalizeRemoteFontId(id)
+    .split('-')
+    .filter(Boolean)
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
+ * A readable label for a remote face — e.g. `'Markazi Text · 400'` — or `null`
+ * when `fontKey` is not a remote key. Callers use it where only the key is at
+ * hand (a text object's `fontKey`, the FontField line), before the catalog's
+ * display name is available.
+ */
+export function remoteFontLabel(fontKey: string): string | null {
+  const parsed = parseRemoteFontKey(fontKey);
+  if (!parsed) {
+    return null;
+  }
+  return `${humanizeRemoteFontId(parsed.id)} · ${parsed.weight}`;
+}
+
+/**
  * Resolve the status of a `fontKey`.
  *
  * Pure: callers supply the two predicates so this module stays import-free (the

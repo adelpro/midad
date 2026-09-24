@@ -34,6 +34,8 @@ const {
   parseRemoteFontKey,
   normalizeRemoteFontId,
   normalizeRemoteWeight,
+  humanizeRemoteFontId,
+  remoteFontLabel,
   faceStatusForKey,
   remoteFontTtfUrl,
 } = moduleShim.exports;
@@ -112,6 +114,22 @@ if (
   normalizeRemoteWeight(Number.NaN) !== 400
 ) {
   fail('normalizeRemoteWeight fallback/rounding wrong');
+}
+
+// ── display labels ───────────────────────────────────────────────────────────
+if (humanizeRemoteFontId('markazi-text') !== 'Markazi Text') {
+  fail('humanizeRemoteFontId did not title-case a slug');
+}
+if (humanizeRemoteFontId('noto-naskh-arabic') !== 'Noto Naskh Arabic') {
+  fail('humanizeRemoteFontId mishandled a multi-word slug');
+}
+if (remoteFontLabel('remote:markazi-text:700') !== 'Markazi Text · 700') {
+  fail(
+    `remoteFontLabel did not humanize a remote key: ${remoteFontLabel('remote:markazi-text:700')}`,
+  );
+}
+if (remoteFontLabel('Amiri') !== null || remoteFontLabel('') !== null) {
+  fail('remoteFontLabel must return null for non-remote keys');
 }
 
 // ── face status machine ──────────────────────────────────────────────────────

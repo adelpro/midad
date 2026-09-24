@@ -54,6 +54,18 @@ loudly instead of rendering in the wrong script.
 callers (`Object.hasOwn` over the registry; the cache's `isRemoteFontInstalled`),
 so the check script can transpile and evaluate it standalone.
 
+### Render-time resolution
+
+The Skia paragraph builder resolves a text object's family through the set of
+faces the **latest built provider** registered — `registeredFamilies` in
+`src/editor/skia/text.ts` (every bundled key plus the installed remote faces).
+A remote key that is installed renders; any key the provider does not know
+falls back to Amiri. That fallback is the _render_ fallback only: the same
+state machine above decides what the UI says, the missing-font banner names
+every `remote-missing` face on document open and offers the download, and a
+_new_ document can only name a face by downloading it from the picker first —
+so Amiri in the meantime is a visible interim, never a silent substitution.
+
 ## 3. Platform cache semantics
 
 The cache module mirrors `src/storage/thumbs.ts` (single module, `Platform.OS`
@@ -90,27 +102,98 @@ data is here.
 
 `scripts/check-remote-fonts.mjs` (wired into `verify.mjs`) transpiles
 `remote-fonts.ts` and asserts: valid/invalid key formats (lowercase slug only),
-build/parse round-trip, id and weight normalisers, the face-status state
-machine, the CDN URL builder, and that `remote-fonts.ts` declares **no imports**
-and never mentions the bundled registry or React Native. It also asserts the
-catalogue and cache modules exist and reuse the pure helpers.
+build/parse round-trip, id and weight normalisers, the display-label helpers
+(`humanizeRemoteFontId`, `remoteFontLabel`), the face-status state machine, the
+CDN URL builder, and that `remote-fonts.ts` declares **no imports** and never
+mentions the bundled registry or React Native. It also asserts the catalogue
+and cache modules exist and reuse the pure helpers.
 
-## 6. Not yet decided (Phase 2/3)
+## 6. Editor wiring (Phase 2)
 
-- The editor wiring: picker search, per-face download state, the Skia provider
-  merge, expo-font registration, export embedding.
+### Registration is one door
+
+`src/storage/remote-font-registry.ts` owns both registrations, so they can
+never drift. `downloadRemoteFont(id, weight)` (the only way a face enters the
+app — a picker weight chip or the missing-font banner) installs into the cache
+and reconciles `refreshInstalledRemoteFonts`, which:
+
+1. registers every cached face with **expo-font** under its `fontKey` family
+   name — this is what makes RN `<Text>`/`TextInput` paths (the TextPreview,
+   the FontField specimen) render remote faces; and
+2. publishes the installed snapshot — a stable `ReadonlySet<string>` that
+   `useInstalledRemoteFontKeys` (`src/hooks/use-installed-remote-fonts.ts`,
+   a `useSyncExternalStore` hook) exposes, and that is only replaced when its
+   content changes (so a no-op reconcile notifies nobody).
+
+The snapshot mirrors what expo-font actually holds, not the cache index: a face
+whose file was purged (native) is scanned out, and a face that fails to
+register is left out so the UI can offer a retry. `missingRemoteFontKeys(keys)`
+is the document-level query the banner runs.
+
+> **Unverified native risk (manual-test item).** expo-font registers each face
+> under its `fontKey` family name, which contains colons
+> (`remote:markazi-text:400`). iOS family-name handling of the colon is not yet
+> verified on a device; on web the same name is used verbatim in `@font-face`,
+> which is safe. The registration failure is contained either way: the face is
+> left out of the snapshot and the UI offers a retry — never a crash.
+
+### The Skia provider rebuilds from the same snapshot
+
+`loadParagraphFonts` (`src/editor/skia/text.ts`) registers every bundled family
+**and every installed remote face** (TTF bytes from the cache — re-resolved CDN
+URL on web, file read on native) under its `fontKey`, and only then swaps the
+`registeredFamilies` mirror the paragraph builder resolves through. A failed
+load leaves the previous mirror intact. `useParagraphFonts` reconciles expo-font
+first and rebuilds the provider whenever `useInstalledRemoteFontKeys`' snapshot
+changes, so downloading a face re-shapes the canvas in place — `useTextLayouts`
+already memoizes on the provider identity.
+
+### Picker: search, badge, weight chips, download
+
+The Google Fonts section in `src/editor/font-picker-sheet.tsx` appears while
+the picker's search box is non-empty (the box doubles as its search field):
+each family row shows the display name and an Arabic badge
+(`subsets.includes('arabic')` → "يدعم العربية" / "بدون عربي"), and expands to
+one chip per weight. A chip is a state machine — `downloading` (spinner), then
+`installed` (`✓ <weight>`), or `retry` on failure — and tapping it downloads
+and registers the face (`downloadRemoteFont`), then selects it
+(`onChange(remoteFontKey(id, weight))`). Installed chips stay tappable to
+re-select; no re-download. The catalog fetch is cached (weekly), the search is
+debounced, and a failed fetch shows "تعذّر الوصول إلى مكتبة خطوط Google" with
+no crash.
+
+### Missing-font banner
+
+On open, `EditorScreen` scans the document's text-object `fontKey`s
+(`missingRemoteFontKeys`) and, when any are missing, shows a strip under the
+top bar: title + body naming the situation, and a download action that fetches
+each missing face and clears the strip (the scan re-runs on every installed-set
+change). The scan is keyed on the _content_ of the document's font keys, so a
+drag (which re-creates the project object every frame) never re-reads
+AsyncStorage.
+
+## 7. Not yet decided (Phase 3)
+
+- SVG export embedding: `familyForKey` in `export/svg.ts` still resolves only
+  the bundled registry — a document with a remote face exports that text in
+  Amiri until the exporter learns to inline the installed TTF.
 - LRU eviction beyond a small cap, purge detection on app open.
 - Downloading `latin` alongside `arabic` (web renders Latin in a remote face
   with the system fallback until then).
 - The `latin`/`arabic` choice affects only which subsets `installRemoteFont`
   fetches — the identity and status machinery above does not change.
 
-## 7. Code map
+## 8. Code map
 
-| Concern                                                   | File                                 |
-| --------------------------------------------------------- | ------------------------------------ |
-| Identity, status machine, URL builder (pure, import-free) | `src/theme/remote-fonts.ts`          |
-| Catalogue fetch, cache, search                            | `src/storage/remote-font-catalog.ts` |
-| Face download + device cache index                        | `src/storage/remote-font-cache.ts`   |
-| Executable spec                                           | `scripts/check-remote-fonts.mjs`     |
-| Contract index                                            | `docs/index.md` §3/§4                |
+| Concern                                                           | File                                      |
+| ----------------------------------------------------------------- | ----------------------------------------- |
+| Identity, status machine, URL builder, labels (pure, import-free) | `src/theme/remote-fonts.ts`               |
+| Catalogue fetch, cache, search                                    | `src/storage/remote-font-catalog.ts`      |
+| Face download + device cache index                                | `src/storage/remote-font-cache.ts`        |
+| Registration door + installed snapshot + missing scan             | `src/storage/remote-font-registry.ts`     |
+| Installed snapshot hook                                           | `src/hooks/use-installed-remote-fonts.ts` |
+| Skia provider merge + rebuild + render resolution                 | `src/editor/skia/text.ts`                 |
+| Picker Google Fonts section (search/badge/chips/download)         | `src/editor/font-picker-sheet.tsx`        |
+| Missing-font banner on document open                              | `src/editor/EditorScreen.tsx`             |
+| Executable spec                                                   | `scripts/check-remote-fonts.mjs`          |
+| Contract index                                                    | `docs/index.md` §3/§4                     |
