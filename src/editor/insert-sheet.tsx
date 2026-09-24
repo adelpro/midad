@@ -12,6 +12,7 @@
  */
 import { useState } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -294,7 +295,18 @@ export function InsertSheet({
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={t.editor.glyphs}>
+    // Modal on web: `Sheet` only enables its drag-to-dismiss pan for the bottom
+    // presentation, and that pan would otherwise steal vertical drags from the
+    // scrolling grid — dragging the list would slide the whole sheet down. The
+    // centered modal has no such gesture, so the `ScrollView` owns them (the
+    // same reason `help-sheet.tsx` and the two pickers are modals on web).
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title={t.editor.glyphs}
+      closeButton
+      presentation={Platform.OS === 'web' ? 'modal' : 'bottom'}
+    >
       <View style={styles.body}>
         <View style={styles.tabs}>
           <Button
