@@ -221,6 +221,11 @@ export interface Translation {
     missingFontsTitle: string;
     /** Banner body, explaining what the download is for. */
     missingFontsBody: string;
+    // Weight-chip labels: remote faces name weights the way bundled variants do.
+    /** Chip label for weight 400. */
+    fontWeightRegular: string;
+    /** Chip label for weight 700. */
+    fontWeightBold: string;
     lineHeight: string;
     opacity: string;
     align: string;
@@ -525,6 +530,8 @@ export const strings: Record<Language, Translation> = {
       missingFontsTitle: 'خطوط غير محمّلة',
       missingFontsBody:
         'هذه اللوحة تستخدم خطوط Google ليست على هذا الجهاز بعد. حمّلها الآن ليظهر النص بخطوطه الأصلية.',
+      fontWeightRegular: 'عادي',
+      fontWeightBold: 'عريض',
       lineHeight: 'تباعد الأسطر',
       opacity: 'العتامة',
       align: 'المحاذاة',
@@ -820,6 +827,8 @@ export const strings: Record<Language, Translation> = {
       missingFontsTitle: 'Missing fonts',
       missingFontsBody:
         'This design uses Google Fonts that aren’t on this device yet. Download them now so the text renders in its own typefaces.',
+      fontWeightRegular: 'Regular',
+      fontWeightBold: 'Bold',
       lineHeight: 'Line height',
       opacity: 'Opacity',
       align: 'Alignment',

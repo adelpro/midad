@@ -155,12 +155,19 @@ the picker's search box is non-empty (the box doubles as its search field):
 each family row shows the display name and an Arabic badge
 (`subsets.includes('arabic')` → "يدعم العربية" / "بدون عربي"), and expands to
 one chip per weight. A chip is a state machine — `downloading` (spinner), then
-`installed` (`✓ <weight>`), or `retry` on failure — and tapping it downloads
+`installed` (`✓ <label>`), or `retry` on failure — and tapping it downloads
 and registers the face (`downloadRemoteFont`), then selects it
 (`onChange(remoteFontKey(id, weight))`). Installed chips stay tappable to
 re-select; no re-download. The catalog fetch is cached (weekly), the search is
 debounced, and a failed fetch shows "تعذّر الوصول إلى مكتبة خطوط Google" with
 no crash.
+
+Each weight chip is labelled the way the bundled registry names variants —
+400 → "عادي"/"Regular", 700 → "عريض"/"Bold", any other weight keeps its number
+(`fontWeightRegular`/`fontWeightBold`). And the installed snapshot warms from
+the cache on first use in a session (`useInstalledRemoteFontKeys`'s mount
+effect), so faces installed in a previous launch already show `✓` on the
+session's first open instead of flipping a beat later.
 
 ### Missing-font banner
 
@@ -172,16 +179,40 @@ change). The scan is keyed on the _content_ of the document's font keys, so a
 drag (which re-creates the project object every frame) never re-reads
 AsyncStorage.
 
-## 7. Not yet decided (Phase 3)
+## 7. Exports and hardening (Phase 3)
 
-- SVG export embedding: `familyForKey` in `export/svg.ts` still resolves only
-  the bundled registry — a document with a remote face exports that text in
-  Amiri until the exporter learns to inline the installed TTF.
-- LRU eviction beyond a small cap, purge detection on app open.
-- Downloading `latin` alongside `arabic` (web renders Latin in a remote face
-  with the system fallback until then).
-- The `latin`/`arabic` choice affects only which subsets `installRemoteFont`
-  fetches — the identity and status machinery above does not change.
+- **SVG embeds remote faces.** `familyForKey` in `export/svg.ts` resolves a
+  remote key to a per-face display name — `Family Weight` (e.g. `Markazi Text
+400`) — and `collectSvgFontFaces` inlines the installed TTF bytes
+  (`bytesForRemoteFont`) under that name. `textToSvg` single-quotes any family
+  name that is not a bare CSS identifier, so the `<text font-family>` matches
+  the `@font-face` rule. A remote face that is **not** installed is left
+  unembedded and the viewer substitutes — never a different embedded face
+  (embedding Amiri on its behalf would be the silent substitution the contract
+  forbids). Bundled keys still export under their exact `fontKey`. The cache
+  index is LRU-capped (`REMOTE_FONT_CACHE_MAX`, 30 faces) and eviction deletes
+  the native file too.
+- **PNG/thumbnail parity.** Both paths build their provider from
+  `loadParagraphFonts` (thumbnails: `renderImportedThumbnail`) or the editor's
+  hook provider (`renderProjectToPng` takes it in), so remote faces render in
+  PNG exports and gallery thumbnails with no exporter-specific code — parity
+  falls out of Phase 2's provider merge.
+- **Purge detection and offline catalog** were already delivered in
+  Phases 1–2: `isRemoteFontInstalled`/`uriForRemoteFont` verify file existence,
+  `listInstalledRemoteFonts` skips purged entries, the missing-font banner
+  re-downloads on use, and the catalog JSON is cached (weekly) so search keeps
+  working offline after the first fetch.
+
+### Known limit: Latin glyphs in a remote face
+
+Remote faces are downloaded **arabic-only**; Latin text in a remote face
+renders with the system fallback (native) or the app's fallback (web). Fetching
+`latin` alongside `arabic` is deliberately deferred: each family name holds
+**one** registered file in both expo-font and Skia's provider, while Fontsource
+serves each subset as a _separate_ true-subset TTF — so a second file cannot
+register under the same family, and merging the two into one TTF needs a font
+tool this app does not vendor. Nothing else changes: download subsets only
+affect `installRemoteFont`'s fetch list, not identity or status.
 
 ## 8. Code map
 

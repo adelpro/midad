@@ -189,10 +189,15 @@ ids are not guaranteed to be XML-id-safe.
 `collectSvgFontFaces`. On web, Metro resolves the font asset to a URI that is
 fetched; on native the `require()` id goes through `expo-asset` and
 `expo-file-system`. **An unembeddable family is silently skipped** — the export
-succeeds and the viewer falls back to a substitute font. `familyForKey` returns
-the stored `fontKey` itself when it names a known asset, so the exact variant is
-embedded — a bold object embeds its bold file, not the regular one — and falls
-back to `Amiri` for an unknown key.
+succeeds and the viewer falls back to a substitute font. Bundled faces embed
+under their stored `fontKey` itself, so the exact variant is embedded — a bold
+object embeds its bold file, not the regular one. Remote faces embed their
+installed TTF bytes under a per-face display name — `Family Weight` (e.g.
+`Markazi Text 400`) — quoted by `textToSvg` so the `<text font-family>` matches
+the `@font-face` rule; a remote face that is not installed stays unembedded and
+the viewer substitutes, **never** a different embedded face. Unknown keys
+render as Amiri but are not embedded on their behalf (`collectUsedFamilies`
+yields only embeddable keys).
 
 ## 9. PNG specifics
 

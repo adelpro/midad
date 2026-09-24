@@ -16,7 +16,13 @@ import type {
   MidadProject,
   ShapeObject,
 } from '@/storage/project-schema';
+import { bytesForRemoteFont } from '@/storage/remote-font-cache';
 import { fontAssets } from '@/theme';
+import {
+  humanizeRemoteFontId,
+  isRemoteFontKey,
+  parseRemoteFontKey,
+} from '@/theme/remote-fonts';
 import { escapeXml, textToSvg } from './svg-text';
 
 export interface SvgFontFace {
@@ -27,12 +33,22 @@ export interface SvgFontFace {
 /**
  * The `@font-face` family name for a stored fontKey.
  *
- * The key names the exact variant, and its own asset is embedded under that
- * name — so `Amiri-Bold` exports the bold file rather than collapsing to the
- * regular Amiri face. Unknown keys fall back to Amiri.
+ * Bundled keys name the exact variant, and their own asset is embedded under
+ * that name — so `Amiri-Bold` exports the bold file rather than collapsing to
+ * the regular Amiri face. Remote keys embed under a per-face display name —
+ * `Family Weight` (e.g. `Markazi Text 400`) — because their download is one
+ * TTF per weight, and the name must be unique per embedded face. Unknown keys
+ * fall back to Amiri.
  */
 function familyForKey(fontKey: string): string {
-  return Object.hasOwn(fontAssets, fontKey) ? fontKey : 'Amiri';
+  if (Object.hasOwn(fontAssets, fontKey)) {
+    return fontKey;
+  }
+  const parsed = parseRemoteFontKey(fontKey);
+  if (parsed) {
+    return `${humanizeRemoteFontId(parsed.id)} ${parsed.weight}`;
+  }
+  return 'Amiri';
 }
 
 /** XML id for an object's drop-shadow filter. */
@@ -88,12 +104,22 @@ function textFilterFor(obj: CalligraphyTextObject, id: string): string {
   );
 }
 
-/** Unique font families needed to render this project's text objects. */
+/**
+ * The distinct fontKeys a project's text objects use that the exporter can
+ * embed — bundled keys and remote keys. Unknown keys are skipped: they render
+ * as Amiri (`familyForKey`), but Amiri is not embedded on their behalf —
+ * embedding a face the document does not genuinely use would itself be a
+ * silent substitution.
+ */
 export function collectUsedFamilies(project: MidadProject): string[] {
   const set = new Set<string>();
   for (const obj of project.objects) {
-    if (obj.type === 'text') {
-      set.add(familyForKey(obj.fontKey));
+    if (obj.type !== 'text') {
+      continue;
+    }
+    const key = obj.fontKey;
+    if (Object.hasOwn(fontAssets, key) || isRemoteFontKey(key)) {
+      set.add(key);
     }
   }
   return [...set];
@@ -109,18 +135,26 @@ function bytesToBase64(bytes: Uint8Array): string {
 }
 
 /**
- * Resolve TTF bytes for each requested family into data URIs for @font-face
- * embedding. On web, Metro resolves font assets to URIs we can fetch. On
- * native, the require() id is resolved through expo-asset. Failures degrade
- * gracefully: that family is simply not embedded.
+ * Resolve TTF bytes for each requested fontKey into data URIs for @font-face
+ * embedding, naming each face exactly as `familyForKey` does so the `<text>`
+ * elements match the rules.
+ *
+ * Bundled keys load the vendored asset: on web, Metro resolves the font asset
+ * to a URI we fetch; on native the `require()` id goes through `expo-asset`
+ * and `expo-file-system`. Remote keys read their installed bytes from the
+ * cache (`bytesForRemoteFont`). A remote face that is not installed is simply
+ * not embedded — the export succeeds and the viewer falls back to a substitute
+ * font, **never** to a different embedded face. Failures degrade gracefully:
+ * that face is skipped.
  */
 export async function collectSvgFontFaces(
-  families: string[],
+  fontKeys: string[],
 ): Promise<SvgFontFace[]> {
   const out: SvgFontFace[] = [];
-  for (const family of families) {
+  for (const fontKey of fontKeys) {
+    const family = familyForKey(fontKey);
     try {
-      const asset = (fontAssets as Record<string, unknown>)[family];
+      const asset = (fontAssets as Record<string, unknown>)[fontKey];
       if (typeof asset === 'string') {
         const res = await fetch(asset);
         if (!res.ok) continue;
@@ -141,6 +175,13 @@ export async function collectSvgFontFaces(
         out.push({
           family,
           dataUri: `data:font/ttf;base64,${bytesToBase64(raw)}`,
+        });
+      } else if (isRemoteFontKey(fontKey)) {
+        const bytes = await bytesForRemoteFont(fontKey);
+        if (!bytes) continue; // not installed — leave unembedded
+        out.push({
+          family,
+          dataUri: `data:font/ttf;base64,${bytesToBase64(bytes)}`,
         });
       }
     } catch {

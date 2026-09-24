@@ -372,13 +372,21 @@ export function FontPickerSheet({
                             installing?.id === family.id &&
                             installing.weight === weight;
                           const failed = installErrorKey === key;
+                          // 400/700 get the bundled registry's عادي/عريض
+                          // vocabulary; rarer weights keep their number.
+                          const weightName =
+                            weight === 400
+                              ? t.editor.fontWeightRegular
+                              : weight === 700
+                                ? t.editor.fontWeightBold
+                                : String(weight);
                           const chipLabel = busy
                             ? t.editor.downloadingFont
                             : failed
                               ? t.editor.retryDownload
                               : installed && !selected
-                                ? `✓ ${weight}`
-                                : String(weight);
+                                ? `✓ ${weightName}`
+                                : weightName;
                           return (
                             <AnimatedPressable
                               key={key}
@@ -388,7 +396,7 @@ export function FontPickerSheet({
                                 busy,
                                 disabled: busy,
                               }}
-                              accessibilityLabel={`${family.family} ${weight}${
+                              accessibilityLabel={`${family.family} ${weightName}${
                                 installed
                                   ? `, ${t.editor.installedFont}`
                                   : `, ${t.editor.downloadFont}`

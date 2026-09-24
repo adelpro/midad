@@ -11,7 +11,9 @@
  *
  * Storage budget: face files are small per-subset TTFs (roughly 40–150KB for
  * arabic); the Android AsyncStorage default is 6MB total, which is why the web
- * build stores URLs, not bytes.
+ * build stores URLs, not bytes. The index is trimmed to the most recently
+ * downloaded lives (`REMOTE_FONT_CACHE_MAX`) — native files are deleted, web
+ * entries just drop out of the index and re-resolve next use.
  */
 import { Platform } from 'react-native';
 
@@ -40,6 +42,13 @@ export interface RemoteFontCacheEntry {
 }
 
 const INDEX_KEY = 'midad:remote-fonts:v1';
+
+/**
+ * LRU cap on cached faces. Downloads are on-demand per face and files are
+ * OS-purgeable anyway, so the index is trimmed to the most recently downloaded
+ * faces; an evicted face simply re-downloads on next use.
+ */
+const REMOTE_FONT_CACHE_MAX = 30;
 
 function fileName(fontKey: string): string {
   const parsed = parseRemoteFontKey(fontKey);
@@ -130,8 +139,38 @@ export async function installRemoteFont(
 
   const index = await readIndex();
   index[fontKey] = entry;
+  await evictOldest(index, fontKey);
   await writeIndex(index);
   return entry;
+}
+
+/**
+ * Trim the index to `REMOTE_FONT_CACHE_MAX` faces, dropping the oldest
+ * `downloadedAt` entries first and never the face just installed. Native files
+ * are deleted from `Paths.cache`; web entries leave the browser HTTP cache
+ * alone — an evicted face re-downloads on next use either way.
+ */
+async function evictOldest(index: Index, keep: string): Promise<void> {
+  const stale = Object.entries(index)
+    .filter(([fontKey]) => fontKey !== keep)
+    .sort((a, b) => (a[1].downloadedAt ?? 0) - (b[1].downloadedAt ?? 0));
+  for (const [fontKey, entry] of stale) {
+    if (Object.keys(index).length <= REMOTE_FONT_CACHE_MAX) {
+      break;
+    }
+    if (entry.source === 'file') {
+      try {
+        const { File } = await import('expo-file-system');
+        const file = new File(entry.uri);
+        if (file.exists) {
+          file.delete();
+        }
+      } catch {
+        // Already gone — fine.
+      }
+    }
+    delete index[fontKey];
+  }
 }
 
 /** The local URI (native) or CDN URL (web) a face can be loaded from, or null. */

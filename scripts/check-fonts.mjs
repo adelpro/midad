@@ -162,6 +162,17 @@ if (svgTextSource) {
   if (typeof svg !== 'string' || !svg.includes('font-family="Amiri-Bold"')) {
     fail('textToSvg does not emit font-family for the object face');
   }
+  // A family with spaces (a remote face exports as `Family Weight`) must be
+  // quoted — `&apos;` is escapeXml's encoding of the structural quotes, which
+  // decodes back to `'` before CSS matching — or the <text> never matches its
+  // @font-face rule.
+  const spaced = textToSvg?.(['أ'], 40, 50, '#000000', 'Markazi Text 400');
+  if (
+    typeof spaced !== 'string' ||
+    !spaced.includes(`font-family="&apos;Markazi Text 400&apos;"`)
+  ) {
+    fail('textToSvg must quote a spaced family name so @font-face matches');
+  }
 }
 
 if (failures > 0) {
