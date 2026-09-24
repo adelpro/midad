@@ -15,6 +15,9 @@
  * Pure and import-free on purpose — `scripts/check-color.mjs` transpiles and
  * evaluates it standalone, the same way the other check scripts treat their
  * subjects, so a value import would silently break that check.
+ *
+ * It also owns the recent-colour history reducer below, so that list has one
+ * pure implementation the check can pin and the settings store simply calls.
  */
 
 const HEX = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -75,4 +78,24 @@ export function parseColor(input: string): string | null {
   }
 
   return null;
+}
+
+/**
+ * Recent custom colours, most recent first: `color` moves to the front, any
+ * earlier copy is dropped (case-insensitively, since hex is normalised
+ * lowercase), and the list is capped at `max`.
+ *
+ * Pure, so `check-color.mjs` pins the dedupe and the cap rather than leaning on
+ * an unreadable settings-store diff.
+ */
+export function pushRecent(
+  colors: readonly string[],
+  color: string,
+  max: number,
+): string[] {
+  const lower = color.toLowerCase();
+  return [color, ...colors.filter((c) => c.toLowerCase() !== lower)].slice(
+    0,
+    max,
+  );
 }

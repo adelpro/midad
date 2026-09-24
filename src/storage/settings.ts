@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { SelectionActionId } from '@/editor/selection-actions';
 import type { Language } from '@/i18n/strings';
+import { pushRecent } from '@/theme/color';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 
@@ -17,6 +18,9 @@ export const AUTO_SAVE_INTERVAL_DEFAULT_MS = 30_000;
 
 /** Quiet period after the last edit before an auto-save is written. */
 export const AUTO_SAVE_DEBOUNCE_MS = 1_000;
+
+/** How many custom colours the picker remembers before dropping the oldest. */
+export const RECENT_COLORS_MAX = 8;
 
 export interface CanvasSize {
   labelAr: string;
@@ -55,6 +59,11 @@ interface SettingsState {
    */
   selectionBarActions: SelectionActionId[] | null;
   /**
+   * Custom colours entered in the picker, most recent first — device-local like
+   * `selectionBarActions`, so it never enters the project document.
+   */
+  recentColors: string[];
+  /**
    * Whether the intro has been completed (or skipped) at least once on this
    * device — `false` on a fresh install, so the first launch lands on the
    * onboarding route.
@@ -72,6 +81,8 @@ interface SettingsState {
   setAutoSaveEnabled: (enabled: boolean) => void;
   setAutoSaveInterval: (ms: number) => void;
   setSelectionBarActions: (ids: SelectionActionId[] | null) => void;
+  /** Remember a custom colour, most recent first, deduped and capped. */
+  pushRecentColor: (color: string) => void;
   setHasCompletedOnboarding: (completed: boolean) => void;
 }
 
@@ -84,6 +95,7 @@ export const useSettings = create<SettingsState>()(
       autoSaveEnabled: true,
       autoSaveIntervalMs: AUTO_SAVE_INTERVAL_DEFAULT_MS,
       selectionBarActions: null,
+      recentColors: [],
       hasCompletedOnboarding: false,
       setLanguage: (language) => set({ language }),
       setDefaultCanvas: (defaultCanvasIndex) => set({ defaultCanvasIndex }),
@@ -92,6 +104,10 @@ export const useSettings = create<SettingsState>()(
       setAutoSaveInterval: (autoSaveIntervalMs) => set({ autoSaveIntervalMs }),
       setSelectionBarActions: (selectionBarActions) =>
         set({ selectionBarActions }),
+      pushRecentColor: (color) =>
+        set((state) => ({
+          recentColors: pushRecent(state.recentColors, color, RECENT_COLORS_MAX),
+        })),
       setHasCompletedOnboarding: (hasCompletedOnboarding) =>
         set({ hasCompletedOnboarding }),
     }),

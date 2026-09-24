@@ -82,6 +82,31 @@ check('rgba(0,0,0,2)', null);
 check('rgba(0,0,0,-0.1)', null);
 check('rgba(256,0,0,1)', null);
 
+// Recent-history reducer: dedupe case-insensitively, most recent first, capped.
+const { pushRecent } = moduleShim.exports;
+
+function checkRecent(colors, color, max, expected) {
+  cases += 1;
+  const got = pushRecent(colors, color, max);
+  if (JSON.stringify(got) !== JSON.stringify(expected)) {
+    failures += 1;
+    console.error(
+      `FAIL: pushRecent(${JSON.stringify(colors)}, ${JSON.stringify(color)}, ${max}) = ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`,
+    );
+  }
+}
+
+checkRecent([], '#112233', 8, ['#112233']);
+checkRecent(['#111111'], '#222222', 8, ['#222222', '#111111']);
+checkRecent(['#111111', '#222222'], '#222222', 8, ['#222222', '#111111']);
+checkRecent(['#AABBCC', '#111111'], '#aabbcc', 8, ['#aabbcc', '#111111']);
+checkRecent(
+  ['#111111', '#222222', '#333333'],
+  '#444444',
+  3,
+  ['#444444', '#111111', '#222222'],
+);
+
 if (failures > 0) {
   console.error(`\ncheck-color: ${failures} failure(s)`);
   process.exit(1);
