@@ -53,6 +53,19 @@ eq(
 );
 eq('json text is utf8', stringWriteEncoding('{"a":1}'), 'utf8');
 
+// The web download path must make the same decision as the native writer.
+// It used to call atob() on any string, so downloading an exported SVG threw
+// "String contains an invalid character" on its raw XML.
+const download = readFileSync(
+  join(here, '..', 'src', 'storage', 'download.ts'),
+  'utf8',
+);
+if (!download.includes('stringWriteEncoding')) {
+  fail(
+    'src/storage/download.ts does not use stringWriteEncoding — a string SVG would be base64-decoded as raw XML',
+  );
+}
+
 // The export/share path must not resolve native modules at runtime: a dynamic
 // import() goes through Expo async-require in dev and fails with
 // "could not load bundle" whenever the dev server is unreachable.
