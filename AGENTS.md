@@ -18,6 +18,7 @@ one before changing that area. When a document and the code disagree, fix the co
 | `text/clusters.ts`, `text/split.ts`                                        | `docs/editor-split-and-rejoin.md`    |
 | `use-object-gestures.ts`                                                   | `docs/editor-gestures.md`            |
 | `selection-actions.tsx`, pins, the rail                                    | `docs/editor-selection-bar.md`       |
+| `editor/color-picker-sheet.tsx`, `theme/color.ts`                          | `docs/editor-color-picker.md`        |
 | `shortcuts.ts`, `use-keyboard-shortcuts*`, `modifier-keys*`                | `docs/editor-keyboard.md`            |
 | `editor/help/**`                                                           | `docs/editor-help-and-learn-mode.md` |
 | selection semantics, multi-select, background flow                         | `docs/editor-selection.md`           |

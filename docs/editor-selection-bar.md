@@ -198,9 +198,10 @@ actions, and the tiles no longer have to scroll to be read.
 
 ### What is left in the zone
 
-Content about the current _tool_, and nothing else: the ink swatches for the colour
-tool, the paper swatches and the image picker for the background tool, and the
-transient refusal notice. So the zone is empty in the editor's most common state.
+Content about the current _tool_, and nothing else: the paper swatches and the
+image picker for the background tool, and the transient refusal notice. So the
+zone is empty in the editor's most common state — the colour tool's picker moved
+to its own sheet (`editor-color-picker.md` §2).
 
 The background tool is the one case where the zone is the **whole** row: it is
 about the canvas, not the selection, so the selection rail is hidden while it is
