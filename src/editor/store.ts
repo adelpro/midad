@@ -429,7 +429,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             o.groupId === n.groupId &&
             o.transform === n.transform &&
             o.box.width === n.box.width &&
-            o.box.height === n.box.height
+            o.box.height === n.box.height &&
+            // `ink` is derived from the layout, which is memoised, so a
+            // transform-only frame keeps the same reference. A layout change
+            // (font, wrap, alignment) produces a new one and must be published.
+            o.ink === n.ink
           );
         })
       ) {

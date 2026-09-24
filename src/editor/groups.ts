@@ -280,6 +280,13 @@ export interface FramedMember extends Groupable {
     flipV: boolean;
   };
   box: { width: number; height: number };
+  /**
+   * Tight glyph box in the member's local frame, when it has one (a split
+   * word's part). The frame measures this instead of the advance/line `box`, so
+   * adjacent letters do not draw overlapping boxes. Structurally identical to
+   * `InkBox` in `hit-test.ts`, declared here for the same standalone reason.
+   */
+  ink?: { cx: number; cy: number; width: number; height: number };
 }
 
 /**
@@ -493,8 +500,12 @@ export function collectionFrame<T extends FramedMember>(
   let bottom = -Infinity;
   for (const m of members) {
     const s = Math.abs(m.transform.scale) || 1;
-    const hw = (m.box.width / 2) * s;
-    const hh = (m.box.height / 2) * s;
+    // The member's tight ink box when it has one (a split word's part), else its
+    // advance/line box.
+    const width = m.ink?.width ?? m.box.width;
+    const height = m.ink?.height ?? m.box.height;
+    const hw = (width / 2) * s;
+    const hh = (height / 2) * s;
     // Seen from the collection's frame, a member is rotated by the difference
     // between the two, and the AABB of a rotated rectangle is |cos|/|sin|
     // weighted.
@@ -503,8 +514,15 @@ export function collectionFrame<T extends FramedMember>(
       hw * Math.abs(Math.cos(memberRad)) + hh * Math.abs(Math.sin(memberRad));
     const ey =
       hw * Math.abs(Math.sin(memberRad)) + hh * Math.abs(Math.cos(memberRad));
-    const ux = m.transform.x * toFrameCos - m.transform.y * toFrameSin;
-    const uy = m.transform.x * toFrameSin + m.transform.y * toFrameCos;
+    // The member's visible centre: its own origin plus the ink offset, mapped
+    // through its flip, scale and rotation.
+    const rotRad = (m.transform.rotation * Math.PI) / 180;
+    const lx = (m.ink?.cx ?? 0) * (m.transform.flipH ? -s : s);
+    const ly = (m.ink?.cy ?? 0) * (m.transform.flipV ? -s : s);
+    const centreX = m.transform.x + lx * Math.cos(rotRad) - ly * Math.sin(rotRad);
+    const centreY = m.transform.y + lx * Math.sin(rotRad) + ly * Math.cos(rotRad);
+    const ux = centreX * toFrameCos - centreY * toFrameSin;
+    const uy = centreX * toFrameSin + centreY * toFrameCos;
     if (ux - ex < left) left = ux - ex;
     if (uy - ey < top) top = uy - ey;
     if (ux + ex > right) right = ux + ex;

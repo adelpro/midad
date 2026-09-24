@@ -109,6 +109,23 @@ export interface RenderedParagraph {
    */
   width: number;
   height: number;
+  /**
+   * The tight ink box of the drawn glyphs, in the object's local
+   * (origin-centred) frame — absent when the text wraps to more than one rect.
+   *
+   * The `width`/`height` above are the advance/line box, which includes side
+   * bearings and line leading. Consumers that must hug the glyphs (hit-testing
+   * and the selection chrome for a split word's parts) use this instead.
+   */
+  ink?: ParagraphInk;
+}
+
+/** Tight glyph box for one laid-out paragraph, in its local frame. */
+export interface ParagraphInk {
+  cx: number;
+  cy: number;
+  width: number;
+  height: number;
 }
 
 /**
@@ -220,11 +237,53 @@ export function layoutArabicText(
 ): RenderedParagraph | null {
   const width = resolveTextWidth(spec, fonts);
   const paragraph = buildParagraph(spec, fonts, width);
+  const height = paragraph.getHeight();
   return {
     paragraph,
     width,
-    height: paragraph.getHeight(),
+    height,
+    ink: paragraphInk(paragraph, spec.text, width, height),
   };
+}
+
+/**
+ * The tight ink box of a paragraph's full text, in the object's local frame, or
+ * `undefined` when there is no single rect to measure.
+ *
+ * A soft wrap yields one rect per line, and a part never wraps (split refuses a
+ * wrapped cluster), so more than one rect means "not a shape we can hug" and the
+ * caller keeps its advance box. The result can never throw: a missing Skia query
+ * on an exotic backend just yields no ink.
+ */
+function paragraphInk(
+  paragraph: SkParagraph,
+  text: string,
+  width: number,
+  height: number,
+): ParagraphInk | undefined {
+  if (text.length === 0) {
+    return undefined;
+  }
+  try {
+    const rects = paragraph.getRectsForRange(0, text.length);
+    if (!rects || rects.length !== 1) {
+      return undefined;
+    }
+    const rect = rects[0];
+    if (!(rect.width > 0) || !(rect.height > 0)) {
+      return undefined;
+    }
+    return {
+      // The paragraph is painted at x/y = −box/2, so a rect in the paragraph's
+      // own coordinates becomes an offset from the object origin here.
+      cx: rect.x + rect.width / 2 - width / 2,
+      cy: rect.y + rect.height / 2 - height / 2,
+      width: rect.width,
+      height: rect.height,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 /**

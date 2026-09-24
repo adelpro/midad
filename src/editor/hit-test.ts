@@ -1,5 +1,26 @@
 import type { DesignObject } from '@/storage/project-schema';
 
+/**
+ * A tight box around an object's drawn ink, in the object's local
+ * (origin-centred) frame.
+ *
+ * A text object's `box` is the paragraph's advance/line box: it includes the
+ * side bearings and the line height, so it can be far wider and taller than the
+ * glyphs. A split word's parts are placed by their ink (see
+ * `docs/editor-split-and-rejoin.md` §4), so hit-testing and the selection chrome
+ * have to use the ink too — otherwise adjacent letters' boxes overlap and the
+ * whitespace the split removed is still drawn.
+ *
+ * `cx`/`cy` are the ink centre, because the ink is not necessarily centred on
+ * the object origin (text alignment, side bearings).
+ */
+export interface InkBox {
+  cx: number;
+  cy: number;
+  width: number;
+  height: number;
+}
+
 export interface SizedObject {
   id: string;
   /**
@@ -10,6 +31,8 @@ export interface SizedObject {
   transform: DesignObject['transform'];
   zIndex: number;
   box: { width: number; height: number };
+  /** Tight ink box, when the object has one. Absent means "use `box`". */
+  ink?: InkBox;
 }
 
 /**
@@ -46,6 +69,16 @@ export const ROTATE_GRIP_RADIUS = 7;
  * disagree about where an object starts — both go through `pickObject` below.
  */
 export const OBJECT_HIT_PAD = 10;
+
+/**
+ * Grab tolerance (screen pt) for a **collection member**.
+ *
+ * Deliberately tighter than `OBJECT_HIT_PAD`: the members of a split word sit
+ * against each other, so the generous object pad would let a neighbour's box
+ * swallow a press meant for the letter beside it. Small enough to disambiguate,
+ * large enough that a letter is not a pixel-hunt.
+ */
+export const MEMBER_HIT_PAD = 4;
 
 /**
  * Touch radius (screen pt) around a resize handle. 22 pt is DESIGN.md's
@@ -231,10 +264,18 @@ export function pickObject(
   const sorted = [...objects].sort((a, b) => b.zIndex - a.zIndex);
   for (const o of sorted) {
     const local = toLocalPoint(o.transform, x, y);
-    const pad = OBJECT_HIT_PAD / (u * safeObjectScale(o.transform.scale));
+    // A collection member gets a tighter tolerance: adjacent parts of a split
+    // word are close, and the object pad would let a neighbour swallow the press.
+    const basePad = o.groupId === undefined ? OBJECT_HIT_PAD : MEMBER_HIT_PAD;
+    const pad = basePad / (u * safeObjectScale(o.transform.scale));
+    // Test against the ink box when there is one, offset by its centre.
+    const cx = o.ink?.cx ?? 0;
+    const cy = o.ink?.cy ?? 0;
+    const hw = (o.ink?.width ?? o.box.width) / 2;
+    const hh = (o.ink?.height ?? o.box.height) / 2;
     if (
-      Math.abs(local.x) <= o.box.width / 2 + pad &&
-      Math.abs(local.y) <= o.box.height / 2 + pad
+      Math.abs(local.x - cx) <= hw + pad &&
+      Math.abs(local.y - cy) <= hh + pad
     ) {
       return o;
     }
@@ -278,9 +319,16 @@ export function pickHandle(
   box: { width: number; height: number },
   unit: number,
   p: { x: number; y: number },
+  offset?: { x: number; y: number },
 ): ResizeHandle | null {
   const u = safeUnit(unit);
   const local = toLocalPoint(transform, p.x, p.y);
+  // An ink box is not centred on the object origin, so the press is measured
+  // from the ink centre. The drawn handles are translated by the same offset.
+  if (offset) {
+    local.x -= offset.x;
+    local.y -= offset.y;
+  }
   const hw = Math.max(1e-6, box.width / 2);
   const hh = Math.max(1e-6, box.height / 2);
   // The interior of the box always moves the object; only the rim is up for
@@ -342,7 +390,31 @@ function visualHalfExtents(o: SizedObject): {
   hh: number;
 } {
   const s = Math.abs(o.transform.scale) || 1;
-  return { hw: (o.box.width / 2) * s, hh: (o.box.height / 2) * s };
+  const w = o.ink?.width ?? o.box.width;
+  const h = o.ink?.height ?? o.box.height;
+  return { hw: (w / 2) * s, hh: (h / 2) * s };
+}
+
+/**
+ * The object's visual centre in design units, including any ink offset.
+ *
+ * For an ordinary object that is `transform.x/y`. A text part whose ink is not
+ * centred on the origin has its visible centre moved by the offset, mapped
+ * through the object's own flip, rotation and scale.
+ */
+function objectCentre(o: SizedObject): { x: number; y: number } {
+  const ink = o.ink;
+  if (!ink) {
+    return { x: o.transform.x, y: o.transform.y };
+  }
+  const s = Math.abs(o.transform.scale) || 1;
+  const lx = ink.cx * (o.transform.flipH ? -s : s);
+  const ly = ink.cy * (o.transform.flipV ? -s : s);
+  const rot = (o.transform.rotation * Math.PI) / 180;
+  return {
+    x: o.transform.x + lx * Math.cos(rot) - ly * Math.sin(rot),
+    y: o.transform.y + lx * Math.sin(rot) + ly * Math.cos(rot),
+  };
 }
 
 /**
@@ -351,16 +423,17 @@ function visualHalfExtents(o: SizedObject): {
  */
 function objectAabb(o: SizedObject): Aabb {
   const { hw, hh } = visualHalfExtents(o);
+  const centre = objectCentre(o);
   const rad = (o.transform.rotation * Math.PI) / 180;
   const cos = Math.abs(Math.cos(rad));
   const sin = Math.abs(Math.sin(rad));
   const ex = hw * cos + hh * sin;
   const ey = hw * sin + hh * cos;
   return {
-    left: o.transform.x - ex,
-    top: o.transform.y - ey,
-    right: o.transform.x + ex,
-    bottom: o.transform.y + ey,
+    left: centre.x - ex,
+    top: centre.y - ey,
+    right: centre.x + ex,
+    bottom: centre.y + ey,
   };
 }
 

@@ -70,6 +70,13 @@ const STEP_ICON_SIZE = 16;
 const TILE_GLYPH_SIZE = 18;
 const TILE_HEIGHT = 38;
 const TILE_MIN_WIDTH = 40;
+/**
+ * Touch slack (view px) around a member tile, taking the 38pt-tall tile to the
+ * 44pt minimum target. The tile sits in a two-pixel-padded bar, so without this
+ * a press on its rim lands on the bar's own padding — which is why tapping an
+ * element square could read as doing nothing.
+ */
+const TILE_HIT_SLOP = 3;
 
 /**
  * The bar's fill is the surface at this alpha. DESIGN.md §5 puts a chrome bar
@@ -466,6 +473,7 @@ const MemberTile = memo(function MemberTile({
       onPress={() => onEnter(memberId)}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
+      hitSlop={TILE_HIT_SLOP}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
@@ -540,7 +548,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     gap: spacing.xs,
-    padding: spacing.xxs,
+    padding: spacing.xs,
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
   },

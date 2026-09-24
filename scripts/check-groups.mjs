@@ -438,6 +438,34 @@ near(
   collectionFrame([frameMember('a', 0, 0, 0, 2)]),
   { x: 0, y: 0, hw: 100, hh: 50, rotation: 0 },
 );
+
+// A split word's part carries a tight `ink` box — the glyph bounds, not the
+// advance/line `box`. The frame must measure the ink, or adjacent letters' boxes
+// overlap and the chrome shows the whitespace the split removed.
+const inkMember = (id, x, y, ink, rotation = 0, scale = 1) => ({
+  id,
+  transform: { x, y, scale, rotation, flipH: false, flipV: false },
+  box: { width: 100, height: 50 },
+  ink,
+});
+near(
+  "a member's ink box replaces its advance box in the frame",
+  collectionFrame([inkMember('a', 0, 0, { cx: 0, cy: 0, width: 20, height: 40 })]),
+  { x: 0, y: 0, hw: 10, hh: 20, rotation: 0 },
+);
+near(
+  'an ink centre offset moves the member within the frame',
+  collectionFrame([inkMember('a', 0, 0, { cx: 10, cy: 0, width: 20, height: 40 })]),
+  { x: 10, y: 0, hw: 10, hh: 20, rotation: 0 },
+);
+near(
+  'ink boxes union tighter than the advance boxes they replace',
+  collectionFrame([
+    inkMember('a', 0, 0, { cx: 0, cy: 0, width: 20, height: 40 }),
+    inkMember('b', 200, 0, { cx: 0, cy: 0, width: 20, height: 40 }),
+  ]),
+  { x: 100, y: 0, hw: 110, hh: 20, rotation: 0 },
+);
 near(
   "the bar anchors on the frame's top edge",
   frameTopCentre({ x: 100, y: 0, hw: 150, hh: 25, rotation: 0 }),

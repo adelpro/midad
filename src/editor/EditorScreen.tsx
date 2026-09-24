@@ -561,7 +561,10 @@ export function EditorScreen() {
   );
 
   /** Position of the primary selection within the member track (-1 when absent). */
-  const activeMemberIndex = members.findIndex((m) => m.id === selectedIds[0]);
+  const activeMemberIndex =
+    selectedIds.length === 1
+      ? members.findIndex((m) => m.id === selectedIds[0])
+      : -1;
 
   /**
    * Whether the selection can be broken into parts. Deliberately a cheap

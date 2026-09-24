@@ -334,6 +334,68 @@ for (const unit of UNITS) {
 
 // ---------------------------------------------------------------------------
 
+section('a text part hit-tests against its tight ink box');
+
+// A split part keeps an advance/line `box` for painting but carries an `ink`
+// box — the glyph bounds — for hit-testing and chrome. Without it the part's hit
+// box is wider than the letter, so adjacent parts' boxes overlap and a press
+// grabs the wrong one.
+const part = {
+  id: 'p',
+  transform: { ...IDENTITY },
+  zIndex: 1,
+  box: { width: 100, height: 50 },
+  ink: { cx: 0, cy: 0, width: 20, height: 40 },
+};
+ok(
+  'a press inside the ink box selects the part',
+  pickObject([part], 8, 0, 1)?.id === 'p',
+);
+ok(
+  'a press past the ink box but inside the advance box selects nothing',
+  pickObject([part], 45, 0, 1) === null,
+);
+ok(
+  'the grab tolerance grows the ink box',
+  pickObject([part], 18, 0, 1)?.id === 'p',
+);
+
+const offsetPart = { ...part, ink: { cx: 30, cy: 0, width: 20, height: 40 } };
+ok(
+  'an ink centre offset moves the hit box with the glyphs',
+  pickObject([offsetPart], 30, 0, 1)?.id === 'p',
+);
+ok(
+  'the hit box follows the offset rather than staying at the origin',
+  pickObject([offsetPart], -30, 0, 1) === null,
+);
+
+section('an offset ink box moves the drawn handles and the grabbed ones together');
+
+const inkOffset = { x: 25, y: 0 };
+{
+  const drawn = [
+    ...resizeHandles(BIG_BOX, 1),
+    { handle: 'rotate', ...rotateHandle(BIG_BOX, 1) },
+  ];
+  const got = drawn.map((p) =>
+    pickHandle(
+      IDENTITY,
+      BIG_BOX,
+      1,
+      { x: p.x + inkOffset.x, y: p.y + inkOffset.y },
+      inkOffset,
+    ),
+  );
+  check(
+    "an offset box's drawn handles are grabbable",
+    got,
+    drawn.map((p) => p.handle),
+  );
+}
+
+// ---------------------------------------------------------------------------
+
 section('degenerate inputs cannot produce a division blow-up');
 
 // `safeUnit` mirrors `safeObjectScale`: a genuinely unmeasured view reports

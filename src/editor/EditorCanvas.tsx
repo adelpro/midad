@@ -163,6 +163,13 @@ export function EditorCanvas({
         transform: obj.transform,
         zIndex: obj.zIndex,
         box: objectBox(obj, layouts),
+        // Only a split word's part hugs its ink: its advance/line box is far
+        // wider than the letter, so hit-testing and the chrome would overlap the
+        // neighbours. Every other object keeps the box it always had.
+        ink:
+          obj.type === 'text' && obj.part !== undefined
+            ? layouts[obj.id]?.ink
+            : undefined,
       })),
     [project.objects, layouts],
   );
@@ -337,6 +344,14 @@ const ObjectLayer = memo(function ObjectLayer({
     () => (obj.type === 'text' ? layouts[obj.id]?.paragraph : undefined),
     [obj, layouts],
   );
+  // The chrome hugs the ink for a split part; otherwise the object's own box.
+  const chrome = useMemo(() => {
+    const ink =
+      obj.type === 'text' && obj.part !== undefined
+        ? layouts[obj.id]?.ink
+        : undefined;
+    return ink ?? { cx: 0, cy: 0, width: box.width, height: box.height };
+  }, [obj, layouts, box]);
   const t = obj.transform;
   const rot = (t.rotation * Math.PI) / 180;
   const scaleX = t.flipH ? -t.scale : t.scale;
@@ -388,7 +403,7 @@ const ObjectLayer = memo(function ObjectLayer({
       {opacity < 1 ? <Group opacity={opacity}>{content}</Group> : content}
       {isSelected && (
         <SelectionOverlay
-          box={box}
+          box={chrome}
           scale={scale}
           objectScale={Math.abs(t.scale) || 1}
         />
@@ -546,7 +561,7 @@ const SelectionOverlay = memo(function SelectionOverlay({
   scale,
   objectScale,
 }: {
-  box: { width: number; height: number };
+  box: { cx: number; cy: number; width: number; height: number };
   scale: number;
   objectScale: number;
 }) {
@@ -560,20 +575,24 @@ const SelectionOverlay = memo(function SelectionOverlay({
   const unit = scale * safeObjectScale(objectScale);
   const chromePad = selectionPad(unit);
   const pad = chromePad * 2;
-  const hw = box.width / 2 + chromePad;
-  const hh = box.height / 2 + chromePad;
+  const { cx, cy, width, height } = box;
+  const hw = width / 2 + chromePad;
+  const hh = height / 2 + chromePad;
   const border = 1.5 / unit;
   const handleR = 5 / unit;
   const gripR = ROTATE_GRIP_RADIUS / unit;
-  const positions = resizeHandles(box, unit);
-  const grip = rotateHandle(box, unit);
+  const positions = resizeHandles({ width, height }, unit);
+  const grip = rotateHandle({ width, height }, unit);
   return (
-    <Group>
+    // The ink box is not centred on the object origin, so the whole chrome is
+    // translated to the ink centre — the gestures offset their press by the same
+    // vector, so what is drawn is what is grabbed.
+    <Group transform={[{ translateX: cx }, { translateY: cy }]}>
       <Rect
         x={-hw}
         y={-hh}
-        width={box.width + pad}
-        height={box.height + pad}
+        width={width + pad}
+        height={height + pad}
         color="transparent"
         style="stroke"
         strokeWidth={border}

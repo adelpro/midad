@@ -182,6 +182,16 @@ function hitHandle(
   viewScale: number,
 ): ResizeHandle | null {
   const unit = viewScale * safeObjectScale(obj.transform.scale);
+  const ink = obj.ink;
+  if (ink) {
+    return pickHandle(
+      obj.transform,
+      { width: ink.width, height: ink.height },
+      unit,
+      p,
+      { x: ink.cx, y: ink.cy },
+    );
+  }
   return pickHandle(obj.transform, obj.box, unit, p);
 }
 
@@ -505,8 +515,8 @@ function beginDrag(viewX: number, viewY: number, enabled: boolean) {
       resizeOriginRotation: t.rotation,
       resizeOriginFlipH: t.flipH,
       resizeOriginFlipV: t.flipV,
-      resizeOriginBoxW: single.box.width,
-      resizeOriginBoxH: single.box.height,
+      resizeOriginBoxW: single.ink?.width ?? single.box.width,
+      resizeOriginBoxH: single.ink?.height ?? single.box.height,
       resizeStartX: p.x,
       resizeStartY: p.y,
       resizeStartLocalX: local.x,
