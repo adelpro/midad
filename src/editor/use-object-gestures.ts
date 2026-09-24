@@ -35,9 +35,16 @@ import type { DesignObject, ObjectTransform } from '@/storage/project-schema';
 /** Bounds for a horizontal (wrap-width) resize, in local design units. */
 const MIN_WRAP_WIDTH = 24;
 const MAX_WRAP_WIDTH = 20000;
-/** Rotation snap: magnet window around each 45° multiple, in degrees. */
+/**
+ * Rotation snap: magnet window around each 45° multiple, in degrees.
+ *
+ * ±10° — wide enough that a release with a small corrective drift (+5°, −10°, a
+ * hand at 170°) lands on the clean 0°/90°/180°/270°, yet narrow enough that the
+ * dead zones between windows (e.g. 10–35°) keep the drag 1:1 and the magnet
+ * from feeling sticky everywhere.
+ */
 const SNAP_INCREMENT_DEG = 45;
-const SNAP_WINDOW_DEG = 4;
+const SNAP_WINDOW_DEG = 10;
 /**
  * Release-settle spring: critically damped (ζ = 1, the `springs.ui` preset in
  * DESIGN.md), so it glides onto the snap target without overshoot.

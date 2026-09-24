@@ -225,8 +225,12 @@ p = { x: resizeStartX + translationX / viewport.scale, y: … }
   `lastSnapAngle` ensures it fires **once per snap-window entry, not per frame**.
   The settle on release is what actually lands it on the multiple.
 
-`SNAP_INCREMENT_DEG = 45` with a `SNAP_WINDOW_DEG = 4` window. Multiples are evenly
-spaced, so plain arithmetic finds the nearest without any wrap handling.
+`SNAP_INCREMENT_DEG = 45` with a `SNAP_WINDOW_DEG = 10` window. Multiples are evenly
+spaced, so plain arithmetic finds the nearest without any wrap handling. The window
+was widened from ±4° so a release with a small corrective drift lands clean: +5° or
+−10° straightens to 0°, ~170–190° lands on 180°. The dead zones between windows
+still leave the drag 1:1 — the magnet only catches the quick correction, not the
+whole turn.
 
 ### Text `e`/`w` handles change the wrap width
 
