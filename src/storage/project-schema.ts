@@ -113,7 +113,14 @@ export interface CalligraphyTextObject extends GroupMember {
   id: string;
   type: 'text';
   text: string;
-  fontKey: string; // one of fontFamilies' variant keys
+  /**
+   * Bundled variant key (e.g. `'Amiri-Bold'`) or a remote Google Font face
+   * (`'remote:<fontsource-id>:<weight>'`, e.g. `'remote:markazi-text:400'`).
+   * Remote faces are downloaded on demand; a document that names one is
+   * rendered in Amiri until it is installed on the device — see
+   * `docs/editor-remote-fonts.md`.
+   */
+  fontKey: string;
   fontSize: number;
   lineHeight: number;
   /**

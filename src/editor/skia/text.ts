@@ -10,6 +10,12 @@ import { Platform as SkiaPlatform } from '@shopify/react-native-skia/lib/module/
 import { useEffect, useState } from 'react';
 
 import type { MidadProject } from '@/storage/project-schema';
+import { useInstalledRemoteFontKeys } from '@/hooks/use-installed-remote-fonts';
+import {
+  bytesForRemoteFont,
+  listInstalledRemoteFonts,
+} from '@/storage/remote-font-cache';
+import { refreshInstalledRemoteFonts } from '@/storage/remote-font-registry';
 import { fontAssets } from '@/theme';
 
 /**
@@ -35,50 +41,105 @@ function toFontSource(asset: unknown): DataModule {
 }
 
 /**
+ * The families the *latest* built provider registered — every bundled key plus
+ * the installed remote faces.
+ *
+ * `buildParagraph` resolves a text object's family through this mirror instead
+ * of `Object.hasOwn(fontAssets, …)`: a remote face becomes renderable the
+ * moment a provider built with it lands, and a remote key that is *not* on this
+ * device falls back to Amiri rather than crashing — the missing-font banner
+ * owns the re-download prompt for those. The mirror is swapped only after a
+ * load completes, so a failed load leaves the previous set (and its decisions)
+ * intact.
+ */
+let registeredFamilies: ReadonlySet<string> = new Set(Object.keys(fontAssets));
+
+/**
  * Build the ParagraphBuilder typeface provider outside React.
  *
- * Every family in `fontAssets` is loaded and registered under its key, so a
- * design can name any one of them (`buildParagraph` still falls back to Amiri).
- * Kept separate from the hook because the gallery needs the same provider for a
+ * Every family in `fontAssets` **plus every installed remote face** is loaded
+ * and registered under its key, so a design can name any one of them
+ * (`buildParagraph` falls back to Amiri for keys this provider does not know —
+ * bundled faces are always present, remote faces only once installed). Kept
+ * separate from the hook because the gallery needs the same provider for a
  * single one-off render, after it has loaded CanvasKit on demand — see
  * `renderImportedThumbnail`. The provider is a native/WASM handle, so a one-off
  * caller should `dispose()` it when the render is done.
  */
 export async function loadParagraphFonts(): Promise<SkTypefaceFontProvider> {
   const provider = Skia.TypefaceFontProvider.Make();
-  await Promise.all(
-    Object.entries(fontAssets).map(async ([family, asset]) => {
-      const data = await Skia.Data.fromURI(
-        SkiaPlatform.resolveAsset(toFontSource(asset)),
-      );
-      const typeface = Skia.Typeface.MakeFreeTypeFaceFromData(data);
-      if (typeface) {
-        provider.registerFont(typeface, family);
-      }
-    }),
-  );
+  const added: string[] = [];
+
+  const bundled = Object.entries(fontAssets).map(async ([family, asset]) => {
+    const data = await Skia.Data.fromURI(
+      SkiaPlatform.resolveAsset(toFontSource(asset)),
+    );
+    const typeface = Skia.Typeface.MakeFreeTypeFaceFromData(data);
+    if (typeface) {
+      provider.registerFont(typeface, family);
+      added.push(family);
+    }
+  });
+
+  // Installed remote faces register under their `remote:<id>:<weight>` key —
+  // the same name a design stores in its `fontKey` — so the canvas renders
+  // them with no further lookup. `bytesForRemoteFont` re-resolves the CORS-open
+  // CDN URL on web and reads the cached file on native.
+  const remote = (await listInstalledRemoteFonts()).map(async (fontKey) => {
+    const bytes = await bytesForRemoteFont(fontKey);
+    if (!bytes) {
+      return;
+    }
+    const typeface = Skia.Typeface.MakeFreeTypeFaceFromData(
+      Skia.Data.fromBytes(bytes),
+    );
+    if (typeface) {
+      provider.registerFont(typeface, fontKey);
+      added.push(fontKey);
+    }
+  });
+
+  await Promise.all([...bundled, ...remote]);
+
+  registeredFamilies = new Set(added);
   return provider;
 }
 
-/** Loads a typeface provider usable by ParagraphBuilder. */
+/**
+ * The editor's live provider hook.
+ *
+ * Rebuilds whenever the installed remote-face snapshot changes (a face was
+ * downloaded), so the canvas re-shapes with the new face — the `fonts` identity
+ * already feeds `useTextLayouts`' memo. It reconciles expo-font first
+ * (`refreshInstalledRemoteFonts`), then builds the Skia provider from the same
+ * reconciled snapshot, so the two registrations can never drift: the RN `<Text>`
+ * paths and the Skia canvas always agree on what is installed.
+ */
 export function useParagraphFonts(): SkTypefaceFontProvider | null {
+  const remoteFonts = useInstalledRemoteFontKeys();
   const [fonts, setFonts] = useState<SkTypefaceFontProvider | null>(null);
   useEffect(() => {
     let active = true;
-    loadParagraphFonts()
-      .then((provider) => {
-        if (active) {
-          setFonts(provider);
-        }
-      })
-      .catch(() => {
-        // A failed load leaves text unrendered rather than crashing the screen;
-        // callers already treat a missing provider as "fonts not loaded yet".
-      });
+    (async () => {
+      await refreshInstalledRemoteFonts();
+      if (!active) {
+        return;
+      }
+      const provider = await loadParagraphFonts();
+      if (active) {
+        setFonts(provider);
+      }
+    })().catch(() => {
+      // A failed load leaves text unrendered rather than crashing the screen;
+      // callers already treat a missing provider as "fonts not loaded yet".
+    });
     return () => {
       active = false;
     };
-  }, []);
+    // `remoteFonts` is the rebuild trigger; the body reads the live cache via
+    // `refreshInstalledRemoteFonts`, so the snapshot's *identity* is the only
+    // thing that must change to re-run this effect.
+  }, [remoteFonts]);
   return fonts;
 }
 
@@ -142,9 +203,7 @@ function buildParagraph(
   fonts: SkTypefaceFontProvider,
   width: number,
 ): SkParagraph {
-  const family = Object.hasOwn(fontAssets, spec.fontKey)
-    ? spec.fontKey
-    : 'Amiri';
+  const family = registeredFamilies.has(spec.fontKey) ? spec.fontKey : 'Amiri';
   const isArabic = /[\u0600-\u06FF]/.test(spec.text);
 
   // TextAlign enum: Left=0, Right=1, Center=2, Justify=3, Start=4, End=5

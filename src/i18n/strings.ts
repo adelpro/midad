@@ -197,6 +197,35 @@ export interface Translation {
     searchFont: string;
     /** Shown when a search matches no family. */
     noFontResults: string;
+    // Runtime-downloaded Google Fonts (the picker's "Google Fonts" section).
+    /** Section title for the on-demand Google Fonts listings. */
+    googleFonts: string;
+    /** License + on-demand caption under the section title. */
+    googleFontsHint: string;
+    /** Badge on a family whose subsets include Arabic. */
+    supportsArabic: string;
+    /** Badge on a family with no Arabic subset. */
+    noArabicSupport: string;
+    /** Weight-chip / banner action: fetch and install a face. */
+    downloadFont: string;
+    /** Weight-chip progress label while a face downloads. */
+    downloadingFont: string;
+    /** Weight chip after a failed download — tap to try again. */
+    retryDownload: string;
+    /** Badge on a weight chip whose face is already installed. */
+    installedFont: string;
+    /** Shown when the Google Fonts catalog cannot be reached. */
+    fontCatalogFailed: string;
+    // Missing remote faces on document open.
+    /** Banner title: a design uses faces this device does not have yet. */
+    missingFontsTitle: string;
+    /** Banner body, explaining what the download is for. */
+    missingFontsBody: string;
+    // Weight-chip labels: remote faces name weights the way bundled variants do.
+    /** Chip label for weight 400. */
+    fontWeightRegular: string;
+    /** Chip label for weight 700. */
+    fontWeightBold: string;
     lineHeight: string;
     opacity: string;
     align: string;
@@ -489,6 +518,20 @@ export const strings: Record<Language, Translation> = {
       chooseFont: 'اختيار الخط',
       searchFont: 'ابحث عن خط',
       noFontResults: 'لا توجد نتائج',
+      googleFonts: 'خطوط Google',
+      googleFontsHint: 'من مكتبة Google Fonts — تُحمَّل عند الطلب (OFL-1.1)',
+      supportsArabic: 'يدعم العربية',
+      noArabicSupport: 'بدون عربي',
+      downloadFont: 'تحميل',
+      downloadingFont: 'جارٍ التحميل…',
+      retryDownload: 'إعادة المحاولة',
+      installedFont: 'مثبَّت',
+      fontCatalogFailed: 'تعذّر الوصول إلى مكتبة خطوط Google.',
+      missingFontsTitle: 'خطوط غير محمّلة',
+      missingFontsBody:
+        'هذه اللوحة تستخدم خطوط Google ليست على هذا الجهاز بعد. حمّلها الآن ليظهر النص بخطوطه الأصلية.',
+      fontWeightRegular: 'عادي',
+      fontWeightBold: 'عريض',
       lineHeight: 'تباعد الأسطر',
       opacity: 'العتامة',
       align: 'المحاذاة',
@@ -771,6 +814,21 @@ export const strings: Record<Language, Translation> = {
       chooseFont: 'Choose font',
       searchFont: 'Search fonts',
       noFontResults: 'No fonts found',
+      googleFonts: 'Google Fonts',
+      googleFontsHint:
+        'From the Google Fonts library — downloaded on demand (OFL-1.1)',
+      supportsArabic: 'Arabic support',
+      noArabicSupport: 'No Arabic',
+      downloadFont: 'Download',
+      downloadingFont: 'Downloading…',
+      retryDownload: 'Retry',
+      installedFont: 'Installed',
+      fontCatalogFailed: 'Couldn’t reach the Google Fonts catalog.',
+      missingFontsTitle: 'Missing fonts',
+      missingFontsBody:
+        'This design uses Google Fonts that aren’t on this device yet. Download them now so the text renders in its own typefaces.',
+      fontWeightRegular: 'Regular',
+      fontWeightBold: 'Bold',
       lineHeight: 'Line height',
       opacity: 'Opacity',
       align: 'Alignment',

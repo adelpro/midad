@@ -97,6 +97,11 @@ import { rowStyle } from '@/i18n/rtl';
 import { pickBackgroundImage } from '@/storage/background-image';
 import { saveImageToLibrary, shareFile, shareImage } from '@/storage/export';
 import { hasMediaLibrary } from '@/storage/platform';
+import { useInstalledRemoteFontKeys } from '@/hooks/use-installed-remote-fonts';
+import {
+  downloadRemoteFont,
+  missingRemoteFontKeys,
+} from '@/storage/remote-font-registry';
 import type {
   CalligraphyTextObject,
   DesignObject,
@@ -124,6 +129,7 @@ import {
   typeScale,
   variantFor,
 } from '@/theme';
+import { parseRemoteFontKey, remoteFontLabel } from '@/theme/remote-fonts';
 import {
   DEFAULT_INK,
   DEFAULT_PAPER,
@@ -473,6 +479,72 @@ export function EditorScreen() {
   // Loaded once for offscreen rendering (thumbnails, exports).
   const skiaFonts = useParagraphFonts();
 
+  // ── missing remote fonts ────────────────────────────────────────────────────
+  // The never-silent half of the remote-font contract: on open, any text face
+  // that is `remote:<…>` but not installed on this device raises a banner
+  // offering the download (the canvas renders Amiri meanwhile — see
+  // `buildParagraph` in skia/text.ts). Bundled faces never reach this list;
+  // `missingRemoteFontKeys` ignores non-remote keys.
+  const installedRemoteKeys = useInstalledRemoteFontKeys();
+  const [missingFonts, setMissingFonts] = useState<string[] | null>(null);
+  const [downloadingMissing, setDownloadingMissing] = useState(false);
+
+  // The scan is keyed on the *content* of the document's fontKeys, so dragging
+  // (which re-creates the project object every frame) does not re-read
+  // AsyncStorage. It re-runs when the installed set changes instead — a
+  // download from the banner clears itself.
+  const projectFontKeySignature = useMemo(
+    () =>
+      project
+        ? [
+            ...new Set(
+              project.objects
+                .filter((o) => o.type === 'text')
+                .map((o) => o.fontKey),
+            ),
+          ]
+            .sort()
+            .join('\u0000')
+        : '',
+    [project],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    // The scan always runs in the async continuation — never a synchronous
+    // setState in the effect body — so opening (or closing) a design re-reads
+    // AsyncStorage without cascading a render.
+    void (async () => {
+      const missing = projectFontKeySignature
+        ? await missingRemoteFontKeys(projectFontKeySignature.split('\u0000'))
+        : [];
+      if (!cancelled) {
+        setMissingFonts(missing.length > 0 ? missing : null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectFontKeySignature, installedRemoteKeys]);
+
+  const downloadMissingFonts = useCallback(async () => {
+    const missing = missingFonts;
+    if (!missing || missing.length === 0 || downloadingMissing) {
+      return;
+    }
+    setDownloadingMissing(true);
+    try {
+      for (const fontKey of missing) {
+        const parsed = parseRemoteFontKey(fontKey);
+        if (parsed) {
+          await downloadRemoteFont(parsed.id, parsed.weight);
+        }
+      }
+    } finally {
+      setDownloadingMissing(false);
+    }
+  }, [missingFonts, downloadingMissing]);
+
   /**
    * A canvas tap resolves the selection whatever tool is active. The rails only
    * add capability (a paper, an ink) and none of them owns the canvas, so a tap
@@ -593,7 +665,7 @@ export function EditorScreen() {
           ? variantFor(draftFont)?.labelAr
           : variantFor(draftFont)?.labelEn
       }`
-    : '';
+    : (remoteFontLabel(draftFont) ?? '');
 
   // The refusal message is transient — it explains a rejected action rather than
   // describing persistent state.
@@ -1821,6 +1893,63 @@ export function EditorScreen() {
           </View>
         </View>
 
+        {/* Missing remote fonts — a design using Google Fonts this device does
+            not have yet renders in Amiri until they are downloaded; this strip
+            is the never-silent prompt that offers them. */}
+        {missingFonts && missingFonts.length > 0 && (
+          <View
+            style={[
+              styles.missingFontsBanner,
+              { backgroundColor: c.dangerBg, borderColor: c.border },
+            ]}
+          >
+            <View style={styles.missingFontsText}>
+              <Text
+                style={[
+                  styles.noticeText,
+                  { color: c.danger, fontFamily: fonts.ui },
+                  dir,
+                ]}
+              >
+                {t.editor.missingFontsTitle}
+              </Text>
+              <Text
+                style={[
+                  styles.missingFontsBody,
+                  { color: c.muted, fontFamily: fonts.ui },
+                  dir,
+                ]}
+              >
+                {t.editor.missingFontsBody}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => void downloadMissingFonts()}
+              disabled={downloadingMissing}
+              accessibilityRole="button"
+              accessibilityLabel={t.editor.downloadFont}
+              style={({ pressed }) => [
+                styles.missingFontsButton,
+                { opacity: pressed || downloadingMissing ? 0.6 : 1 },
+              ]}
+            >
+              {downloadingMissing ? (
+                <ActivityIndicator size="small" color={c.danger} />
+              ) : (
+                <Text
+                  style={[
+                    styles.missingFontsButtonText,
+                    { color: c.danger, fontFamily: fonts.ui },
+                    dir,
+                  ]}
+                >
+                  {t.editor.downloadFont}
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        )}
+
         {/* Canvas + gestures */}
         <View style={styles.canvasWrap}>
           {/*
@@ -2482,6 +2611,32 @@ const styles = StyleSheet.create({
   noticeText: {
     fontSize: typeScale.small.size,
     lineHeight: typeScale.small.lineHeight,
+  },
+  missingFontsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  missingFontsText: { flex: 1, gap: 2 },
+  missingFontsBody: {
+    fontSize: typeScale.caption.size,
+    lineHeight: typeScale.caption.lineHeight,
+  },
+  missingFontsButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  missingFontsButtonText: {
+    fontSize: typeScale.body.size,
+    fontWeight: '700',
   },
   presetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   presetBtn: { flexGrow: 1, flexBasis: '30%' },

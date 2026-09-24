@@ -11,6 +11,7 @@ import {
   typeScale,
   variantFor,
 } from '@/theme';
+import { remoteFontLabel } from '@/theme/remote-fonts';
 
 export interface FontFieldProps {
   /** The current `fontKey`. */
@@ -33,7 +34,7 @@ export function FontField({ value, onPress }: FontFieldProps) {
     ? `${language === 'ar' ? family.labelAr : family.labelEn} · ${
         language === 'ar' ? variant?.labelAr : variant?.labelEn
       }`
-    : value;
+    : (remoteFontLabel(value) ?? value);
 
   return (
     <View style={styles.wrap}>
