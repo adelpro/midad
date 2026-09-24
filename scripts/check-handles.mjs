@@ -40,6 +40,7 @@ const moduleShim = { exports: {} };
 new Function('exports', 'module', outputText)(moduleShim.exports, moduleShim);
 const {
   HANDLE_TOUCH_RADIUS,
+  MEMBER_HIT_PAD,
   OBJECT_HIT_PAD,
   ROTATE_HANDLE_GAP,
   ROTATE_TOUCH_RADIUS,
@@ -357,7 +358,7 @@ ok(
 );
 ok(
   'the grab tolerance grows the ink box',
-  pickObject([part], 18, 0, 1)?.id === 'p',
+  pickObject([part], 10 + MEMBER_HIT_PAD - 1, 0, 1)?.id === 'p',
 );
 
 const offsetPart = { ...part, ink: { cx: 30, cy: 0, width: 20, height: 40 } };
@@ -371,7 +372,6 @@ ok(
 );
 
 section('an offset ink box moves the drawn handles and the grabbed ones together');
-
 const inkOffset = { x: 25, y: 0 };
 {
   const drawn = [
@@ -391,6 +391,68 @@ const inkOffset = { x: 25, y: 0 };
     "an offset box's drawn handles are grabbable",
     got,
     drawn.map((p) => p.handle),
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+section('the tighter member pad applies only to ink-hugging parts');
+
+// A grouped object with no ink — a shape group, or grouped ordinary text — keeps
+// the full object tolerance. Only a split word's ink part gets the tighter pad,
+// so a neighbour cannot steal the press.
+const groupedBox = {
+  id: 'g',
+  groupId: 'G',
+  transform: { ...IDENTITY },
+  zIndex: 1,
+  box: BIG_BOX,
+};
+{
+  const edge = BIG_BOX.width / 2;
+  ok(
+    'a grouped object without ink keeps the full grab tolerance',
+    pickObject([groupedBox], edge + OBJECT_HIT_PAD * 0.9, 0, 1)?.id === 'g',
+  );
+}
+{
+  const edge = 20;
+  const part = {
+    id: 'p',
+    groupId: 'G',
+    transform: { ...IDENTITY },
+    zIndex: 1,
+    box: BIG_BOX,
+    ink: { cx: 0, cy: 0, width: 40, height: 40 },
+  };
+  ok(
+    'an ink part accepts a press inside its tighter tolerance',
+    pickObject([part], edge + MEMBER_HIT_PAD - 2, 0, 1)?.id === 'p',
+  );
+  ok(
+    'an ink part rejects a press beyond its tighter tolerance',
+    pickObject([part], edge + MEMBER_HIT_PAD + 2, 0, 1) === null,
+  );
+}
+
+// The ink offset must survive rotation and flip — the same mapping the frame and
+// the handles use.
+{
+  const transform = { ...IDENTITY, x: 500, y: 400, scale: 2, rotation: 37 };
+  const part = {
+    id: 'p',
+    transform,
+    zIndex: 1,
+    box: BIG_BOX,
+    ink: { cx: 15, cy: -8, width: 40, height: 40 },
+  };
+  const rot = (transform.rotation * Math.PI) / 180;
+  const s = transform.scale;
+  const ox = s * (part.ink.cx * Math.cos(rot) - part.ink.cy * Math.sin(rot));
+  const oy = s * (part.ink.cx * Math.sin(rot) + part.ink.cy * Math.cos(rot));
+  ok(
+    'the ink centre offset maps through rotation and scale',
+    pickObject([part], transform.x + ox, transform.y + oy, 1)?.id === 'p',
   );
 }
 

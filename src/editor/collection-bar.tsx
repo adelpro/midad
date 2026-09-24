@@ -57,9 +57,11 @@ const BAR_GAP = 8;
 /** Inset (view px) the bar keeps from the canvas card's edges. */
 const BAR_MARGIN = 4;
 /**
- * The head and the step arrows are a full 40dp target, which is what fixes the
- * bar's height at 44 with its own padding. Deliberately the same size as a rail
- * button: the two rows are different surfaces, not different scales.
+ * The head and the step arrows are a full 40dp target, deliberately the same
+ * size as a rail button: the two rows are different surfaces, not different
+ * scales. The member tiles are a full 44dp target in their own right (see
+ * `TILE_HEIGHT`), which is what sets the bar's height at 52 with its 4dp
+ * padding.
  */
 const BAR_CONTROL_SIZE = 40;
 /** Side of the head's leading glyph. */
@@ -68,15 +70,14 @@ const HEAD_ICON_SIZE = 13;
 const STEP_ICON_SIZE = 16;
 /** Side of a member tile's glyph, and the tile's own metrics. */
 const TILE_GLYPH_SIZE = 18;
-const TILE_HEIGHT = 38;
-const TILE_MIN_WIDTH = 40;
 /**
- * Touch slack (view px) around a member tile, taking the 38pt-tall tile to the
- * 44pt minimum target. The tile sits in a two-pixel-padded bar, so without this
- * a press on its rim lands on the bar's own padding — which is why tapping an
- * element square could read as doing nothing.
+ * The tile is a full 44pt target in both directions — DESIGN.md's touch floor,
+ * not a decoration enlarged by `hitSlop`. `hitSlop` cannot escape its parent
+ * (`trackScroll` is exactly the tile's height), so a slop on a 38pt tile would
+ * still clamp to 38; sizing the tile itself is the only honest way to meet it.
  */
-const TILE_HIT_SLOP = 3;
+const TILE_HEIGHT = 44;
+const TILE_MIN_WIDTH = 44;
 
 /**
  * The bar's fill is the surface at this alpha. DESIGN.md §5 puts a chrome bar
@@ -473,7 +474,6 @@ const MemberTile = memo(function MemberTile({
       onPress={() => onEnter(memberId)}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
-      hitSlop={TILE_HIT_SLOP}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}

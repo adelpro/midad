@@ -111,6 +111,22 @@ and `groupAabb(objects)` unions several. Alignment and centring must use these
 rather than the raw box, otherwise they disagree with what the user sees on a
 scaled object.
 
+### The ink box
+
+A text object's `box` is the paragraph's **advance/line** box: it includes the
+side bearings and the line height, so it can be far wider and taller than the
+drawn glyphs. A **split word's part** therefore carries an additional tight `ink`
+box — `{ cx, cy, width, height }`, the glyph bounds in the same local frame,
+measured from `paragraph.getRectsForRange` (`skia/text.ts`).
+
+Hit-testing, the collection frame, alignment and the single-object chrome use
+`ink` when it is present; **painting and export keep `box`**, so the glyphs never
+move. `cx`/`cy` are the ink _centre_, because the ink is not necessarily centred
+on the object origin (text alignment, side bearings); `objectCentre(o)` maps it
+through the object's flip, scale and rotation, and `pickHandle` takes the same
+offset so the drawn chrome and the grabbed handles agree
+([`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §4).
+
 ## 6. Chrome is authored in screen pt
 
 Selection chrome must stay a **constant size on screen**. It is drawn inside the
@@ -146,6 +162,7 @@ is not a supported state, but it will not produce `Infinity` either.
 | `HANDLE_TOUCH_RADIUS`  | `22`      | Touch target around a handle  |
 | `ROTATE_TOUCH_RADIUS`  | `26`      | Touch target around the grip  |
 | `OBJECT_HIT_PAD`       | `10`      | Grab tolerance around the box |
+| `MEMBER_HIT_PAD`       | `4`       | Grab tolerance around an ink part |
 
 `selectionPad(unit)` is `SELECTION_HANDLE_PAD / unit` and `rotateGap(unit)` the
 same for the gap. Both are shared by the canvas overlay _and_ the gesture
@@ -192,8 +209,10 @@ handles and the tappable handles are the same numbers. `isCornerHandle`,
 ### What a press grabs
 
 `pickHandle(transform, box, unit, p)` owns that decision, in one copy — the
-gesture layer calls it for a single object and for a whole selection's frame.
-Three rules, in order:
+gesture layer calls it for a single object and for a whole selection's frame,
+and passes an `offset` when the box is an ink box not centred on the object
+origin, so the press is measured from the ink centre and the drawn handles are
+translated by the same vector. Three rules, in order:
 
 1. **The rim rule.** A resize handle is a candidate only when the press is in
    the box's outer band: $\max(|l_x| / (w/2),\ |l_y| / (h/2)) \ge 0.55$
@@ -209,11 +228,14 @@ Three rules, in order:
 3. **Nearest wins** within the winning tier.
 
 `pickObject(objects, x, y, unit)` does the same job for whole objects: front to
-back, the first object whose box grown by `OBJECT_HIT_PAD / (unit * |scale|)`
-contains the point wins. That pad is a screen length like the rest, so the
-tolerance a thin text line gets does not depend on the zoom. It is the one
-object-hit rule, shared by the tap path and the pointer-down drag path, so both
-accept the same press.
+back, the first object whose **ink box** (or `box` when it has no ink) grown by a
+grab tolerance contains the point wins. The tolerance is
+`OBJECT_HIT_PAD / (unit * |scale|)` in general, tightened to
+`MEMBER_HIT_PAD / (unit * |scale|)` for an ink-hugging split part — its
+neighbours sit close, and the full pad would let one steal the press. Both pads
+are screen lengths like the rest, so the tolerance a thin text line gets does not
+depend on the zoom. It is the one object-hit rule, shared by the tap path and the
+pointer-down drag path, so both accept the same press.
 
 ## 8. Measuring the canvas
 

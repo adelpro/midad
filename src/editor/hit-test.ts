@@ -71,12 +71,13 @@ export const ROTATE_GRIP_RADIUS = 7;
 export const OBJECT_HIT_PAD = 10;
 
 /**
- * Grab tolerance (screen pt) for a **collection member**.
+ * Grab tolerance (screen pt) for an **ink-hugging** collection member — a split
+ * word's part.
  *
- * Deliberately tighter than `OBJECT_HIT_PAD`: the members of a split word sit
+ * Deliberately tighter than `OBJECT_HIT_PAD`: the parts of a split word sit
  * against each other, so the generous object pad would let a neighbour's box
- * swallow a press meant for the letter beside it. Small enough to disambiguate,
- * large enough that a letter is not a pixel-hunt.
+ * swallow a press meant for the letter beside it. A grouped object with no ink
+ * (a shape group, or grouped ordinary text) keeps the full object tolerance.
  */
 export const MEMBER_HIT_PAD = 4;
 
@@ -264,9 +265,11 @@ export function pickObject(
   const sorted = [...objects].sort((a, b) => b.zIndex - a.zIndex);
   for (const o of sorted) {
     const local = toLocalPoint(o.transform, x, y);
-    // A collection member gets a tighter tolerance: adjacent parts of a split
-    // word are close, and the object pad would let a neighbour swallow the press.
-    const basePad = o.groupId === undefined ? OBJECT_HIT_PAD : MEMBER_HIT_PAD;
+    // An ink-hugging collection member gets a tighter tolerance: adjacent parts
+    // of a split word sit close, and the object pad would let a neighbour swallow
+    // the press. A grouped object with no ink keeps the full object tolerance.
+    const basePad =
+      o.ink === undefined ? OBJECT_HIT_PAD : MEMBER_HIT_PAD;
     const pad = basePad / (u * safeObjectScale(o.transform.scale));
     // Test against the ink box when there is one, offset by its centre.
     const cx = o.ink?.cx ?? 0;

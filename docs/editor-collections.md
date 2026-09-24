@@ -74,8 +74,12 @@ A collection has no transform of its own — the document stays flat, with no gr
 node — so its box is **derived** from its members every time it is needed:
 
 ```
-members' boxes, measured in the collection's frame, unioned, then oriented
+members' boxes measured in the collection's frame, unioned, then oriented
 ```
+
+A member that carries a tight **ink** box (a split word's part) contributes that
+instead of its advance/line box, so adjacent letters do not draw overlapping
+frames — see [`editor-coordinates.md`](editor-coordinates.md) §5.
 
 - **Orientation is derived too**: when every member carries the same rotation, the
   arrangement's own axes are that rotation and the box is exact. That covers the
