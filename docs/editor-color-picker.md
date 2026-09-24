@@ -26,6 +26,12 @@ Pressing the Colors tool selects it (for the rail highlight) and opens
 `ColorPickerSheet`. It mirrors the Text and Glyphs tools, whose presses also open
 a sheet.
 
+Closing the sheet hands the rail back to Select when the visit changed a colour
+(`colorSession`), the same "the modal flow is over, the canvas is draggable
+again" reset the background-image picker performs; a visit that changed nothing
+leaves the tool where it was. The reset is silent (`setTool`, not `selectTool`),
+since closing the sheet is feedback enough.
+
 The context zone no longer renders anything for `tool === 'color'`:
 `hasContext` is `splitNotice !== null || tool === 'background'`. Nothing
 colour-related sits in the rail, so the zone is never charged against the

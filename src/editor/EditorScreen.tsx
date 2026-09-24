@@ -1704,6 +1704,20 @@ export function EditorScreen() {
     setColorSheetOpen(true);
   }, [selectTool, setMultiSelectMode]);
 
+  /**
+   * Close the picker and, if this visit actually changed a colour, hand the rail
+   * back to Select so the canvas is immediately draggable again — the same
+   * "modal flow is over" reset the background-image picker does. A visit that
+   * changed nothing keeps the tool where it was. Silent (`setTool`): the sheet
+   * closing is feedback enough.
+   */
+  const closeColorSheet = useCallback(() => {
+    setColorSheetOpen(false);
+    if (colorSession.current) {
+      setTool('select');
+    }
+  }, []);
+
   const pressBackgroundTool = useCallback(() => {
     setMultiSelectMode(false);
     selectTool('background');
@@ -2171,7 +2185,7 @@ export function EditorScreen() {
           value={selectedObject?.color ?? DEFAULT_INK}
           recentColors={recentColors}
           onChange={applyColor}
-          onClose={() => setColorSheetOpen(false)}
+          onClose={closeColorSheet}
         />
 
         {/* Ornament and shape library */}
