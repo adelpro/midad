@@ -219,6 +219,106 @@ export const fontFamilies: readonly FontFamily[] = [
       },
     ],
   },
+  {
+    key: 'amoshref-thulth',
+    labelAr: 'أمشرف ثلث',
+    labelEn: 'AMoshref Thulth',
+    styleTagAr: 'ثلث',
+    styleTagEn: 'Thuluth',
+    defaultVariant: 'AMoshrefThulth',
+    variants: [
+      { key: 'AMoshrefThulth', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'layla-thuluth',
+    labelAr: 'ليلى الثلث',
+    labelEn: 'Layla Thuluth',
+    styleTagAr: 'ثلث تقليدي',
+    styleTagEn: 'Traditional Thuluth',
+    defaultVariant: 'LaylaThuluth',
+    variants: [
+      { key: 'LaylaThuluth', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'gulzar',
+    labelAr: 'گلزار',
+    labelEn: 'Gulzar',
+    styleTagAr: 'نستعليق',
+    styleTagEn: 'Nastaliq',
+    defaultVariant: 'Gulzar',
+    variants: [
+      { key: 'Gulzar', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'kufam',
+    labelAr: 'كوفام',
+    labelEn: 'Kufam',
+    styleTagAr: 'كوفي هندسي',
+    styleTagEn: 'Geometric Kufi',
+    defaultVariant: 'Kufam',
+    variants: [
+      { key: 'Kufam', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'scheherazade-new',
+    labelAr: 'شهرزاد الجديد',
+    labelEn: 'Scheherazade New',
+    styleTagAr: 'نسخ قرآني',
+    styleTagEn: 'Quranic Naskh',
+    defaultVariant: 'ScheherazadeNew',
+    variants: [
+      {
+        key: 'ScheherazadeNew',
+        labelAr: 'عادي',
+        labelEn: 'Regular',
+        weight: 400,
+      },
+      {
+        key: 'ScheherazadeNew-Bold',
+        labelAr: 'عريض',
+        labelEn: 'Bold',
+        weight: 700,
+      },
+    ],
+  },
+  {
+    key: 'mirza',
+    labelAr: 'ميرزا',
+    labelEn: 'Mirza',
+    styleTagAr: 'فارسي',
+    styleTagEn: 'Persian',
+    defaultVariant: 'Mirza',
+    variants: [
+      { key: 'Mirza', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+      { key: 'Mirza-Bold', labelAr: 'عريض', labelEn: 'Bold', weight: 700 },
+    ],
+  },
+  {
+    key: 'el-messiri',
+    labelAr: 'المصيري',
+    labelEn: 'El Messiri',
+    styleTagAr: 'عرضي أنيق',
+    styleTagEn: 'Elegant Display',
+    defaultVariant: 'ElMessiri',
+    variants: [
+      { key: 'ElMessiri', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'marhey',
+    labelAr: 'مرحي',
+    labelEn: 'Marhey',
+    styleTagAr: 'عرضي مرح',
+    styleTagEn: 'Playful Display',
+    defaultVariant: 'Marhey',
+    variants: [
+      { key: 'Marhey', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
 ];
 
 const familyByVariant = new Map<string, FontFamily>();
