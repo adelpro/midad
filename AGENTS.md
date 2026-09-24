@@ -27,10 +27,10 @@ one before changing that area. When a document and the code disagree, fix the co
 ## Checks
 
 There is no test runner. `node scripts/verify.mjs` runs the typecheck, the lint,
-the format check and all ten checks **in parallel** — wall clock is the slowest
-one — printing each task's own output and failing if any of them did. Reach for
-it first; the individual scripts are the right tool when you already know what
-you touched.
+the format check and all eleven checks **in parallel** — wall clock is the
+slowest one — printing each task's own output and failing if any of them did.
+Reach for it first; the individual scripts are the right tool when you already
+know what you touched.
 
 ```bash
 node scripts/verify.mjs          # everything, in parallel (also `yarn verify`)
@@ -58,6 +58,7 @@ node scripts/check-countdown.mjs # undo-snackbar countdown seconds + ring arc
 node scripts/check-shortcuts.mjs # binding table + matcher + chord text
 node scripts/check-help.mjs      # help catalog ↔ strings.ts ↔ shortcuts.ts
 node scripts/check-fonts.mjs     # font family registry + fontAssets invariants
+node scripts/check-glyphs.mjs    # ornament line weight shared across all renderers
 node scripts/check-export-payload.mjs # export write-encoding decision
 node scripts/check-color.mjs     # colour parsing + canonical hex normalisation
 ```

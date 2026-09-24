@@ -1,7 +1,17 @@
 import type { SkCanvas, SkPath } from '@shopify/react-native-skia';
-import { Group, Path, Skia } from '@shopify/react-native-skia';
+import {
+  Group,
+  PaintStyle,
+  Path,
+  Skia,
+  StrokeJoin,
+} from '@shopify/react-native-skia';
 
-import { getGlyphEntry, glyphPlacement } from '@/editor/glyphs';
+import {
+  getGlyphEntry,
+  glyphPlacement,
+  glyphStrokeWidth,
+} from '@/editor/glyphs';
 import type { GlyphObject } from '@/storage/project-schema';
 
 /**
@@ -30,6 +40,10 @@ export type GlyphRenderProps = {
 /**
  * Render a glyph centred in a `size` box, preserving its ink aspect ratio.
  * Unknown keys render nothing, matching how ShapeRenderer handles them.
+ *
+ * Glyphs paint as line-art (`stroke`, never `fill`): the source is a filled
+ * Amiri outline, which reads far too heavy, so all three renderers stroke it at
+ * the shared `glyphStrokeWidth`.
  */
 export function GlyphRenderer({ glyph, size }: GlyphRenderProps) {
   const entry = getGlyphEntry(glyph.glyphKey);
@@ -45,7 +59,13 @@ export function GlyphRenderer({ glyph, size }: GlyphRenderProps) {
         { scale: p.scale },
       ]}
     >
-      <Path path={entry.d} color={glyph.color} />
+      <Path
+        path={entry.d}
+        color={glyph.color}
+        style="stroke"
+        strokeWidth={glyphStrokeWidth(entry)}
+        strokeJoin="round"
+      />
     </Group>
   );
 }
@@ -70,6 +90,11 @@ export function drawGlyphOnCanvas(
   const p = glyphPlacement(entry, size);
   const paint = Skia.Paint();
   paint.setColor(Skia.Color(glyph.color));
+  // Stroke, not fill — see GlyphRenderer. The width is in font units, so the
+  // canvas scale below sizes it with the path.
+  paint.setStyle(PaintStyle.Stroke);
+  paint.setStrokeWidth(glyphStrokeWidth(entry));
+  paint.setStrokeJoin(StrokeJoin.Round);
   canvas.save();
   canvas.translate(p.offsetX, p.offsetY);
   canvas.scale(p.scale, p.scale);

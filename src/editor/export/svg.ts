@@ -1,6 +1,10 @@
 import { Asset } from 'expo-asset';
 
-import { getGlyphEntry, glyphPlacement } from '@/editor/glyphs';
+import {
+  getGlyphEntry,
+  glyphPlacement,
+  glyphStrokeWidth,
+} from '@/editor/glyphs';
 import {
   SHAPE_BASE_SIZE,
   SHAPE_INSET,
@@ -227,6 +231,10 @@ function shapeGeometryToSvg(shape: ShapeObject, size: number): string | null {
  * an aspect-preserving fit into the square base box and a shift that centres the
  * result. `glyphPlacement` folds those into one translate + scale pair, matching
  * the Skia renderer exactly.
+ *
+ * The glyph is stroked, never filled, matching the canvas and PNG paths: the
+ * source outline is too heavy solid, so all three read `glyphStrokeWidth`, which
+ * is in font units and therefore rides the same `scale` as the path.
  */
 function glyphToSvg(glyph: GlyphObject): string | null {
   const entry = getGlyphEntry(glyph.glyphKey);
@@ -237,7 +245,8 @@ function glyphToSvg(glyph: GlyphObject): string | null {
   const p = glyphPlacement(entry, size);
   return (
     `<g transform="translate(${-size / 2} ${-size / 2})">` +
-    `<path d="${entry.d}" fill="${escapeXml(glyph.color)}" ` +
+    `<path d="${entry.d}" fill="none" stroke="${escapeXml(glyph.color)}" ` +
+    `stroke-width="${glyphStrokeWidth(entry)}" stroke-linejoin="round" ` +
     `transform="translate(${p.offsetX} ${p.offsetY}) scale(${p.scale})" />` +
     `</g>`
   );

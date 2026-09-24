@@ -31,6 +31,7 @@ which is the point.
 | `SHAPE_INSET` (`8`)                   | circle, square, octagon, diamond, … | Clearance between ink and box edge — see §3                  |
 | `SHAPE_PATH_BUILDERS`                 | every non-primitive shape           | The one path table (see §4)                                  |
 | `glyphPlacement(entry, size)`         | glyphs                              | Aspect-fit + recentre, as one scale + translate pair         |
+| `glyphStrokeWidth(entry)`             | glyphs                              | Line weight (font units) — ornaments stroke, never fill      |
 | `drawShapeOnCanvas` / `ShapeRenderer` | shapes                              | Imperative / declarative pair                                |
 | `drawGlyphOnCanvas` / `GlyphRenderer` | glyphs                              | Imperative / declarative pair                                |
 
@@ -38,6 +39,12 @@ which is the point.
 leaving a stroked circle touching its own selection rectangle (and spilling a
 unit past it). Every shape now keeps that much air, so an ornament reads as
 sitting inside its box rather than as a box that happens to be round.
+
+`glyphStrokeWidth` exists for the same reason on the glyph side: the catalog is
+built from **filled** Amiri outlines, and a filled outline reads as a heavy solid
+silhouette. All four paint sites — canvas, PNG, SVG and the library tile — stroke
+the path instead, at a fixed fraction of the glyph's longest ink side, so the
+line weight is alike across a 326-unit fatha and a 1950-unit seen.
 
 ## 3. The per-object transform convention
 

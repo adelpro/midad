@@ -42,6 +42,30 @@ export function glyphViewBox(entry: GlyphCatalogEntry): string {
   return `${x} ${y} ${w} ${h}`;
 }
 
+/**
+ * Line weight of an ornament, as a fraction of its longest ink side.
+ *
+ * Ornaments are font outlines mined from Amiri, and a filled outline reads as a
+ * heavy solid silhouette. Stroking it instead turns each glyph into calligraphic
+ * line-art. Expressing the width as a fraction of `max(w, h)` — rather than a
+ * fixed number of font units — is what keeps the line weight constant across the
+ * catalog: `glyphPlacement` fits that same longest side to the square base box,
+ * so the fraction becomes a fixed share of the box (and of the object once its
+ * transform scales it), whether the glyph is a 326-unit fatha or a 1950-unit
+ * seen.
+ */
+export const GLYPH_STROKE_RATIO = 0.04;
+
+/**
+ * Stroke width in **font units**, for use inside a glyph's fitted transform (or
+ * directly against its font-unit path in the library tile). Every glyph paint
+ * site — live canvas, PNG, SVG and the library preview — reads this one value so
+ * they cannot drift.
+ */
+export function glyphStrokeWidth(entry: GlyphCatalogEntry): number {
+  return GLYPH_STROKE_RATIO * Math.max(entry.box.w, entry.box.h, 1);
+}
+
 export interface GlyphPlacement {
   /** Uniform scale that fits the glyph inside a `size` square. */
   scale: number;

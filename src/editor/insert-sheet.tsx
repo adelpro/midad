@@ -24,6 +24,7 @@ import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 
 import { Button, Sheet } from '@/components/ui';
 import {
+  glyphStrokeWidth,
   glyphViewBox,
   glyphsInGroup,
   type GlyphCatalogEntry,
@@ -170,7 +171,8 @@ function ShapePreview({
  *
  * The `viewBox` is the glyph's padded ink box, so the ink fills the tile at any
  * aspect ratio — the same letterboxing `glyphPlacement` applies on the canvas.
- * Glyphs paint filled, matching `GlyphRenderer`'s default paint.
+ * Glyphs paint as line-art (`stroke` over the font-unit path, at the shared
+ * `glyphStrokeWidth`), matching `GlyphRenderer` so a tile previews its object.
  */
 function GlyphTile({
   entry,
@@ -198,7 +200,13 @@ function GlyphTile({
       ]}
     >
       <Svg width={PREVIEW} height={PREVIEW} viewBox={glyphViewBox(entry)}>
-        <Path d={entry.d} fill={c.ink} />
+        <Path
+          d={entry.d}
+          fill="none"
+          stroke={c.ink}
+          strokeWidth={glyphStrokeWidth(entry)}
+          strokeLinejoin="round"
+        />
       </Svg>
       <Text
         numberOfLines={1}
