@@ -72,7 +72,7 @@ is FORBIDDEN for these (see §7).
 - **Cards** — Default `elevated`: NO border, surface fill, tinted soft shadow (radius 10). `outline` variant keeps the hairline for structural grouping only. Radius 12. Never stack borders everywhere — tone separates, lines divide only when structure demands it.
 - **IconButtons** — Square, radius 8, min 44pt target enforced by auto hit-slop. `label` prop required for icon-only use (accessibility).
 - **AppText** — The ONLY way to render text. Resolves font roles + type scale; strips Latin-only effects for Arabic.
-- **Sheets** — Bottom presentation, radius 12 top corners, dimmed scrim. Enter/exit via spring slide with drag-to-dismiss and velocity handoff; interruptible at all times. Capped at `layout.maxContent` and centred, so a wide display cannot stretch the panel — or its contents — across the window.
+- **Sheets** — The `@expo/ui` universal `BottomSheet` on every OS (SwiftUI sheet on iOS, Compose `ModalBottomSheet` on Android, Vaul dialog drawer on the web), so the platform owns presentation, drag-to-dismiss, back-press/Escape dismissal, focus trapping, body-scroll lock and reduced motion. The app owns the content inside: the pill handle, title/close row and children stay the custom kit's (§7). Radius 12 top corners, dimmed scrim, content capped at `layout.maxContent` (480) and centred on the web (the drawer is styled by `public/midad-web.css`). The sheet auto-sizes to its content on every platform, bounded at 82% of the window so a long list scrolls inside instead of growing the sheet off-screen — the cap lives in the content now (was the panel's `maxHeight`).
 - **SegmentedControl** — Pill track (surfaceAlt), spring-slid thumb. Labels via AppText.
 - **Inputs** — surfaceAlt fill, hairline border, radius 8. RTL-aligned for Arabic. Placeholder in `faint`.
 - **Empty States** — Composed moments: calligraphic glyph + title + guidance + single CTA. Never bare "no data".
@@ -85,7 +85,7 @@ is FORBIDDEN for these (see §7).
 - Screen padding `spacing.xl` (24); section gaps `lg–xl`; list gaps `md`.
 - Floating translucent docks/bars (semi-transparent surface + hairline) float OVER content; content scrolls beneath.
   - **Editor exception.** The editor does NOT float its chrome. Its contextual bar is a reserved, fixed-height rail sitting in the column flow above the tool rail (`contextRail` in `editor/EditorScreen.tsx`). Two structural reasons: chrome floating over the canvas would sit between the finger and the selection border + handles the canvas itself draws, and a bar that mounted and unmounted in the flow would resize the canvas and re-run fit-to-view, visibly zooming the design mid-edit. Reserving the slot solves both. Two things _do_ sit inside the canvas box — the learn-mode cards and the collection bar (`editor/collection-bar.tsx`) — and both pass the same test: each is anchored to the selection or to the mode rather than to a tool, neither enters the column flow (so neither can resize the canvas), and while each is up the gestures it could obstruct are off or beside the point. The collection bar is the member track that used to sit in this rail's context zone; it left because navigation and actions were sharing one width budget and the actions lost (`editor-collections.md` §5).
-    The rail is one row and never scrolls as a whole. The selection's actions are ranked in `editor/selection-actions.tsx`, only as many render as fit, and the rest sit in a labelled sheet behind a permanent `⋯` (`More`) — a tail that scrolls out of sight is invisible chrome (in Arabic it parks off the _left_ edge), whereas `⋯` is an affordance. That sheet is also where the bar is _arranged_: every row carries a pin, and a pinned action moves to the head of the row — the one position the width budget can never cut — while an unpinned one waits in the sheet until it is wanted again. The row's tap runs the action; the pin decides whether the bar keeps it. Only the contextual zone (colour swatches, the background picker, a refusal notice) keeps a scroller: its contents are content about the current tool, not actions, and a swatch set can legitimately outgrow the width. The style panel is a _bar action_ rather than a navigator, because a navigator big enough to show the preset's name and step through it would have spent the width the actions need. `⋯` is also the one control learn mode leaves live — it _reveals_ controls rather than acting on the design, so while learning it opens that same set as a centred, scrollable reference (one row per action: label, role, chord) instead of explaining itself, which would leave everything behind it unexplained.
+    The rail is one row and never scrolls as a whole. The selection's actions are ranked in `editor/selection-actions.tsx`, only as many render as fit, and the rest sit in a labelled sheet behind a permanent `⋯` (`More`) — a tail that scrolls out of sight is invisible chrome (in Arabic it parks off the _left_ edge), whereas `⋯` is an affordance. That sheet is also where the bar is _arranged_: every row carries a pin, and a pinned action moves to the head of the row — the one position the width budget can never cut — while an unpinned one waits in the sheet until it is wanted again. The row's tap runs the action; the pin decides whether the bar keeps it. Only the contextual zone (colour swatches, the background picker, a refusal notice) keeps a scroller: its contents are content about the current tool, not actions, and a swatch set can legitimately outgrow the width. The style panel is a _bar action_ rather than a navigator, because a navigator big enough to show the preset's name and step through it would have spent the width the actions need. `⋯` is also the one control learn mode leaves live — it _reveals_ controls rather than acting on the design, so while learning it opens that same list as a scrollable reference (one row per action: label, role, chord) instead of explaining itself, which would leave everything behind it unexplained.
 - Touch targets ≥ 44×44 everywhere — non-negotiable.
 - One primary action per screen. Header holds title + count; creation gets a FAB (56pt circle, ink fill), never a header button crowd.
 - Safe areas respected on all edges; lists pad bottom beyond tab bar.
@@ -94,13 +94,13 @@ is FORBIDDEN for these (see §7).
 
 Engine: reanimated springs only. Presets in `springs` tokens:
 
-| Token      | Physics               | Use                                       |
-| ---------- | --------------------- | ----------------------------------------- |
-| `ui`       | ζ 1.0, stiffness 260  | presses, toggles, thumbs                  |
-| `momentum` | ζ 0.8, stiffness 320  | flicks, throws                            |
-| `elastic`  | ζ 0.6, stiffness 300  | a latch that should give (never a return) |
-| `sheet`    | ζ 0.85, stiffness 300 | sheet enter/exit                          |
-| `exit`     | ζ 1.0, stiffness 380  | dismissals and other system responses     |
+| Token      | Physics               | Use                                                                         |
+| ---------- | --------------------- | --------------------------------------------------------------------------- |
+| `ui`       | ζ 1.0, stiffness 260  | presses, toggles, thumbs                                                    |
+| `momentum` | ζ 0.8, stiffness 320  | flicks, throws                                                              |
+| `elastic`  | ζ 0.6, stiffness 300  | a latch that should give (never a return)                                   |
+| `sheet`    | ζ 0.85, stiffness 300 | undo snackbar enter/exit (sheets are native now — their motion is the OS's) |
+| `exit`     | ζ 1.0, stiffness 380  | dismissals and other system responses                                       |
 
 - ζ is the **damping ratio**: `1` is critically damped (fastest approach, no
   overshoot), below `1` overshoots. Author presets as ζ + stiffness, never as a
@@ -120,7 +120,7 @@ Engine: reanimated springs only. Presets in `springs` tokens:
 ## 7. Library Policy
 
 - **Custom design system owns ALL brand surfaces** (buttons, cards, text, sheets, controls).
-- **`@expo/ui` allowed ONLY** for platform-behavior utilities behind platform-split modules: `community/Menu` (context menus), `universal/Slider`, `universal/Switch`/`Checkbox`. Each needs a `.web.tsx` fallback matching the custom kit.
+- **`@expo/ui` allowed ONLY** for platform-behavior utilities behind platform-split modules: `community/Menu` (context menus), `universal/Slider`, `universal/Switch`/`Checkbox`. Each needs a `.web.tsx` fallback matching the custom kit. **Exception:** `universal/BottomSheet` is the `Sheet` primitive's engine (`src/components/ui/sheet.tsx`) — its universal implementation already covers web (Vaul) itself, so it is used directly; the brand chrome (handle, title, close, padding, width cap) stays in the primitive, and the sheet was not a centered modal anymore.
 - New dependencies require spec amendment (`.artifacts/00-design-direction.md`).
 
 ## 8. Anti-Patterns (Banned)

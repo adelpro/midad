@@ -29,10 +29,9 @@ export interface HelpSheetProps {
  * The complete reference: every control in the editor, grouped, with its role
  * and — on the web, where a key can actually be pressed — its chord.
  *
- * Presented as a centred modal rather than a bottom sheet for two reasons. The
- * list is long enough to scroll, and `Sheet` only enables its drag-to-dismiss
- * pan for the bottom presentation; a modal has no such gesture, so the inner
- * `ScrollView` owns vertical drags outright instead of fighting the sheet.
+ * Presented as a bottom sheet like every other surface; the inner `ScrollView`
+ * owns the long list outright, because the sheet's own scroll regions win over
+ * its drag-to-dismiss.
  */
 export function HelpSheet({
   visible,
@@ -50,7 +49,6 @@ export function HelpSheet({
       visible={visible}
       onClose={onClose}
       title={t.editor.helpTitle}
-      presentation="modal"
       closeButton
     >
       <ScrollView

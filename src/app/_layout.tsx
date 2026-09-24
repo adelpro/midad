@@ -31,6 +31,10 @@ export default function RootLayout() {
         {Platform.OS === 'web' && (
           <Head>
             <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+            {/* Styling for @expo/ui's Vaul drawer (see public/midad-web.css):
+                caps the sheet at the max content width, centres it, and honours
+                reduced motion — none of which the expo-ui wrapper exposes. */}
+            <link rel="stylesheet" href="/midad-web.css" />
           </Head>
         )}
         <Stack

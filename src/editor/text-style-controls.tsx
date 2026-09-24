@@ -193,19 +193,21 @@ export function FontSizeGauge({
         prevDisabled={disabled || clamped <= min}
         nextDisabled={disabled || clamped >= max}
       />
-      <Slider
-        value={clamped}
-        min={min}
-        max={max}
-        step={step}
-        scale="log"
-        onChange={onChange}
-        onSlidingStart={onSlidingStart}
-        onSlidingComplete={settle}
-        rtl={isRTL}
-        disabled={disabled}
-        accessibilityLabel={t.editor.fontSize}
-      />
+      <View style={styles.gaugeGap}>
+        <Slider
+          value={clamped}
+          min={min}
+          max={max}
+          step={step}
+          scale="log"
+          onChange={onChange}
+          onSlidingStart={onSlidingStart}
+          onSlidingComplete={settle}
+          rtl={isRTL}
+          disabled={disabled}
+          accessibilityLabel={t.editor.fontSize}
+        />
+      </View>
     </View>
   );
 }
@@ -376,7 +378,15 @@ const styles = StyleSheet.create({
     fontSize: typeScale.body.size,
     fontWeight: '600',
   },
-  gauge: { gap: spacing.sm },
+  gauge: {},
+  /**
+   * Spacing between the stepper and the slider, as an explicit margin on a plain
+   * wrapper *around* the `@expo/ui` control: Yoga applies `gap` between siblings,
+   * but the Android `Host` is a native Compose-backed view, and spacing across
+   * that boundary has been unreliable (see the session note) — a margin between
+   * two regular RN views always holds.
+   */
+  gaugeGap: { marginTop: spacing.sm },
   preview: { gap: spacing.xs },
   previewHead: {
     flexDirection: 'row',

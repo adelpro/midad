@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -50,8 +49,9 @@ export interface FontPickerSheetProps {
  * family expands **inline** to reveal its variant chips, so the list never
  * reflows and single-variant families simply have no chip row.
  *
- * Native presents as a bottom sheet; web as a centred modal — the bottom sheet's
- * drag-to-dismiss is a touch affordance and can swallow the list's scroll.
+ * A bottom sheet on every OS; the sheet's own scroll regions win over the
+ * drag-to-dismiss gesture, so the list scrolls inside without fighting the
+ * sheet.
  */
 export function FontPickerSheet({
   visible,
@@ -165,7 +165,6 @@ export function FontPickerSheet({
       onClose={closeSheet}
       title={t.editor.fontFamily}
       closeButton
-      presentation={Platform.OS === 'web' ? 'modal' : 'bottom'}
     >
       <View
         style={[

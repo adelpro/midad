@@ -1,0 +1,32 @@
+/* midad-web.css — web-only overrides for @expo/ui's universal `BottomSheet`,
+   which renders a Vaul drawer on the web. Loaded from src/app/_layout.tsx
+   (expo-router <Head>), so this file never touches a native bundle.
+
+   Target the drawer through its `data-vaul-drawer` attribute; Vaul sets the
+   drawer's positioning and radius inline, so `!important` is required. */
+
+[data-vaul-drawer] {
+  /* DESIGN.md §5: surfaces are capped at `layout.maxContent` and centred, so a
+     wide display cannot stretch the panel — or its contents — across the
+     window. The drawer is `position: fixed; left: 0; right: 0`; the cap plus
+     auto inline margins centre it. */
+  max-width: 480px !important;
+  margin-inline: auto !important;
+
+  /* DESIGN.md §4: sheets use radius 12 top corners; Vaul defaults to 16. */
+  border-top-left-radius: 12px !important;
+  border-top-right-radius: 12px !important;
+
+  /* Page scroll must not bleed through the sheet while it is open. */
+  overscroll-behavior: contain;
+}
+
+/* DESIGN.md §6: reduced motion. The iOS/Android sheets honour the OS setting
+   natively; the web drawer is pure CSS animation, so kill it explicitly. */
+@media (prefers-reduced-motion: reduce) {
+  [data-vaul-drawer],
+  [data-vaul-overlay] {
+    transition: none !important;
+    animation: none !important;
+  }
+}

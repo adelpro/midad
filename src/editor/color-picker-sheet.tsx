@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -95,7 +94,6 @@ export function ColorPickerSheet({
       onClose={onClose}
       title={t.editor.pickColor}
       closeButton
-      presentation={Platform.OS === 'web' ? 'modal' : 'bottom'}
     >
       <ScrollView
         style={styles.scroll}
