@@ -10,7 +10,9 @@ import {
   type GlyphCatalogEntry,
   type GlyphGroup,
 } from '@/editor/glyphs/catalog';
+import type { GlyphObject, GlyphStyle } from '@/storage/project-schema';
 
+export type { GlyphStyle };
 export type {
   GlyphBox,
   GlyphCatalogEntry,
@@ -43,6 +45,25 @@ export function glyphViewBox(entry: GlyphCatalogEntry): string {
 }
 
 /**
+ * Paint modes for a placed ornament.
+ *
+ * The catalog is built from *filled* Amiri outlines, so filling one reads as a
+ * heavy solid silhouette — the traditional ornamental look — while stroking the
+ * same path turns it into calligraphic line-art. `solid` is the fill; `outline`
+ * and `thin` are two line weights of the same stroke.
+ */
+
+/** The style an ornament without the field reads as — and new ones get. */
+export const GLYPH_DEFAULT_STYLE: GlyphStyle = 'outline';
+
+/** Canonical cycle order for the per-object "next style" action. */
+export const GLYPH_STYLE_ORDER: readonly GlyphStyle[] = [
+  'outline',
+  'solid',
+  'thin',
+];
+
+/**
  * Line weight of an ornament, as a fraction of its longest ink side.
  *
  * Ornaments are font outlines mined from Amiri, and a filled outline reads as a
@@ -56,14 +77,47 @@ export function glyphViewBox(entry: GlyphCatalogEntry): string {
  */
 export const GLYPH_STROKE_RATIO = 0.04;
 
+/** The finer line weight, for delicate ornaments. */
+export const GLYPH_THIN_STROKE_RATIO = 0.02;
+
+/**
+ * Stroke ratio per stroked style. `solid` fills and has no stroke, so it is
+ * absent — a caller asking for a solid width gets 0, and the paint sites decide
+ * fill vs stroke from the style itself.
+ */
+export const GLYPH_STYLE_RATIO: Readonly<
+  Record<Exclude<GlyphStyle, 'solid'>, number>
+> = {
+  outline: GLYPH_STROKE_RATIO,
+  thin: GLYPH_THIN_STROKE_RATIO,
+};
+
 /**
  * Stroke width in **font units**, for use inside a glyph's fitted transform (or
  * directly against its font-unit path in the library tile). Every glyph paint
  * site — live canvas, PNG, SVG and the library preview — reads this one value so
- * they cannot drift.
+ * they cannot drift. `0` for `solid`, which paints a fill instead.
  */
-export function glyphStrokeWidth(entry: GlyphCatalogEntry): number {
-  return GLYPH_STROKE_RATIO * Math.max(entry.box.w, entry.box.h, 1);
+export function glyphStrokeWidth(
+  entry: GlyphCatalogEntry,
+  style: GlyphStyle = GLYPH_DEFAULT_STYLE,
+): number {
+  const ratio =
+    style === 'solid' ? 0 : (GLYPH_STYLE_RATIO[style] ?? GLYPH_STROKE_RATIO);
+  return ratio * Math.max(entry.box.w, entry.box.h, 1);
+}
+
+/** The style a persisted object actually paints with. */
+export function glyphStyleOf(
+  glyph: Pick<GlyphObject, 'glyphStyle'>,
+): GlyphStyle {
+  return glyph.glyphStyle ?? GLYPH_DEFAULT_STYLE;
+}
+
+/** The next style in `GLYPH_STYLE_ORDER`, for the cycling selection action. */
+export function nextGlyphStyle(style: GlyphStyle): GlyphStyle {
+  const index = GLYPH_STYLE_ORDER.indexOf(style);
+  return GLYPH_STYLE_ORDER[(index + 1) % GLYPH_STYLE_ORDER.length];
 }
 
 export interface GlyphPlacement {

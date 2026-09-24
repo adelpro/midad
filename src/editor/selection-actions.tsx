@@ -77,6 +77,7 @@ export type SelectionActionId =
   | 'bringToFront'
   | 'sendToBack'
   | 'delete'
+  | 'glyphStyle'
   | 'alignLeft'
   | 'alignCenterH'
   | 'alignRight'
@@ -101,6 +102,11 @@ export type SelectionCommandId = SelectionActionId | 'more';
 export interface SelectionShape {
   /** A text object is selected, so the text-only actions apply. */
   readonly isText: boolean;
+  /**
+   * Exactly one glyph object is selected, so the ornament-style action
+   * applies.
+   */
+  readonly isGlyph: boolean;
   /** The text can be broken into parts. */
   readonly canSplit: boolean;
   /** The selection is one part of an already-split word. */
@@ -171,6 +177,7 @@ const OVERFLOW_ACTIONS: readonly SelectionActionId[] = [
   'centerV',
   'stylePrev',
   'styleNext',
+  'glyphStyle',
 ];
 
 /** Destructive actions wear the danger fill in the sheet. */
@@ -228,6 +235,8 @@ function isAvailable(id: SelectionActionId, shape: SelectionShape): boolean {
       return shape.canGroup;
     case 'ungroup':
       return shape.canUngroup;
+    case 'glyphStyle':
+      return shape.isGlyph;
     case 'alignLeft':
     case 'alignCenterH':
     case 'alignRight':

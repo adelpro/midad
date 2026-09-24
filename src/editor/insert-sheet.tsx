@@ -23,11 +23,13 @@ import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 
 import { Button, Sheet } from '@/components/ui';
 import {
+  GLYPH_DEFAULT_STYLE,
   glyphStrokeWidth,
   glyphViewBox,
   glyphsInGroup,
   type GlyphCatalogEntry,
   type GlyphGroup,
+  type GlyphStyle,
 } from '@/editor/glyphs';
 import {
   SHAPE_BASE_SIZE,
@@ -78,7 +80,7 @@ const GRID_MAX_FRACTION = 0.42;
 export interface InsertSheetProps {
   visible: boolean;
   onClose: () => void;
-  onPickGlyph: (glyphKey: string) => void;
+  onPickGlyph: (glyphKey: string, style: GlyphStyle) => void;
   onPickShape: (shapeKey: ShapeKey) => void;
 }
 
@@ -170,15 +172,18 @@ function ShapePreview({
  *
  * The `viewBox` is the glyph's padded ink box, so the ink fills the tile at any
  * aspect ratio — the same letterboxing `glyphPlacement` applies on the canvas.
- * Glyphs paint as line-art (`stroke` over the font-unit path, at the shared
- * `glyphStrokeWidth`), matching `GlyphRenderer` so a tile previews its object.
+ * The paint follows the picker's `style` the same way `GlyphRenderer` follows
+ * the object's: `solid` fills the outline, `outline`/`thin` stroke it at the
+ * shared `glyphStrokeWidth`, so a tile previews its object.
  */
 function GlyphTile({
   entry,
+  style,
   label,
   onPress,
 }: {
   entry: GlyphCatalogEntry;
+  style: GlyphStyle;
   label: string;
   onPress: () => void;
 }) {
@@ -199,13 +204,17 @@ function GlyphTile({
       ]}
     >
       <Svg width={PREVIEW} height={PREVIEW} viewBox={glyphViewBox(entry)}>
-        <Path
-          d={entry.d}
-          fill="none"
-          stroke={c.ink}
-          strokeWidth={glyphStrokeWidth(entry)}
-          strokeLinejoin="round"
-        />
+        {style === 'solid' ? (
+          <Path d={entry.d} fill={c.ink} />
+        ) : (
+          <Path
+            d={entry.d}
+            fill="none"
+            stroke={c.ink}
+            strokeWidth={glyphStrokeWidth(entry, style)}
+            strokeLinejoin="round"
+          />
+        )}
       </Svg>
       <Text
         numberOfLines={1}
@@ -274,6 +283,9 @@ export function InsertSheet({
   const { t, language } = useT();
   const { height } = useWindowDimensions();
   const [tab, setTab] = useState<InsertTab>('glyphs');
+  // The ornament paint style the next placed ornament gets; also drives the
+  // tile previews, so a tile always shows exactly what it will insert.
+  const [glyphStyle, setGlyphStyle] = useState<GlyphStyle>(GLYPH_DEFAULT_STYLE);
   const fonts = fontRoles[language];
 
   const shapeLabels: Record<ShapeKey, string> = {
@@ -327,35 +339,58 @@ export function InsertSheet({
         </View>
 
         {tab === 'glyphs' ? (
-          <ScrollView
-            style={{ maxHeight: Math.round(height * GRID_MAX_FRACTION) }}
-            contentContainerStyle={styles.sections}
-          >
-            {GROUPS.map((group) => (
-              <View key={group} style={styles.section}>
-                <Text
-                  style={[
-                    styles.sectionTitle,
-                    { color: c.muted, fontFamily: fonts.uiBold },
-                  ]}
-                >
-                  {group === 'mark'
-                    ? t.editor.glyphMarks
-                    : t.editor.glyphLetters}
-                </Text>
-                <View style={styles.grid}>
-                  {glyphsInGroup(group).map((entry) => (
-                    <GlyphTile
-                      key={entry.key}
-                      entry={entry}
-                      label={language === 'ar' ? entry.labelAr : entry.labelEn}
-                      onPress={pick(() => onPickGlyph(entry.key))}
-                    />
-                  ))}
+          <>
+            <View style={styles.tabs}>
+              {(
+                [
+                  ['solid', t.editor.glyphSolid],
+                  ['outline', t.editor.glyphOutline],
+                  ['thin', t.editor.glyphThin],
+                ] as const
+              ).map(([style, label]) => (
+                <Button
+                  key={style}
+                  label={label}
+                  variant={glyphStyle === style ? 'primary' : 'secondary'}
+                  selected={glyphStyle === style}
+                  onPress={() => setGlyphStyle(style)}
+                  style={styles.tab}
+                />
+              ))}
+            </View>
+            <ScrollView
+              style={{ maxHeight: Math.round(height * GRID_MAX_FRACTION) }}
+              contentContainerStyle={styles.sections}
+            >
+              {GROUPS.map((group) => (
+                <View key={group} style={styles.section}>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: c.muted, fontFamily: fonts.uiBold },
+                    ]}
+                  >
+                    {group === 'mark'
+                      ? t.editor.glyphMarks
+                      : t.editor.glyphLetters}
+                  </Text>
+                  <View style={styles.grid}>
+                    {glyphsInGroup(group).map((entry) => (
+                      <GlyphTile
+                        key={entry.key}
+                        entry={entry}
+                        style={glyphStyle}
+                        label={
+                          language === 'ar' ? entry.labelAr : entry.labelEn
+                        }
+                        onPress={pick(() => onPickGlyph(entry.key, glyphStyle))}
+                      />
+                    ))}
+                  </View>
                 </View>
-              </View>
-            ))}
-          </ScrollView>
+              ))}
+            </ScrollView>
+          </>
         ) : (
           <View style={styles.grid}>
             {SHAPE_KEYS.map((key) => (

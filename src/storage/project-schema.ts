@@ -147,10 +147,25 @@ export interface CalligraphyTextObject extends GroupMember {
   zIndex: number;
 }
 
+/**
+ * How a placed ornament's Amiri outline is painted.
+ *
+ * Lives beside `GlyphObject` for the same reason `ShapeKey` does: the Skia
+ * renderer, the imperative PNG path, the SVG serializer and the library UI all
+ * switch on it, and they must never disagree about the set.
+ */
+export type GlyphStyle = 'solid' | 'outline' | 'thin';
+
 export interface GlyphObject extends GroupMember {
   id: string;
   type: 'glyph';
   glyphKey: string; // one of the decorative ornament keys
+  /**
+   * Paint mode: `solid` fills the outline, `outline` and `thin` stroke it at
+   * the shared ratios. Omitted in older documents, which read as `outline` —
+   * the pre-field behaviour.
+   */
+  glyphStyle?: GlyphStyle;
   color: string;
   opacity: number;
   transform: ObjectTransform;

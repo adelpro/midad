@@ -437,6 +437,15 @@ export const HELP_ENTRIES = [
     roleEn: 'Open the style panel to tune the selected text.',
     icon: 'sparkle',
   },
+  {
+    key: 'sel.glyphStyle',
+    group: 'selection',
+    label: { hint: 'glyphStyle' },
+    roleAr: 'التنقل بين النمط الممتلئ والمفرّغ والرفيع للزخرفة المحددة.',
+    roleEn:
+      'Cycle the selected ornament between the solid, outline and thin styles.',
+    icon: 'sparkle',
+  },
   // The bar's own controls. They are not selection *actions* — nothing about the
   // selection makes them apply — but they live in the same sheet, and a control
   // with no entry is a control no surface can explain.

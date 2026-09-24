@@ -60,7 +60,7 @@ node scripts/check-shortcuts.mjs # binding table + matcher + chord text
 node scripts/check-help.mjs      # help catalog ↔ strings.ts ↔ shortcuts.ts
 node scripts/check-fonts.mjs     # font family registry + fontAssets invariants
 node scripts/check-remote-fonts.mjs # remote font keys + face status + Fontsource URLs
-node scripts/check-glyphs.mjs    # ornament line weight shared across all renderers
+node scripts/check-glyphs.mjs    # ornament styles (solid/outline/thin) + line weight shared across all renderers
 node scripts/check-export-payload.mjs # export write-encoding decision
 node scripts/check-color.mjs     # colour parsing + canonical hex normalisation
 ```

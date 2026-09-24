@@ -25,15 +25,15 @@ The PNG path is used for both **thumbnails** (`maxWidthPx: THUMB_MAX_WIDTH_PX`, 
 These are imported by every renderer. Changing them changes all three at once —
 which is the point.
 
-| Shared symbol                         | Runs                                | Contract                                                     |
-| ------------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
-| `SHAPE_BASE_SIZE` (`120`)             | geometry & each object's box        | The square a shape or glyph is authored into, in local units |
-| `SHAPE_INSET` (`8`)                   | circle, square, octagon, diamond, … | Clearance between ink and box edge — see §3                  |
-| `SHAPE_PATH_BUILDERS`                 | every non-primitive shape           | The one path table (see §4)                                  |
-| `glyphPlacement(entry, size)`         | glyphs                              | Aspect-fit + recentre, as one scale + translate pair         |
-| `glyphStrokeWidth(entry)`             | glyphs                              | Line weight (font units) — ornaments stroke, never fill      |
-| `drawShapeOnCanvas` / `ShapeRenderer` | shapes                              | Imperative / declarative pair                                |
-| `drawGlyphOnCanvas` / `GlyphRenderer` | glyphs                              | Imperative / declarative pair                                |
+| Shared symbol                                     | Runs                                | Contract                                                                         |
+| ------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------- |
+| `SHAPE_BASE_SIZE` (`120`)                         | geometry & each object's box        | The square a shape or glyph is authored into, in local units                     |
+| `SHAPE_INSET` (`8`)                               | circle, square, octagon, diamond, … | Clearance between ink and box edge — see §3                                      |
+| `SHAPE_PATH_BUILDERS`                             | every non-primitive shape           | The one path table (see §4)                                                      |
+| `glyphPlacement(entry, size)`                     | glyphs                              | Aspect-fit + recentre, as one scale + translate pair                             |
+| `glyphStyleOf` / `glyphStrokeWidth(entry, style)` | glyphs                              | Paint mode + line weight — ornaments fill (`solid`) or stroke (`outline`/`thin`) |
+| `drawShapeOnCanvas` / `ShapeRenderer`             | shapes                              | Imperative / declarative pair                                                    |
+| `drawGlyphOnCanvas` / `GlyphRenderer`             | glyphs                              | Imperative / declarative pair                                                    |
 
 `SHAPE_INSET` exists because box-filling shapes used to run flush to the edge,
 leaving a stroked circle touching its own selection rectangle (and spilling a
@@ -42,9 +42,12 @@ sitting inside its box rather than as a box that happens to be round.
 
 `glyphStrokeWidth` exists for the same reason on the glyph side: the catalog is
 built from **filled** Amiri outlines, and a filled outline reads as a heavy solid
-silhouette. All four paint sites — canvas, PNG, SVG and the library tile — stroke
-the path instead, at a fixed fraction of the glyph's longest ink side, so the
-line weight is alike across a 326-unit fatha and a 1950-unit seen.
+silhouette. Each placed ornament therefore picks a paint mode through
+`glyphStyleOf`: `solid` keeps the fill (the traditional look), while `outline`
+and `thin` stroke the path at a fixed fraction of the glyph's longest ink side.
+All four paint sites — canvas, PNG, SVG and the library tile — resolve the same
+field and width, so the line weight is alike across a 326-unit fatha and a
+1950-unit seen, and an object that says `solid` fills on every surface.
 
 ## 3. The per-object transform convention
 
@@ -224,16 +227,16 @@ common case (a new path shape) impossible to get wrong.
 
 ## 11. Code map
 
-| Concern                                                                      | File                                |
-| ---------------------------------------------------------------------------- | ----------------------------------- |
-| Live canvas, object layers, transform groups, chrome                         | `src/editor/EditorCanvas.tsx`       |
-| PNG rasterizer, background cover, error codes                                | `src/editor/render/offscreen.ts`    |
-| SVG serializer, `@font-face`, filters, escapes                               | `src/editor/export/svg.ts`          |
-| `SHAPE_BASE_SIZE`, `SHAPE_INSET`, `SHAPE_PATH_BUILDERS`, `drawShapeOnCanvas` | `src/editor/skia/shape-geometry.ts` |
-| Declarative shape renderer                                                   | `src/editor/skia/shapes.tsx`        |
-| Glyph renderer, `glyphPath` cache, `drawGlyphOnCanvas`                       | `src/editor/skia/glyph-shape.tsx`   |
-| `getGlyphEntry`, `glyphPlacement`, `glyphViewBox`                            | `src/editor/glyphs/index.ts`        |
-| Generated glyph path catalog                                                 | `src/editor/glyphs/catalog.ts`      |
-| Text shaping used by canvas and PNG                                          | `src/editor/skia/text.ts`           |
-| `textLineBreaks` for the SVG exporter                                        | `src/editor/skia/text.ts`           |
-| Thumbnail sizing constant                                                    | `src/storage/thumbs.ts`             |
+| Concern                                                                                                 | File                                |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Live canvas, object layers, transform groups, chrome                                                    | `src/editor/EditorCanvas.tsx`       |
+| PNG rasterizer, background cover, error codes                                                           | `src/editor/render/offscreen.ts`    |
+| SVG serializer, `@font-face`, filters, escapes                                                          | `src/editor/export/svg.ts`          |
+| `SHAPE_BASE_SIZE`, `SHAPE_INSET`, `SHAPE_PATH_BUILDERS`, `drawShapeOnCanvas`                            | `src/editor/skia/shape-geometry.ts` |
+| Declarative shape renderer                                                                              | `src/editor/skia/shapes.tsx`        |
+| Glyph renderer, `glyphPath` cache, `drawGlyphOnCanvas`                                                  | `src/editor/skia/glyph-shape.tsx`   |
+| `getGlyphEntry`, `glyphPlacement`, `glyphViewBox`, the style model (`glyphStyleOf`, `glyphStrokeWidth`) | `src/editor/glyphs/index.ts`        |
+| Generated glyph path catalog                                                                            | `src/editor/glyphs/catalog.ts`      |
+| Text shaping used by canvas and PNG                                                                     | `src/editor/skia/text.ts`           |
+| `textLineBreaks` for the SVG exporter                                                                   | `src/editor/skia/text.ts`           |
+| Thumbnail sizing constant                                                                               | `src/storage/thumbs.ts`             |

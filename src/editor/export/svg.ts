@@ -4,6 +4,7 @@ import {
   getGlyphEntry,
   glyphPlacement,
   glyphStrokeWidth,
+  glyphStyleOf,
 } from '@/editor/glyphs';
 import {
   SHAPE_BASE_SIZE,
@@ -273,21 +274,31 @@ function shapeGeometryToSvg(shape: ShapeObject, size: number): string | null {
  * result. `glyphPlacement` folds those into one translate + scale pair, matching
  * the Skia renderer exactly.
  *
- * The glyph is stroked, never filled, matching the canvas and PNG paths: the
- * source outline is too heavy solid, so all three read `glyphStrokeWidth`, which
- * is in font units and therefore rides the same `scale` as the path.
+ * The paint follows `glyphStyleOf(glyph)`, matching the canvas and PNG paths:
+ * `solid` fills the outline, while `outline`/`thin` stroke it at the shared
+ * `glyphStrokeWidth` for the style, which is in font units and therefore rides
+ * the same `scale` as the path.
  */
 function glyphToSvg(glyph: GlyphObject): string | null {
   const entry = getGlyphEntry(glyph.glyphKey);
   if (!entry) {
     return null;
   }
+  const style = glyphStyleOf(glyph);
   const size = SHAPE_BASE_SIZE;
   const p = glyphPlacement(entry, size);
+
+  let paint: string;
+  if (style === 'solid') {
+    paint = `fill="${escapeXml(glyph.color)}"`;
+  } else {
+    paint =
+      `fill="none" stroke="${escapeXml(glyph.color)}" ` +
+      `stroke-width="${glyphStrokeWidth(entry, style)}" stroke-linejoin="round"`;
+  }
   return (
     `<g transform="translate(${-size / 2} ${-size / 2})">` +
-    `<path d="${entry.d}" fill="none" stroke="${escapeXml(glyph.color)}" ` +
-    `stroke-width="${glyphStrokeWidth(entry)}" stroke-linejoin="round" ` +
+    `<path d="${entry.d}" ${paint} ` +
     `transform="translate(${p.offsetX} ${p.offsetY}) scale(${p.scale})" />` +
     `</g>`
   );

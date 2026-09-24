@@ -75,6 +75,7 @@ import {
   type ShortcutContext,
 } from '@/editor/shortcuts';
 import { textLineBreaks, useParagraphFonts } from '@/editor/skia/text';
+import { glyphStyleOf, nextGlyphStyle } from '@/editor/glyphs';
 import { useEditorStore } from '@/editor/store';
 import {
   FontSizeGauge,
@@ -105,6 +106,8 @@ import {
 import type {
   CalligraphyTextObject,
   DesignObject,
+  GlyphObject,
+  GlyphStyle,
   MidadProject,
   ObjectTransform,
   TextAlign,
@@ -1270,7 +1273,7 @@ export function EditorScreen() {
    * sheet has closed and the new object is what wants the handles.
    */
   const insertGlyph = useCallback(
-    (glyphKey: string) => {
+    (glyphKey: string, style: GlyphStyle) => {
       if (!project) {
         return;
       }
@@ -1278,6 +1281,9 @@ export function EditorScreen() {
         id: `g_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         type: 'glyph',
         glyphKey,
+        // The style the library picker had selected — a tile always inserts
+        // the ornament it previews.
+        glyphStyle: style,
         color: DEFAULT_INK,
         opacity: 1,
         transform: {
@@ -1588,6 +1594,7 @@ export function EditorScreen() {
   const shape: SelectionShape = useMemo(
     () => ({
       isText: !!selectedText,
+      isGlyph: selectedIds.length === 1 && selectedObject?.type === 'glyph',
       canSplit: canSplitSelected,
       canRejoin: rejoinParts.length > 1,
       isMulti: elementCount > 1,
@@ -1596,9 +1603,10 @@ export function EditorScreen() {
     }),
     [
       selectedText,
+      selectedIds,
+      selectedObject,
       canSplitSelected,
       rejoinParts.length,
-      selectedIds,
       elementCount,
       project,
     ],
@@ -1631,6 +1639,21 @@ export function EditorScreen() {
       fitText: fitTextToContent,
       split: splitSelected,
       rejoin: rejoinSelected,
+      glyphStyle: () => {
+        const objects = project?.objects ?? [];
+        const patches = objects
+          .filter(
+            (o): o is GlyphObject =>
+              o.type === 'glyph' && selectedIds.includes(o.id),
+          )
+          .map((o) => ({
+            id: o.id,
+            patch: { glyphStyle: nextGlyphStyle(glyphStyleOf(o)) },
+          }));
+        if (patches.length > 0) {
+          useEditorStore.getState().updateObjects(patches);
+        }
+      },
       duplicate: duplicateSelected,
       group: groupSelected,
       ungroup: ungroupSelected,
@@ -1660,6 +1683,7 @@ export function EditorScreen() {
     }),
     [
       selectedIds,
+      project,
       scaleSelection,
       rotateSelection,
       flipSelection,

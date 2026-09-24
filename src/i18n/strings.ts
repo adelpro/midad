@@ -132,6 +132,11 @@ export interface Translation {
     // The two groups the ornament library splits its tiles into.
     glyphMarks: string;
     glyphLetters: string;
+    // The ornament paint styles the library can insert and the selection can
+    // cycle through.
+    glyphSolid: string;
+    glyphOutline: string;
+    glyphThin: string;
     // Shape names, used as the library's tile labels.
     shapeCircle: string;
     shapeSquare: string;
@@ -284,6 +289,7 @@ export interface Translation {
       ungroup: string;
       stylePrev: string;
       styleNext: string;
+      glyphStyle: string;
       partPrev: string;
       partNext: string;
       partLabel: string;
@@ -468,6 +474,9 @@ export const strings: Record<Language, Translation> = {
       shapes: 'أشكال',
       glyphMarks: 'الحركات',
       glyphLetters: 'أشكال الحروف',
+      glyphSolid: 'ممتلئ',
+      glyphOutline: 'مفرّغ',
+      glyphThin: 'رفيع',
       shapeCircle: 'دائرة',
       shapeSquare: 'مربع',
       shapeLine: 'خط',
@@ -583,6 +592,7 @@ export const strings: Record<Language, Translation> = {
         ungroup: 'فكّ تجميع العناصر',
         stylePrev: 'النمط السابق',
         styleNext: 'النمط التالي',
+        glyphStyle: 'تبديل نمط الزخرفة',
         partPrev: 'العنصر السابق',
         partNext: 'العنصر التالي',
         partLabel: 'الجزء {n} من {total}',
@@ -764,6 +774,9 @@ export const strings: Record<Language, Translation> = {
       shapes: 'Shapes',
       glyphMarks: 'Marks',
       glyphLetters: 'Letter forms',
+      glyphSolid: 'Solid',
+      glyphOutline: 'Outline',
+      glyphThin: 'Thin',
       shapeCircle: 'Circle',
       shapeSquare: 'Square',
       shapeLine: 'Line',
@@ -880,6 +893,7 @@ export const strings: Record<Language, Translation> = {
         ungroup: 'Ungroup the elements',
         stylePrev: 'Previous style',
         styleNext: 'Next style',
+        glyphStyle: 'Cycle ornament style',
         partPrev: 'Previous element',
         partNext: 'Next element',
         partLabel: 'Part {n} of {total}',
