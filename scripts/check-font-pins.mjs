@@ -156,6 +156,42 @@ if (
   fail('font-pins store does not reuse the pure list operations');
 }
 
+// ── the picker reuses the pure core ─────────────────────────────────────────
+const pickerPath = join(root, 'src', 'editor', 'font-picker-sheet.tsx');
+let picker = '';
+try {
+  picker = readFileSync(pickerPath, 'utf8');
+} catch {
+  fail(`missing font picker: ${pickerPath}`);
+}
+if (picker && !picker.includes('useFontPins')) {
+  fail('picker does not read the font-pins store');
+}
+if (
+  picker &&
+  (!picker.includes('familyPinId') || !picker.includes('googlePinId'))
+) {
+  fail('picker does not use the pure pin-id builders');
+}
+if (picker && !picker.includes('parseFontPinId')) {
+  fail('picker does not use parseFontPinId');
+}
+if (picker && !picker.includes('humanizeRemoteFontId')) {
+  fail('pinned remote rows must derive their name from the id');
+}
+if (picker && !picker.includes('parseRemoteFontKey')) {
+  fail('pinned remote rows must derive installed weights from installed keys');
+}
+if (picker && !picker.includes('t.editor.pinnedFonts')) {
+  fail('picker does not render the pinned section title');
+}
+if (picker && !/flexDirection:\s*'row'/.test(picker)) {
+  fail('family rows must lay the body and the pin out in a row');
+}
+if (picker && !picker.includes('paddingStart')) {
+  fail('family rows must use logical (RTL-safe) padding');
+}
+
 if (failures > 0) {
   console.error(`\ncheck-font-pins: ${failures} failure(s)`);
   process.exit(1);
