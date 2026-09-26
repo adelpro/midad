@@ -209,6 +209,10 @@ export interface Translation {
     googleFontsHint: string;
     /** Title of the picker's pinned-fonts section. */
     pinnedFonts: string;
+    /** Header action: hide the pinned rows. */
+    collapsePinned: string;
+    /** Header action: show the pinned rows. */
+    expandPinned: string;
     /** Badge on a family whose subsets include Arabic. */
     supportsArabic: string;
     /** Badge on a family with no Arabic subset. */
@@ -532,6 +536,8 @@ export const strings: Record<Language, Translation> = {
       googleFonts: 'خطوط Google',
       googleFontsHint: 'من مكتبة Google Fonts — تُحمَّل عند الطلب (OFL-1.1)',
       pinnedFonts: 'المثبّتة',
+      collapsePinned: 'طيّ المثبّتة',
+      expandPinned: 'توسيع المثبّتة',
       supportsArabic: 'يدعم العربية',
       noArabicSupport: 'بدون عربي',
       downloadFont: 'تحميل',
@@ -834,6 +840,8 @@ export const strings: Record<Language, Translation> = {
       googleFontsHint:
         'From the Google Fonts library — downloaded on demand (OFL-1.1)',
       pinnedFonts: 'Pinned',
+      collapsePinned: 'Collapse pinned',
+      expandPinned: 'Expand pinned',
       supportsArabic: 'Arabic support',
       noArabicSupport: 'No Arabic',
       downloadFont: 'Download',

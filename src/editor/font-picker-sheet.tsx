@@ -8,7 +8,13 @@ import {
   View,
 } from 'react-native';
 
-import { AnimatedPressable, Button, Icon, Sheet } from '@/components/ui';
+import {
+  AnimatedPressable,
+  Button,
+  DirectionIcon,
+  Icon,
+  Sheet,
+} from '@/components/ui';
 import { useInstalledRemoteFontKeys } from '@/hooks/use-installed-remote-fonts';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
@@ -76,6 +82,8 @@ export function FontPickerSheet({
   const installedRemote = useInstalledRemoteFontKeys();
   const pinnedIds = useFontPins((s) => s.pinnedIds);
   const toggleFontPin = useFontPins((s) => s.toggleFontPin);
+  const pinnedCollapsed = useFontPins((s) => s.pinnedCollapsed);
+  const setPinnedCollapsed = useFontPins((s) => s.setPinnedCollapsed);
   /** The full catalogue, so a pinned remote row can show badges and chips. */
   const [catalog, setCatalog] = useState<RemoteFontFamily[]>([]);
 
@@ -272,69 +280,96 @@ export function FontPickerSheet({
         {/* Pinned families — always at the top, with or without a search. */}
         {pinnedEntries.length > 0 && (
           <View>
-            <View style={styles.sectionHead}>
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: c.ink, fontFamily: uiFont },
-                ]}
-              >
-                {t.editor.pinnedFonts}
-              </Text>
-            </View>
-            {pinnedEntries.map((entry) => {
-              if (entry.kind === 'bundled') {
-                const selected = entry.family.key === activeKey;
+            <AnimatedPressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: !pinnedCollapsed }}
+              accessibilityLabel={
+                pinnedCollapsed
+                  ? t.editor.expandPinned
+                  : t.editor.collapsePinned
+              }
+              onPress={() => setPinnedCollapsed(!pinnedCollapsed)}
+              style={styles.pinnedHead}
+            >
+              <View style={styles.pinnedHeadMain}>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: c.ink, fontFamily: uiFont },
+                  ]}
+                >
+                  {t.editor.pinnedFonts}
+                </Text>
+                <Text
+                  style={[
+                    styles.pinnedCount,
+                    { color: c.muted, fontFamily: uiFont },
+                  ]}
+                >
+                  ({pinnedEntries.length})
+                </Text>
+              </View>
+              {pinnedCollapsed ? (
+                <DirectionIcon isRTL={isRTL} size={18} color={c.muted} />
+              ) : (
+                <Icon name="chevronDown" size={18} color={c.muted} />
+              )}
+            </AnimatedPressable>
+            {!pinnedCollapsed &&
+              pinnedEntries.map((entry) => {
+                if (entry.kind === 'bundled') {
+                  const selected = entry.family.key === activeKey;
+                  return (
+                    <View key={entry.id}>
+                      <BundledFamilyRow
+                        family={entry.family}
+                        selected={selected}
+                        pinned
+                        onPress={() => onChange(entry.family.defaultVariant)}
+                        onTogglePin={() => toggleFontPin(entry.id)}
+                      />
+                      {selected && entry.family.variants.length > 1 && (
+                        <BundledVariantChips
+                          family={entry.family}
+                          value={value}
+                          onChange={onChange}
+                        />
+                      )}
+                    </View>
+                  );
+                }
                 return (
                   <View key={entry.id}>
-                    <BundledFamilyRow
-                      family={entry.family}
-                      selected={selected}
+                    <RemoteFamilyRow
+                      id={entry.fontId}
+                      name={
+                        entry.family?.family ??
+                        humanizeRemoteFontId(entry.fontId)
+                      }
+                      weights={entry.family?.weights ?? entry.installedWeights}
+                      hasArabic={
+                        entry.family
+                          ? entry.family.subsets.includes('arabic')
+                          : null
+                      }
+                      open={openRemoteId === entry.fontId}
+                      onToggleOpen={() => {
+                        setOpenRemoteId(
+                          openRemoteId === entry.fontId ? null : entry.fontId,
+                        );
+                        setInstallErrorKey(null);
+                      }}
                       pinned
-                      onPress={() => onChange(entry.family.defaultVariant)}
                       onTogglePin={() => toggleFontPin(entry.id)}
+                      value={value}
+                      installedRemote={installedRemote}
+                      installing={installing}
+                      installErrorKey={installErrorKey}
+                      onInstall={(id, weight) => void installFace(id, weight)}
                     />
-                    {selected && entry.family.variants.length > 1 && (
-                      <BundledVariantChips
-                        family={entry.family}
-                        value={value}
-                        onChange={onChange}
-                      />
-                    )}
                   </View>
                 );
-              }
-              return (
-                <View key={entry.id}>
-                  <RemoteFamilyRow
-                    id={entry.fontId}
-                    name={
-                      entry.family?.family ?? humanizeRemoteFontId(entry.fontId)
-                    }
-                    weights={entry.family?.weights ?? entry.installedWeights}
-                    hasArabic={
-                      entry.family
-                        ? entry.family.subsets.includes('arabic')
-                        : null
-                    }
-                    open={openRemoteId === entry.fontId}
-                    onToggleOpen={() => {
-                      setOpenRemoteId(
-                        openRemoteId === entry.fontId ? null : entry.fontId,
-                      );
-                      setInstallErrorKey(null);
-                    }}
-                    pinned
-                    onTogglePin={() => toggleFontPin(entry.id)}
-                    value={value}
-                    installedRemote={installedRemote}
-                    installing={installing}
-                    installErrorKey={installErrorKey}
-                    onInstall={(id, weight) => void installFace(id, weight)}
-                  />
-                </View>
-              );
-            })}
+              })}
           </View>
         )}
 
@@ -783,6 +818,21 @@ const styles = StyleSheet.create({
   sectionHead: {
     paddingTop: spacing.md,
     gap: spacing.xs,
+  },
+  pinnedHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.xs,
+    paddingTop: spacing.md,
+  },
+  pinnedHeadMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  pinnedCount: {
+    fontSize: typeScale.caption.size,
   },
   sectionTitle: {
     fontSize: typeScale.body.size,

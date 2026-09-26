@@ -156,6 +156,9 @@ if (
 ) {
   fail('font-pins store does not reuse the pure list operations');
 }
+if (storeSource && !storeSource.includes('pinnedCollapsed')) {
+  fail('font-pins store does not persist the collapsed state');
+}
 
 // ── the picker reuses the pure core ─────────────────────────────────────────
 const pickerPath = join(root, 'src', 'editor', 'font-picker-sheet.tsx');
@@ -191,6 +194,16 @@ if (picker && !/flexDirection:\s*'row'/.test(picker)) {
 }
 if (picker && !picker.includes('paddingStart')) {
   fail('family rows must use logical (RTL-safe) padding');
+}
+if (picker && !picker.includes('pinnedCollapsed')) {
+  fail('picker does not read the pinned section collapsed state');
+}
+if (
+  picker &&
+  (!picker.includes('t.editor.collapsePinned') ||
+    !picker.includes('t.editor.expandPinned'))
+) {
+  fail('picker does not label the pinned section collapse toggle');
 }
 
 if (failures > 0) {

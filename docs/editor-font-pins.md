@@ -49,6 +49,12 @@ family row carries a trailing pin control; a pinned bundled family also stays in
 its normal place in the list below. The control's label names what the next press
 will do (`gallery.pin` / `gallery.unpin`), matching the selection rail.
 
+The section header is itself the toggle: it shows the title, the pinned count and
+a chevron, and tapping it collapses or expands the rows. The collapsed state is
+`pinnedCollapsed` in the store — **persisted** under `midad:font-pins`, so the
+choice is permanent across restarts. It defaults to expanded; pinning a new family
+while collapsed leaves it collapsed (the count still updates).
+
 ## 4. Remote faces
 
 A pinned remote row never needs the catalogue for its **name**

@@ -17,6 +17,7 @@ import {
   ArrowsOutLineHorizontal,
   ArrowsOutLineVertical,
   ArrowUp,
+  CaretDown,
   CaretLeft,
   CaretRight,
   Check,
@@ -62,6 +63,7 @@ export type IconName =
   | 'grid'
   | 'chevronLeft'
   | 'chevronRight'
+  | 'chevronDown'
   | 'close'
   | 'check'
   | 'type'
@@ -108,6 +110,7 @@ const ICONS: Record<IconName, ComponentType<PhosphorIconProps>> = {
   grid: GridFour,
   chevronLeft: CaretLeft,
   chevronRight: CaretRight,
+  chevronDown: CaretDown,
   close: X,
   check: Check,
   type: TextAa,

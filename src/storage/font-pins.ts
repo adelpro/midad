@@ -25,15 +25,22 @@ import { setPinnedId, togglePinnedId } from '@/theme/font-pins';
 interface FontPinsState {
   /** Most-recently pinned first. */
   pinnedIds: string[];
+  /**
+   * Whether the picker's Pinned section is collapsed. Persisted like the pins
+   * themselves, so the choice survives a restart.
+   */
+  pinnedCollapsed: boolean;
   toggleFontPin: (id: string) => void;
   setFontPinned: (id: string, pinned: boolean) => void;
   unpinFont: (id: string) => void;
+  setPinnedCollapsed: (collapsed: boolean) => void;
 }
 
 export const useFontPins = create<FontPinsState>()(
   persist(
     (set) => ({
       pinnedIds: [],
+      pinnedCollapsed: false,
       toggleFontPin: (id) =>
         set((s) => ({ pinnedIds: togglePinnedId(s.pinnedIds, id) })),
       setFontPinned: (id, pinned) =>
@@ -46,6 +53,7 @@ export const useFontPins = create<FontPinsState>()(
           const next = setPinnedId(s.pinnedIds, id, false);
           return next ? { pinnedIds: next } : s;
         }),
+      setPinnedCollapsed: (pinnedCollapsed) => set({ pinnedCollapsed }),
     }),
     {
       name: 'midad:font-pins',
