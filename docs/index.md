@@ -119,8 +119,9 @@ No document in this folder names these, so nothing pins their behavior:
   `src/editor/use-auto-save.ts`.
 - `src/hooks/`, `src/haptics.ts`, `src/i18n/` beyond `strings.ts`.
 - `src/components/ui/` beyond `icon-button.tsx`, plus `gallery/` and `onboarding/`.
-- `src/theme/` beyond `tokens.ts`, `color.ts`, `fonts.ts`, `presentations.ts` and
-  `remote-fonts.ts` — the visual language itself lives in [`../DESIGN.md`](../DESIGN.md).
-- `src/storage/` beyond `settings.ts`, `thumbs.ts`, `project-schema.ts`,
-  `remote-font-cache.ts`, `remote-font-catalog.ts` and
+- `src/theme/` beyond `tokens.ts`, `color.ts`, `fonts.ts`, `font-pins.ts`,
+  `presentations.ts` and `remote-fonts.ts` — the visual language itself lives in
+  [`../DESIGN.md`](../DESIGN.md).
+- `src/storage/` beyond `settings.ts`, `thumbs.ts`, `font-pins.ts`,
+  `project-schema.ts`, `remote-font-cache.ts`, `remote-font-catalog.ts` and
   `remote-font-registry.ts`.

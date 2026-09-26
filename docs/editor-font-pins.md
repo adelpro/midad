@@ -47,7 +47,7 @@ offline catalogue would delete a real pin.
 `pinnedIds` is non-empty — with or without a search. Every bundled and Google
 family row carries a trailing pin control; a pinned bundled family also stays in
 its normal place in the list below. The control's label names what the next press
-will do (`common.pin` / `common.unpin`), matching the selection rail.
+will do (`gallery.pin` / `gallery.unpin`), matching the selection rail.
 
 ## 4. Remote faces
 
