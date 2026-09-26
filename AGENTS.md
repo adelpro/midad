@@ -20,6 +20,7 @@ one before changing that area. When a document and the code disagree, fix the co
 | `selection-actions.tsx`, pins, the rail                                                                           | `docs/editor-selection-bar.md`       |
 | `editor/color-picker-sheet.tsx`, `theme/color.ts`                                                                 | `docs/editor-color-picker.md`        |
 | remote fonts (`theme/remote-fonts.ts`, `storage/remote-font-*`, picker Google Fonts section, missing-font banner) | `docs/editor-remote-fonts.md`        |
+| font pins, the picker's Pinned section                                                                            | `docs/editor-font-pins.md`           |
 | `shortcuts.ts`, `use-keyboard-shortcuts*`, `modifier-keys*`                                                       | `docs/editor-keyboard.md`            |
 | `editor/help/**`                                                                                                  | `docs/editor-help-and-learn-mode.md` |
 | selection semantics, multi-select, background flow                                                                | `docs/editor-selection.md`           |
