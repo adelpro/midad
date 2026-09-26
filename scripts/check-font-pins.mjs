@@ -85,6 +85,7 @@ for (const bad of [
   'family:',
   'google:',
   'family:Amiri',
+  'google:Amiri',
   'google:a:b',
   'Family:amiri',
   'remote:amiri:400',

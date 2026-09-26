@@ -114,12 +114,12 @@ export function FontPickerSheet({
           return;
         }
         try {
-          const catalog = await getRemoteFontCatalog();
+          const families = await getRemoteFontCatalog();
           if (cancelled) {
             return;
           }
           setRemoteFamilies(
-            filterRemoteFontFamilies(catalog, q, REMOTE_RESULT_LIMIT),
+            filterRemoteFontFamilies(families, q, REMOTE_RESULT_LIMIT),
           );
           setRemoteState('ready');
         } catch {
@@ -313,7 +313,9 @@ export function FontPickerSheet({
                     }
                     weights={entry.family?.weights ?? entry.installedWeights}
                     hasArabic={
-                      entry.family?.subsets.includes('arabic') ?? false
+                      entry.family
+                        ? entry.family.subsets.includes('arabic')
+                        : null
                     }
                     open={openRemoteId === entry.fontId}
                     onToggleOpen={() => {
@@ -593,7 +595,7 @@ function RemoteFamilyRow({
   id: string;
   name: string;
   weights: readonly number[];
-  hasArabic: boolean;
+  hasArabic: boolean | null;
   open: boolean;
   onToggleOpen: () => void;
   pinned: boolean;
@@ -607,7 +609,12 @@ function RemoteFamilyRow({
   const { colors: c } = useTheme();
   const { t, language } = useT();
   const uiFont = fontRoles[language].ui;
-  const badge = hasArabic ? t.editor.supportsArabic : t.editor.noArabicSupport;
+  const badge =
+    hasArabic === null
+      ? null
+      : hasArabic
+        ? t.editor.supportsArabic
+        : t.editor.noArabicSupport;
   return (
     <View>
       <View
@@ -622,7 +629,7 @@ function RemoteFamilyRow({
         <AnimatedPressable
           accessibilityRole="button"
           accessibilityState={{ expanded: open }}
-          accessibilityLabel={`${name}, ${badge}`}
+          accessibilityLabel={badge ? `${name}, ${badge}` : name}
           onPress={onToggleOpen}
           style={styles.rowBody}
         >
@@ -633,14 +640,16 @@ function RemoteFamilyRow({
             >
               {name}
             </Text>
-            <Text
-              style={[
-                styles.remoteBadge,
-                { color: hasArabic ? c.ink : c.muted, fontFamily: uiFont },
-              ]}
-            >
-              {badge}
-            </Text>
+            {badge && (
+              <Text
+                style={[
+                  styles.remoteBadge,
+                  { color: hasArabic ? c.ink : c.muted, fontFamily: uiFont },
+                ]}
+              >
+                {badge}
+              </Text>
+            )}
           </View>
         </AnimatedPressable>
         <PinToggle pinned={pinned} onToggle={onTogglePin} />
