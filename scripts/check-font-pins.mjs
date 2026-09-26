@@ -137,6 +137,25 @@ if (/react-native|require\(/.test(source)) {
   fail('font-pins.ts must not reference React Native or require()');
 }
 
+// ── sibling store exists and is wired to the pure core ──────────────────────
+const storePath = join(root, 'src', 'storage', 'font-pins.ts');
+let storeSource = '';
+try {
+  storeSource = readFileSync(storePath, 'utf8');
+} catch {
+  fail(`missing font-pins store: ${storePath}`);
+}
+if (storeSource && !storeSource.includes('midad:font-pins')) {
+  fail('font-pins store does not persist under midad:font-pins');
+}
+if (
+  storeSource &&
+  !storeSource.includes('togglePinnedId') &&
+  !storeSource.includes('setPinnedId')
+) {
+  fail('font-pins store does not reuse the pure list operations');
+}
+
 if (failures > 0) {
   console.error(`\ncheck-font-pins: ${failures} failure(s)`);
   process.exit(1);
