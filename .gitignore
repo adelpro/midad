@@ -51,9 +51,10 @@ builds/
 # inline plan-execution scratch (ledger, briefs, review packages)
 .superpowers/
 docs/superpowers/*
-# ...but the dated design plans under plans/ are durable records, not scratch,
-# and must be tracked. Re-include the directory (not just the files) so git
-# descends into it; a `!docs/superpowers/plans/*.md` alone would not work.
+# ...but the dated design specs and plans are durable records, not scratch,
+# and must be tracked. Re-include the directories (not just the files) so git
+# descends into them; a `!docs/superpowers/plans/*.md` alone would not work.
+!docs/superpowers/specs/
 !docs/superpowers/plans/
 
 # generated native folders
