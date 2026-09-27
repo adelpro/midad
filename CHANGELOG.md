@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-rc.1] - 2026-09-27
+
 ### Added
 
 - **Collections: a group and a split word are now one concept.** Select two or
@@ -32,6 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a denied permission reports itself in the sheet instead of failing silently.
 - **The status bar follows the app's own theme**, not the system one. The
   light/dark choice is an in-app setting here, so the bar now matches it.
+- **Pinned fonts.** Every family row in the font picker now carries a pin, and
+  pinned families collect into a **Pinned** section at the top of the picker.
+  The section collapses to a single header row so it can be shut out of the way,
+  and the pinned set, the pin order and the collapsed state all persist on
+  device. Nothing here enters the project document, so a `.midad` is still only
+  the design. Remote Google Fonts pin the same way — and because a family can
+  arrive either bundled or downloaded, pin ids are namespaced (`family:amiri`
+  vs `google:amiri`) so the two stay distinct instead of collapsing into one
+  row. A pinned remote row derives its display name from the id and lists only
+  the weights actually installed.
 
 ### Changed
 
@@ -107,6 +119,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pressing and dragging an object that was not yet selected used to move the
   _previously_ selected object: the drag origins were read from the store snapshot
   taken before the press.
+- A pinned remote family that had not resolved from the catalogue yet was
+  badged **no Arabic support**. The lookup collapsed "not known yet" into
+  `false`, so the row asserted something untrue about the family. The badge now
+  follows the resolved face and is simply absent until it arrives, and the
+  row's accessibility label drops the badge suffix with it.
 
 ## [0.2.0-rc.1] - 2026-09-16
 
