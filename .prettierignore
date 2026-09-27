@@ -18,6 +18,10 @@ assets/fonts/
 # Superpowers skill scratch (not app docs; gitignored via .gitignore)
 docs/superpowers/
 
+# Agent tooling state (gitignored via its own nested .gitignore, which prettier
+# does not read - so without this it walks in and fails the format gate)
+.opencode/
+
 # Verification caches (see AGENTS.md "Checks")
 *.tsbuildinfo
 .eslintcache
