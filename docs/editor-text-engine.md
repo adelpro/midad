@@ -31,10 +31,12 @@ literals are not accepted here.
 
 ## 2. Fonts: a provider is mandatory
 
-`loadParagraphFonts()` loads every family in `fontAssets` into a
-`SkTypefaceFontProvider`; `useParagraphFonts()` is its render-time wrapper,
-holding the provider in state until it resolves. The provider is then passed to
-the builder.
+`loadParagraphFonts()` builds a `SkTypefaceFontProvider` holding the core faces,
+whichever bundled display faces have been loaded this session, and every
+installed remote face; `useParagraphFonts()` is its render-time wrapper, holding
+the provider in state until it resolves. The provider is then passed to the
+builder. (Which faces load when is
+[`editor-font-loading.md`](editor-font-loading.md)'s subject, not this one's.)
 
 `toFontSource` normalizes the Metro asset shape, which differs by platform:
 
@@ -65,9 +67,12 @@ font loader. Anything that needs Skia from a non-editor route must follow the
 same on-demand (or `WithSkiaWeb`-gated) shape; a static import in the route is
 the bug.
 
-An unknown `fontKey` falls back to `Amiri` (`Object.hasOwn(fontAssets,
-spec.fontKey) ? … : "Amiri"`), so a project referencing a retired font still
-renders.
+An unknown `fontKey` falls back to `Amiri`
+(`registeredFamilies.has(spec.fontKey) ? spec.fontKey : 'Amiri'`), so a project
+referencing a retired font still renders. The test is the _provider's_ family set
+rather than `fontAssets`: that is what makes a remotely-downloaded face renderable
+the moment its provider lands, and what makes a remote key absent from this device
+fall back instead of throwing.
 
 ## 3. Auto width is a two-pass measure
 

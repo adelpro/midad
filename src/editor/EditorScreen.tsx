@@ -581,6 +581,41 @@ export function EditorScreen() {
   // (a new, empty design), and there is nothing to wait for.
   const coverVisible = !!id && (projectLoading || !fontsReady);
 
+  // Whoever puts a display key into the document owns loading it. The open
+  // effect above covers the design being opened; this covers a face that
+  // *arrives* — the picker applying one, a split, a paste, an undo. Without it
+  // the gate waits on a face nobody is loading, and since the cover replaces the
+  // whole editor (the back button lives below it) a failed load stranded the user
+  // on a pulse with no way back.
+  //
+  // `requiredDisplayKeys`' identity is memo-controlled and only moves when the
+  // document's font keys actually change, so this runs once per requirement and
+  // not once per drag frame.
+  useEffect(() => {
+    if (requiredDisplayKeys.length === 0) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      // The flag is per-requirement, not per-mount: a fresh requirement earns a
+      // fresh attempt, so one unrecoverable face does not stand the gate down for
+      // every face the rest of the session names.
+      setEnsureFailed(false);
+      try {
+        await ensureBundledFonts(requiredDisplayKeys);
+      } catch {
+        // Open in Amiri rather than strand. `buildParagraph`'s fallback makes the
+        // substitution visible in the design, and the next requirement retries.
+        if (!cancelled) {
+          setEnsureFailed(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, requiredDisplayKeys]);
+
   useEffect(() => {
     let cancelled = false;
     // The scan always runs in the async continuation — never a synchronous

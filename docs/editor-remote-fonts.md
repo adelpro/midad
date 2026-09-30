@@ -58,8 +58,11 @@ so the check script can transpile and evaluate it standalone.
 ### Render-time resolution
 
 The Skia paragraph builder resolves a text object's family through the set of
-faces the **latest built provider** registered — `registeredFamilies` in
-`src/editor/skia/text.ts` (every bundled key plus the installed remote faces).
+faces the **latest accepted provider build** registered — `registeredFamilies` in
+`src/editor/skia/text.ts`, which is the core faces plus the display faces loaded
+so far plus the installed remote faces (see
+[`editor-font-loading.md`](editor-font-loading.md) §4 for the split and for why
+the mirror is written only by the caller that keeps a build).
 A remote key that is installed renders; any key the provider does not know
 falls back to Amiri. That fallback is the _render_ fallback only: the same
 state machine above decides what the UI says, the missing-font banner names
@@ -145,14 +148,17 @@ is the document-level query the banner runs.
 
 ### The Skia provider rebuilds from the same snapshot
 
-`loadParagraphFonts` (`src/editor/skia/text.ts`) registers every bundled family
-**and every installed remote face** (TTF bytes from the cache — re-resolved CDN
-URL on web, file read on native) under its `fontKey`, and only then swaps the
-`registeredFamilies` mirror the paragraph builder resolves through. A failed
-load leaves the previous mirror intact. `useParagraphFonts` reconciles expo-font
-first and rebuilds the provider whenever `useInstalledRemoteFontKeys`' snapshot
-changes, so downloading a face re-shapes the canvas in place — `useTextLayouts`
-already memoizes on the provider identity.
+`loadParagraphFonts` (`src/editor/skia/text.ts`) registers **every installed remote
+face** (TTF bytes from the cache — re-resolved CDN URL on web, file read on
+native) under its `fontKey`, alongside the core faces and whichever bundled
+display faces this session has loaded. It _returns_ the set it registered rather
+than installing it as the mirror: `useParagraphFonts` publishes it with
+`publishParagraphFonts` only after its `active` guard passes, so a build that a
+later build superseded cannot leave the mirror describing a provider nobody
+renders with. A failed load leaves the previous mirror intact.
+`useParagraphFonts` reconciles expo-font first and rebuilds the provider whenever
+`useInstalledRemoteFontKeys`' snapshot changes, so downloading a face re-shapes
+the canvas in place — `useTextLayouts` already memoizes on the provider identity.
 
 ### Picker: search, badge, weight chips, download
 
@@ -219,18 +225,21 @@ in the bundled list, once under "Google Fonts". `filterBundledDuplicates`
 The decision is **weight coverage, not name alone**, because the two registries
 disagree about which weights a face has:
 
-| Family                | Bundled   | Google  | Outcome                            |
-| --------------------- | --------- | ------- | ---------------------------------- |
-| `Amiri`, `Aref Ruqaa` | 400/700   | 400/700 | hidden — bundle is complete        |
-| `Gulzar`, `Vibes` …   | 400       | 400     | hidden                             |
-| `Kufam`               | 400       | 400–900 | **kept** — bundle can't reach 500+ |
-| `Lateef`              | 400/700   | 200–800 | **kept**                           |
-| `El Messiri`, `Mirza` | 400(/700) | 400–700 | **kept**                           |
+| Family                | Bundled | Google  | Outcome                                |
+| --------------------- | ------- | ------- | -------------------------------------- |
+| `Amiri`, `Aref Ruqaa` | 400/700 | 400/700 | hidden — bundle is complete            |
+| `Gulzar`, `Vibes` …   | 400     | 400     | hidden                                 |
+| `Kufam`               | 400     | 400–900 | **kept** — bundle can't reach 500+     |
+| `Lateef`              | 400/700 | 200–800 | **kept**                               |
+| `El Messiri`          | 400     | 400–700 | **kept**                               |
+| `Mirza`               | 400/700 | 400–700 | **kept** — 500/600 missing from bundle |
 
 A row is hidden only when the bundled family already provides _every_ weight
 Google offers. Hiding on name alone would silently delete access to weights the
 bundled variants cannot select, which is a capability loss dressed as a
-deduplication.
+deduplication. The weights above are the Fontsource catalogue's, so `Mirza` is
+kept despite the name matching: Google ships it at 500 and 600, which the bundle
+does not carry.
 
 **Name matching is loose on purpose.** Matching folds case and strips every
 non-alphanumeric, and the coverage map is keyed by _all_ of a bundled family's

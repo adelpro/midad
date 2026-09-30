@@ -68,15 +68,15 @@ the file to open first. Every path below is copied from a code map in this folde
 There is no test runner. Several contracts own a standalone script that is the
 real specification for their tables; run the one that covers what you touched.
 
-| Script                           | Guards                                                       | Owner                                                               |
-| -------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------- |
-| `scripts/check-clusters.mjs`     | Segmentation types + split/round-trip                        | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §9       |
-| `scripts/check-groups.mjs`       | Expansion, units, predicates, the frame, the transform maths | [`editor-collections.md`](editor-collections.md) §3                 |
-| `scripts/check-shortcuts.mjs`    | Binding table, matcher, chord text                           | [`editor-keyboard.md`](editor-keyboard.md) §10                      |
-| `scripts/check-help.mjs`         | Catalog ↔ `strings.ts` ↔ `shortcuts.ts`                      | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §5 |
-| `scripts/check-remote-fonts.mjs` | Remote font key format, face status, CDN URLs                | [`editor-remote-fonts.md`](editor-remote-fonts.md) §5               |
-| `scripts/check-font-pins.mjs`    | Pin id namespaces + list operations                          | [`editor-font-pins.md`](editor-font-pins.md) §5                     |
-| `scripts/check-fonts.mjs`        | Core/display split + the display-key scan                    | [`editor-font-loading.md`](editor-font-loading.md) §1               |
+| Script                           | Guards                                                                                   | Owner                                                               |
+| -------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `scripts/check-clusters.mjs`     | Segmentation types + split/round-trip                                                    | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §9       |
+| `scripts/check-groups.mjs`       | Expansion, units, predicates, the frame, the transform maths                             | [`editor-collections.md`](editor-collections.md) §3                 |
+| `scripts/check-shortcuts.mjs`    | Binding table, matcher, chord text                                                       | [`editor-keyboard.md`](editor-keyboard.md) §10                      |
+| `scripts/check-help.mjs`         | Catalog ↔ `strings.ts` ↔ `shortcuts.ts`                                                  | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §5 |
+| `scripts/check-remote-fonts.mjs` | Remote font key format, face status, CDN URLs                                            | [`editor-remote-fonts.md`](editor-remote-fonts.md) §5               |
+| `scripts/check-font-pins.mjs`    | Pin id namespaces + list operations                                                      | [`editor-font-pins.md`](editor-font-pins.md) §5                     |
+| `scripts/check-fonts.mjs`        | Core/display split + the display-key scan + the mirror-publish and ensure-ownership pins | [`editor-font-loading.md`](editor-font-loading.md) §1, §3.1, §4.1   |
 
 Repo-wide, and cheaper than any of them: `npx tsc --noEmit` and `npx eslint src`.
 

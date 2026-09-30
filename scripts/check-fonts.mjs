@@ -255,10 +255,11 @@ const bundledReg = readFileSync(
 if (!bundledReg.includes('displayFontAssets')) {
   fail('bundled-font-registry.ts must reference displayFontAssets');
 }
-if (
-  !bundledReg.includes('Font.loadAsync') &&
-  !bundledReg.includes('loadAsync')
-) {
+// Match the call, not the bare word: the import is aliased to `loadFontAsync`,
+// and an `includes('loadAsync')` would be satisfied by the substring appearing
+// in a comment — which is how this assertion passed while the surrounding
+// comments described a picker `ensure` that did not exist.
+if (!/loadFontAsync\s*\(/.test(bundledReg)) {
   fail('bundled-font-registry.ts must load fonts via expo-font');
 }
 if (/^\s*\w+:\s*require\s*\(/m.test(bundledReg)) {
@@ -276,6 +277,74 @@ if (!bundledHook.includes('useSyncExternalStore')) {
 }
 if (!bundledHook.includes('bundled-font-registry')) {
   fail('use-loaded-bundled-fonts.ts must read from the bundled-font-registry');
+}
+
+// ── the two invariants whose absence produced silent-Amiri bugs ───────────────
+// Neither is a type error or a logic error the compiler or the linter can see.
+// Both were live on this branch: a superseded provider build overwrote the
+// mirror the renderer resolves through, and nothing ensured a display face that
+// arrived after open — so the cover gate waited on a face nobody was loading and
+// pinned the pulse over the editor with no back button.
+
+const skiaText = readFileSync(
+  join(here, '..', 'src', 'editor', 'skia', 'text.ts'),
+  'utf8',
+);
+// Slice the `loadParagraphFonts` body so the mirror's declaration and
+// `publishParagraphFonts` — which are allowed to assign it — fall outside.
+const loadBody = skiaText.slice(
+  skiaText.indexOf('export async function loadParagraphFonts'),
+  // The trailing `(` matters: without it this anchor also matches
+  // `publishParagraphFontsProbe`, which silently truncated the slice and made
+  // the assertion below vacuous.
+  skiaText.indexOf('export function publishParagraphFonts('),
+);
+if (/registeredFamilies\s*=/.test(loadBody)) {
+  fail(
+    'loadParagraphFonts must return its family set, not publish it: a build a ' +
+      'caller discards would still overwrite the mirror buildParagraph reads',
+  );
+}
+if (!/export function publishParagraphFonts/.test(skiaText)) {
+  fail(
+    'text.ts must expose publishParagraphFonts for callers that keep a build',
+  );
+}
+// Every caller that keeps a build must publish it, or the mirror describes a
+// provider nobody renders with.
+const usesLoadParagraphFonts = [
+  'editor/EditorScreen.tsx',
+  'editor/render/thumbnail-on-demand.ts',
+];
+for (const rel of usesLoadParagraphFonts) {
+  const src = readFileSync(join(here, '..', 'src', ...rel.split('/')), 'utf8');
+  if (
+    src.includes('loadParagraphFonts') &&
+    !src.includes('publishParagraphFonts')
+  ) {
+    fail(`${rel} calls loadParagraphFonts but never publishes the result`);
+  }
+}
+
+const editorScreen = readFileSync(
+  join(here, '..', 'src', 'editor', 'EditorScreen.tsx'),
+  'utf8',
+);
+// Whoever puts a display key into a document owns loading it. The open path is
+// one caller; a face arriving later (picker, split, paste, undo) needs another,
+// keyed on the requirement rather than on `id`.
+const ensureCalls = editorScreen.match(/ensureBundledFonts\s*\(/g) ?? [];
+if (ensureCalls.length < 2) {
+  fail(
+    'EditorScreen must ensure display faces on the requirement, not only on open ' +
+      `(found ${ensureCalls.length} call site(s))`,
+  );
+}
+if (!/setEnsureFailed\(false\)/.test(editorScreen)) {
+  fail(
+    'ensureFailed must be reset per requirement, or one failed load stands the ' +
+      'cover gate down for the rest of the mount',
+  );
 }
 
 if (failures > 0) {

@@ -59,6 +59,16 @@ function toFontSource(asset: unknown): DataModule {
  * only bought a paragraph that asked for an absent face and got Skia's default
  * instead of the deliberate Amiri fallback. Core-only is the same rendering and
  * an honest mirror.
+ *
+ * Only `publishParagraphFonts` writes it, and only ever with the set of a build
+ * its caller has **accepted**. That is not ceremony: two builds of this hook can
+ * be in flight at once (the remote snapshot and the bundled snapshot both
+ * trigger one), they complete out of order, and the slower one is the one whose
+ * output the state was told to discard. If a discarded build could still write
+ * here, the mirror would end up describing a build nobody renders with, while
+ * the cover gate — which reads the *accepted* set — reported the face ready. The
+ * cover would lift and every paragraph in that face would fall back to Amiri,
+ * silently, for the rest of the session.
  */
 let registeredFamilies: ReadonlySet<string> = new Set(
   Object.keys(coreFontAssets),
@@ -154,12 +164,23 @@ export async function loadParagraphFonts(): Promise<ParagraphFontSet> {
 
   await Promise.all([...bundled, ...remote]);
 
-  registeredFamilies = new Set(added);
-  // The mirror itself, not a second `new Set(added)`: it was built from the same
-  // array on the line above and is never mutated in place (each load replaces
-  // the reference), so handing it out makes "this set describes this provider"
-  // structurally true instead of merely true by construction order.
-  return { fonts: provider, families: registeredFamilies };
+  // Returned, **not** published. This build may yet be discarded — superseded by
+  // a later one, or unmounted before it lands — and a discarded build must not
+  // leave its answer behind in the mirror. The caller publishes once it has
+  // decided to keep the build (see `publishParagraphFonts`).
+  return { fonts: provider, families: new Set(added) };
+}
+
+/**
+ * Adopt a built set as the render-time family mirror.
+ *
+ * Call this **only** after deciding to keep the build, and publish the state
+ * update in the same breath: the mirror and the provider the renderer holds must
+ * always describe the same build. `useParagraphFonts` does both under its `active`
+ * guard; the one-off import thumbnail publishes because nothing else will.
+ */
+export function publishParagraphFonts(set: ParagraphFontSet): void {
+  registeredFamilies = set.families;
 }
 
 /**
@@ -188,9 +209,13 @@ export function useParagraphFonts(): ParagraphFontSet | null {
         return;
       }
       const next = await loadParagraphFonts();
-      if (active) {
-        setParagraphFonts(next);
+      if (!active) {
+        return;
       }
+      // Mirror and state together, under the one guard that decides this build is
+      // kept. Splitting them is what let a superseded build win the mirror.
+      publishParagraphFonts(next);
+      setParagraphFonts(next);
     })().catch(() => {
       // A failed load leaves text unrendered rather than crashing the screen;
       // callers already treat a missing provider as "fonts not loaded yet".

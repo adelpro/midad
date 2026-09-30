@@ -38,20 +38,27 @@ export async function renderImportedThumbnail(
     import('@/theme/bundled-fonts'),
     import('@/theme'),
   ]);
-  const [{ loadParagraphFonts, projectFontKeys }, { saveProjectThumbnail }] =
-    await Promise.all([
-      import('@/editor/skia/text'),
-      import('@/editor/render/thumbnail'),
-    ]);
+  const [
+    { loadParagraphFonts, publishParagraphFonts, projectFontKeys },
+    { saveProjectThumbnail },
+  ] = await Promise.all([
+    import('@/editor/skia/text'),
+    import('@/editor/render/thumbnail'),
+  ]);
   await ensureBundledFonts(
     bundledDisplayKeysFor(projectFontKeys(project), displayFontKeys),
   );
-  const { fonts } = await loadParagraphFonts();
+  const built = await loadParagraphFonts();
+  // `saveProjectThumbnail` shapes through `buildParagraph`, which resolves the
+  // family against the module mirror — so this one-off build has to publish it,
+  // there being no editor hook to do it. Nobody is rendering this provider
+  // afterwards, and it is disposed below either way.
+  publishParagraphFonts(built);
   try {
-    await saveProjectThumbnail(project, fonts);
+    await saveProjectThumbnail(project, built.fonts);
   } finally {
     // One-off provider: the render is synchronous, so it can be released now
     // instead of living for the app's lifetime like the editor's.
-    fonts.dispose();
+    built.fonts.dispose();
   }
 }

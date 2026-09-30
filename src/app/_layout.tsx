@@ -13,7 +13,14 @@ SplashScreen.preventAutoHideAsync();
 // The brand loader is the in-app cover (spec D8: never the native splash), so
 // this handoff should read as one continuous arrival into the first route
 // rather than a hard cut from a still frame.
-SplashScreen.setOptions({ fade: true, duration: 200 });
+//
+// iOS only: `fade` is annotated `@platform ios` in expo-splash-screen's own
+// types, and Android hides the splash with its own window animation. Passing it
+// unconditionally would imply a cross-platform arrival that only one platform
+// gets — and this is the one boot path Android has no other way to verify.
+if (Platform.OS === 'ios') {
+  SplashScreen.setOptions({ fade: true, duration: 200 });
+}
 
 export default function RootLayout() {
   const { ready, error } = useBootstrap();

@@ -36,8 +36,11 @@ export interface BrandLoaderProps {
  * Scale and opacity run off **one** shared value rather than two loops: the two
  * channels are supposed to move as a single breath, and a second independent
  * loop can drift out of phase with the first, which reads as a stutter instead
- * of a vibration. The value is frozen at 1, so Reduce Motion lands on scale 1 /
- * opacity 1 — the mark at rest, not at an extreme of the cycle.
+ * of a vibration. `phase` is the scale itself, so Reduce Motion — which skips the
+ * loop and leaves it at its initial 1 — rests the mark mid-breath at scale 1 /
+ * opacity 0.85, which is the interior of the cycle rather than either extreme.
+ * Freezing it at `SCALE_HI` instead would show a zoomed-in logo as the resting
+ * state, which reads as a rendering fault.
  *
  * No Skia and no `pathLength`: both are web-hostile here (see spec §9), and a
  * transform-and-opacity pulse is one implementation on web, Android and iOS.

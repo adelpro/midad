@@ -22,6 +22,14 @@ type Listener = () => void;
 let loadedKeys: ReadonlySet<string> = new Set();
 const listeners = new Set<Listener>();
 
+/**
+ * Faces with a `loadAsync` in flight, sharing the promise of the batch that is
+ * loading them. A second caller naming one of these **awaits** it rather than
+ * issuing a competing load — the cover gate depends on that, since it opens the
+ * design on the strength of this promise resolving.
+ */
+const inFlight = new Map<string, Promise<void>>();
+
 /** Replace the snapshot, notifying only when its content actually changed. */
 function publish(next: ReadonlySet<string>): void {
   const changed =
@@ -64,32 +72,58 @@ export function isBundledFontLoaded(key: string): boolean {
  * before `publish` runs, which is the same rule the remote registry follows —
  * the snapshot mirrors what is actually registered, never what was asked for.
  * The next call retries it.
+ *
+ * Concurrent callers are safe because there are three of them — the editor's
+ * open path, the cover gate's ensure, and the picker's warm-up — and the last two
+ * can name a face the first already has in flight. A key already loading is
+ * **awaited**, not skipped: skipping it would resolve this call while the face
+ * was still absent, and the cover gate awaits this promise before it lets the
+ * design render.
  */
 export async function ensureBundledFonts(
   keys: Iterable<string>,
 ): Promise<void> {
-  const missing = [...new Set(keys)].filter(
+  const wanted = [...new Set(keys)].filter(
     (key) => displayFontKeys.has(key) && !loadedKeys.has(key),
   );
-  if (missing.length === 0) {
-    return;
+  const loading = wanted.filter((key) => inFlight.has(key));
+  const missing = wanted.filter((key) => !inFlight.has(key));
+
+  if (missing.length > 0) {
+    const batch = loadFontAsync(
+      Object.fromEntries(
+        missing.map((key) => [
+          key,
+          displayFontAssets[key as keyof typeof displayFontAssets],
+        ]),
+      ),
+    )
+      .then(() => {
+        // Read `loadedKeys` now, not before the await: a sibling batch may have
+        // published in the meantime and this must not drop its faces.
+        publish(new Set([...loadedKeys, ...missing]));
+      })
+      .finally(() => {
+        for (const key of missing) {
+          inFlight.delete(key);
+        }
+      });
+    for (const key of missing) {
+      inFlight.set(key, batch);
+    }
+    await batch;
   }
-  await loadFontAsync(
-    Object.fromEntries(
-      missing.map((key) => [
-        key,
-        displayFontAssets[key as keyof typeof displayFontAssets],
-      ]),
-    ),
-  );
-  publish(new Set([...loadedKeys, ...missing]));
+  if (loading.length > 0) {
+    await Promise.all(loading.map((key) => inFlight.get(key)!));
+  }
 }
 
 /**
  * Load every bundled display face — the font picker's background warm-up, so
  * tapping a family in the list is instant. Failure is not surfaced: a warm-up
- * that rejects leaves the snapshot short, and the picker's own `ensure` call
- * on selection retries the one face that is actually needed.
+ * that rejects leaves the snapshot short, and the editor's ensure (which runs
+ * against whatever keys the document actually names) retries the one face that is
+ * needed, standing the cover gate down if it cannot be had.
  */
 export function warmDisplayFonts(): Promise<void> {
   return ensureBundledFonts(displayFontKeys);

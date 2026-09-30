@@ -68,6 +68,15 @@ would rebuild its provider for nothing.
 untouched — the same rule the remote registry follows. The snapshot mirrors what
 is actually registered, never what was asked for. The next call retries.
 
+**A key already loading is awaited, not skipped.** There are three legitimate
+callers — the editor's open path, §3's requirement effect, and the picker's
+warm-up — and the last two can name a face the first already has in flight.
+`inFlight` maps each in-flight key to the promise of the batch loading it, and a
+second caller awaits that batch instead of issuing a competing `loadAsync`.
+Skipping it would be worse than either: the cover gate opens the design on the
+strength of its `ensure` resolving, so a resolved-but-still-absent face puts the
+silent Amiri flash straight back.
+
 **`remote:` never comes through this door.** `displayFontKeys` does not contain
 one, so a remote key is filtered out before any load is attempted. Remote faces
 have their own registry and their own cache.
@@ -80,7 +89,10 @@ loads. The policy is therefore _cover first, then open_:
 1. `EditorScreen`'s load effect reads the project, then `await`s
    `ensureBundledFonts` for the display faces that document names —
    **before** `loadProject` puts anything on the canvas.
-2. `coverVisible` holds the brand loader (§5) until the Skia provider holds
+2. A second effect, keyed on the requirement itself, ensures **any** display key
+   the document comes to name — the picker applying a face, a split, a paste, an
+   undo (§3.1).
+3. `coverVisible` holds the brand loader (§5) until the Skia provider holds
    **every** required key. `buildParagraph`'s Amiri fallback is the safety net,
    not the normal path.
 
@@ -88,9 +100,29 @@ The gate reads `families.has(key)` off the provider's own family set, so it
 cannot lift while a face is still absent. It is keyed on the **content** of the
 document's font keys (`projectFontKeySignature`), not the project object — a
 drag re-creates the project every frame, and a memo keyed on that identity would
-re-derive sixty times a second.
+re-derive sixty times a second. That string is also what keeps §3.1's effect from
+running per frame: the required keys are derived from it, so their identity only
+moves when the document's font keys actually change.
 
-Three consequences that are easy to get wrong:
+### 3.1 Whoever names a face owns loading it
+
+The open path only covers the design being _opened_. A display key can also
+_arrive_, and the gate reacts to any key in the document — so with only the open
+path, picking a calligraphic face in the picker closed the gate on a face
+nothing was loading. If the picker's warm-up happened to be in flight, the cover
+came up for seconds on the most ordinary editing action; if that warm-up had
+rejected, nothing ever retried it and the cover **pinned**, with no way back —
+the loader replaces the whole editor, and the back button lives below it.
+
+The fix is an effect keyed on `[id, requiredDisplayKeys]` that ensures the
+requirement. One owner, every path that can put a key into a document.
+
+`ensureFailed` is **per requirement, not per mount**: the effect clears it before
+ensuring, so one unrecoverable face does not stand the gate down for every face
+the rest of the session names, and each new design retries. It is set on
+rejection, and stands the gate down rather than stranding.
+
+Four consequences that are easy to get wrong:
 
 - **A face missing from the registry falls back to Amiri.** That is the designed
   behaviour when a face genuinely cannot load, and the editor opens rather than
@@ -107,7 +139,7 @@ Three consequences that are easy to get wrong:
   so it never consults the loaded set. Narrowing what Skia registers does not
   narrow what a `.svg` carries.
 
-Imported thumbnails ensure the same way (`render-thumbnail-on-demand.ts`), or
+Imported thumbnails ensure the same way (`render/thumbnail-on-demand.ts`), or
 an import would pin its thumbnail to Amiri.
 
 ## 4. The provider and its family mirror
@@ -125,9 +157,29 @@ interface ParagraphFontSet {
 The set travels with the provider because it is the honest answer to "can this
 provider draw `fontKey`?" — the question §3's gate asks. Returning a provider
 alone would force a caller to consult the module-level `registeredFamilies`
-mirror, a _separate_ snapshot that is swapped on every load, and the two could
-disagree. `loadParagraphFonts` returns the mirror itself for the same reason:
-one object, not two equal ones that can drift.
+mirror, a _separate_ snapshot, and the two could disagree.
+
+### 4.1 Only the caller that keeps a build publishes the mirror
+
+`loadParagraphFonts` **returns** its set; it does not install it. The write is
+`publishParagraphFonts`, and its only two callers are the ones that decide to keep
+a build: `useParagraphFonts` (under its `active` guard, immediately before
+`setParagraphFonts`) and the one-off import thumbnail.
+
+This is not ceremony. The hook has two rebuild triggers — the remote snapshot and
+the bundled snapshot — and both fire during an ordinary open: the remote refresh
+publishes on mount, then the ensure publishes. Two builds are therefore in flight,
+they complete out of order, and the slower one is precisely the one whose state
+update was discarded. If that discarded build could still write the mirror, the
+mirror would end up describing a build nobody renders with while §3's gate —
+reading the _accepted_ set — reported the face ready. The cover would lift, and
+every paragraph in that face would fall back to Amiri: silently, permanently, and
+saved that way.
+
+So the rule is narrow and deliberate: **the mirror and the state must move
+together, under one guard.** `scripts/check-fonts.mjs` pins both halves — that
+`loadParagraphFonts` does not assign the mirror, and that every file calling
+`loadParagraphFonts` also publishes.
 
 `registeredFamilies` starts at the **core** keys, not at every bundled key.
 Before the first provider existed nothing was registered, so claiming thirty-seven
@@ -147,8 +199,10 @@ breathing on a ~900 ms cycle: scale `1.03 ↔ 0.98` and opacity `1 ↔ 0.75`.
 breath; deriving opacity from the scale driver guarantees the same cycle, where
 a second `withRepeat` could drift out of phase and read as a stutter.
 
-**Reduce Motion skips the loop entirely** and rests at scale 1 / opacity 1 — not
-frozen at an extreme of the cycle.
+**Reduce Motion skips the loop entirely.** The driver is the scale itself, so the
+resting value is 1: scale 1, opacity 0.85. That is the _interior_ of the cycle,
+not either extreme — freezing it at `SCALE_HI` would present a zoomed-in logo as
+the resting state, which reads as a rendering fault.
 
 It is **neither Skia nor an SVG draw**, on purpose. A path-drawing loader would
 need Skia, and web needs `LoadSkiaWeb` first — the same trap
@@ -159,7 +213,10 @@ asset, and `brand-mark.tsx` is untouched.
 
 The native splash is a different thing and stays separate: the pulse is an
 in-app cover, never the splash (spec D8). The splash only _fades_ into the first
-route.
+route, and only on iOS — `fade` is annotated `@platform ios` in
+expo-splash-screen's own types, and Android hides the splash with its own window
+animation, so `setOptions` is gated on `Platform.OS === 'ios'` rather than
+implying an arrival only one platform gets.
 
 ## 6. What SDK 57 allows, and the one place we diverge
 
@@ -204,7 +261,7 @@ On a real cold page load of the web build, from
 | `/gallery` (cold)           | **8** — Cairo ×2, Amiri ×2, Geist ×4. No calligraphic face.   |
 | `/editor?id=…` (Gulzar doc) | **10** — the same 8, plus exactly the two the document names. |
 
-Before the split, boot requested all thirty-seven. Two costs remain, both worth
+Before the split, boot requested all thirty-seven. Three costs remain, all worth
 naming rather than discovering:
 
 - **A warm open still shows the cover** — measured 733 ms on web dev, against
@@ -213,10 +270,17 @@ naming rather than discovering:
   earlier would reintroduce the silent-Amiri flash the design forbids, so the
   wait is correct and the rebuild is the cost. Fixing it means caching the
   provider across editor mounts, which is a render-contract change.
+- **A cold open builds the provider twice, serially.** The ensure publishes its
+  faces, which retriggers the hook mid-load, so the build that opened the design
+  is superseded by one that includes them. That is §4.1's race made benign by
+  the publish guard — and the same cache would collapse the two into one.
 - **On web a face is fetched twice**, once by expo-font injecting its
   `@font-face` and once by Skia's `Data.fromURI`, plus StrictMode's double
   effect in dev. Collapsing it means `Skia.MatchFont` or a per-family
   `Skia.Data` cache — also a render-contract change.
+
+None of the three was measured on a release build or on a device; the numbers
+above are web dev, which is the only platform reachable here (see §9).
 
 ## 8. Deferred levers
 
@@ -232,20 +296,20 @@ Both are recorded here rather than left implied. Neither is a bug.
 
 ## 9. Code map
 
-| Concern                                                   | File                                       |
-| --------------------------------------------------------- | ------------------------------------------ |
-| Core / display split, `displayFontKeys`, `FontKey`        | `src/theme/fonts.ts`                       |
-| Which display faces a document's keys need (pure)         | `src/theme/bundled-fonts.ts`               |
-| Loaded-set registry: ensure, warm, snapshot               | `src/storage/bundled-font-registry.ts`     |
-| Loaded-set hook                                           | `src/hooks/use-loaded-bundled-fonts.ts`    |
-| Boot gate on the core set                                 | `src/hooks/use-bootstrap.ts`               |
-| Splash fade                                               | `src/app/_layout.tsx`                      |
-| `ParagraphFontSet`, provider registration, Amiri fallback | `src/editor/skia/text.ts`                  |
-| Ensure-then-open, cover gate, loader placement            | `src/editor/EditorScreen.tsx`              |
-| Ensure before the imported thumbnail                      | `src/editor/render/thumbnail-on-demand.ts` |
-| Picker warm-up and specimen re-render                     | `src/editor/font-picker-sheet.tsx`         |
-| The loader (soft pulse, reduced motion)                   | `src/components/ui/brand-loader.tsx`       |
-| The mark, wrapped unchanged                               | `src/components/ui/brand-mark.tsx`         |
-| Executable spec for the split and the scan                | `scripts/check-fonts.mjs`                  |
-| Remote faces (the other door)                             | `docs/editor-remote-fonts.md`              |
-| Contract index                                            | `docs/index.md` §3                         |
+| Concern                                                              | File                                       |
+| -------------------------------------------------------------------- | ------------------------------------------ |
+| Core / display split, `displayFontKeys`, `FontKey`                   | `src/theme/fonts.ts`                       |
+| Which display faces a document's keys need (pure)                    | `src/theme/bundled-fonts.ts`               |
+| Loaded-set registry: ensure, warm, snapshot                          | `src/storage/bundled-font-registry.ts`     |
+| Loaded-set hook                                                      | `src/hooks/use-loaded-bundled-fonts.ts`    |
+| Boot gate on the core set                                            | `src/hooks/use-bootstrap.ts`               |
+| Splash fade                                                          | `src/app/_layout.tsx`                      |
+| `ParagraphFontSet`, provider registration, Amiri fallback            | `src/editor/skia/text.ts`                  |
+| Ensure-then-open, cover gate, loader placement                       | `src/editor/EditorScreen.tsx`              |
+| Ensure before the imported thumbnail                                 | `src/editor/render/thumbnail-on-demand.ts` |
+| Picker warm-up and specimen re-render                                | `src/editor/font-picker-sheet.tsx`         |
+| The loader (soft pulse, reduced motion)                              | `src/components/ui/brand-loader.tsx`       |
+| The mark, wrapped unchanged                                          | `src/components/ui/brand-mark.tsx`         |
+| Executable spec for the split, the scan, and the publish/ensure pins | `scripts/check-fonts.mjs`                  |
+| Remote faces (the other door)                                        | `docs/editor-remote-fonts.md`              |
+| Contract index                                                       | `docs/index.md` §3                         |
