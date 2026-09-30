@@ -116,7 +116,8 @@ Update the file’s doc comment to explain the split and why those eight are cor
 - [ ] **Step 4: Run the check to verify it passes**
 
 Run: `node scripts/check-fonts.mjs`
-Expected: `check-fonts: OK (21 families)`.
+Expected: `check-fonts: OK (22 families)`. (The family count is unchanged by the
+split — `fontAssets` stays the union of the two sets.)
 
 - [ ] **Step 5: Verify the whole suite and that boot is unchanged**
 
