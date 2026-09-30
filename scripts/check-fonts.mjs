@@ -220,6 +220,64 @@ if (svgTextSource) {
   }
 }
 
+// The pure display-key scan: which bundled display faces a document's stored
+// font keys need. Transpiled and evaluated standalone, like font-families.ts.
+const bundledSource = readFileSync(
+  join(here, '..', 'src', 'theme', 'bundled-fonts.ts'),
+  'utf8',
+);
+if (/^\s*import\s+(?!type\b)/m.test(bundledSource)) {
+  fail('src/theme/bundled-fonts.ts must declare no value imports');
+}
+const { outputText: bOut } = ts.transpileModule(bundledSource, {
+  compilerOptions: {
+    module: ts.ModuleKind.CommonJS,
+    target: ts.ScriptTarget.ES2020,
+  },
+});
+const bShim = { exports: {} };
+new Function('exports', 'module', bOut)(bShim.exports, bShim);
+const { bundledDisplayKeysFor } = bShim.exports;
+const display = new Set(['Gulzar', 'Marhey', 'Amiri-Bold']);
+const scan = bundledDisplayKeysFor(
+  ['Gulzar', 'Gulzar', 'remote:markazi-text:400', 'Nope', 'Amiri', 'Marhey'],
+  display,
+);
+if (JSON.stringify([...scan].sort()) !== JSON.stringify(['Gulzar', 'Marhey'])) {
+  fail(`bundledDisplayKeysFor = ${JSON.stringify(scan)}`);
+}
+
+// The bundled-font registry and its hook must exist and match the split contract.
+const bundledReg = readFileSync(
+  join(here, '..', 'src', 'storage', 'bundled-font-registry.ts'),
+  'utf8',
+);
+if (!bundledReg.includes('displayFontAssets')) {
+  fail('bundled-font-registry.ts must reference displayFontAssets');
+}
+if (
+  !bundledReg.includes('Font.loadAsync') &&
+  !bundledReg.includes('loadAsync')
+) {
+  fail('bundled-font-registry.ts must load fonts via expo-font');
+}
+if (/^\s*\w+:\s*require\s*\(/m.test(bundledReg)) {
+  fail(
+    'bundled-font-registry.ts must not inline an alias-key map (uses missing.map)',
+  );
+}
+
+const bundledHook = readFileSync(
+  join(here, '..', 'src', 'hooks', 'use-loaded-bundled-fonts.ts'),
+  'utf8',
+);
+if (!bundledHook.includes('useSyncExternalStore')) {
+  fail('use-loaded-bundled-fonts.ts must use useSyncExternalStore');
+}
+if (!bundledHook.includes('bundled-font-registry')) {
+  fail('use-loaded-bundled-fonts.ts must read from the bundled-font-registry');
+}
+
 if (failures > 0) {
   console.error(`\ncheck-fonts: ${failures} failure(s)`);
   process.exit(1);

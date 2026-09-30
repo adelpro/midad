@@ -7,7 +7,13 @@ export {
   paperSwatches,
   SHADOW_INK,
 } from './content-palette';
-export { displayFontKeys, fontAssets, fontRoles } from './fonts';
+export {
+  coreFontAssets,
+  displayFontAssets,
+  displayFontKeys,
+  fontAssets,
+  fontRoles,
+} from './fonts';
 export type { FontKey, FontRoles } from './fonts';
 export { familyForVariant, fontFamilies, variantFor } from './font-families';
 export type { FontFamily, FontVariant } from './font-families';
