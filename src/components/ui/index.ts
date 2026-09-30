@@ -1,3 +1,5 @@
+export { BrandLoader } from './brand-loader';
+export type { BrandLoaderProps } from './brand-loader';
 export { BrandMark } from './brand-mark';
 export type { BrandMarkProps } from './brand-mark';
 export { Button } from './button';
