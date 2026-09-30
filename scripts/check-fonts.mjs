@@ -34,9 +34,19 @@ const moduleShim = { exports: {} };
 new Function('exports', 'module', outputText)(moduleShim.exports, moduleShim);
 const { fontFamilies, familyForVariant, variantFor } = moduleShim.exports;
 
-/** Keys declared in the `fontAssets` object literal, e.g. `Amiri: require(...)`. */
-function fontAssetKeys(source) {
-  const body = source.slice(source.indexOf('fontAssets'));
+/**
+ * Keys declared in one `fontAssets`-style object literal, e.g. `Amiri: require(...)`.
+ * Slices from the object's declaration to its closing `} as const;`, so the
+ * union object — which only spreads the other two — yields no keys of its own.
+ */
+function assetKeysOf(source, objectName) {
+  // Match the declaration, not the first mention: the registry's doc comment
+  // names both objects before either is declared, and a first-mention slice
+  // would run from that comment to the *next* object's closing brace.
+  const start = source.indexOf(`const ${objectName} = {`);
+  if (start === -1) return new Set();
+  const end = source.indexOf('\n} as const;', start);
+  const body = source.slice(start, end === -1 ? undefined : end);
   const keys = new Set();
   for (const m of body.matchAll(/^\s{2}'?([A-Za-z-]+)'?:\s*require\(/gm)) {
     keys.add(m[1]);
@@ -50,7 +60,51 @@ const fail = (msg) => {
   console.error(`FAIL: ${msg}`);
 };
 
-const assets = fontAssetKeys(fontsSource);
+// Every asset that is not a UI-only font must belong to a family.
+// Declared before the split block below, which reads it: the family loop it
+// guards has to run off the union those two sets make, so the split has to
+// come first, and this cannot sit between them in the temporal dead zone.
+const UI_ONLY = new Set([
+  'Cairo',
+  'Cairo-Bold',
+  'Geist',
+  'Geist-Medium',
+  'Geist-SemiBold',
+  'Geist-Bold',
+]);
+
+// The registry splits into an eager core — the faces the first screen draws —
+// and the lazy display set. `fontAssets` stays their union, so `FontKey`, the
+// families, the picker and the SVG exporter keep their current shape.
+const coreKeys = assetKeysOf(fontsSource, 'coreFontAssets');
+const displayKeys = assetKeysOf(fontsSource, 'displayFontAssets');
+if (coreKeys.size === 0) fail('coreFontAssets has no entries');
+if (displayKeys.size === 0) fail('displayFontAssets has no entries');
+for (const key of coreKeys) {
+  if (displayKeys.has(key)) {
+    fail(`${key} is in both coreFontAssets and displayFontAssets`);
+  }
+}
+if (!coreKeys.has('Cairo') || !coreKeys.has('Amiri')) {
+  fail('coreFontAssets must contain Cairo and Amiri');
+}
+for (const key of UI_ONLY) {
+  if (!coreKeys.has(key)) fail(`UI font ${key} is not in coreFontAssets`);
+}
+if (
+  !/fontAssets\s*=\s*\{[^}]*\.\.\.coreFontAssets[^}]*\.\.\.displayFontAssets/s.test(
+    fontsSource,
+  )
+) {
+  fail('fontAssets must spread coreFontAssets and displayFontAssets');
+}
+const rolesBlock = fontsSource.slice(fontsSource.indexOf('fontRoles'));
+for (const key of displayKeys) {
+  if (new RegExp(`[:\\s]'?${key}'?[,;}]`).test(rolesBlock)) {
+    fail(`display face ${key} is used as a UI font role`);
+  }
+}
+const assets = new Set([...coreKeys, ...displayKeys]);
 if (assets.size === 0) {
   fail('extracted zero fontAssets keys — the regex no longer matches fonts.ts');
 }
@@ -86,15 +140,6 @@ for (const family of fontFamilies) {
   }
 }
 
-// Every asset that is not a UI-only font must belong to a family.
-const UI_ONLY = new Set([
-  'Cairo',
-  'Cairo-Bold',
-  'Geist',
-  'Geist-Medium',
-  'Geist-SemiBold',
-  'Geist-Bold',
-]);
 for (const key of assets) {
   if (!UI_ONLY.has(key) && !seen.has(key)) {
     fail(`fontAssets entry ${key} belongs to no family (orphan)`);
