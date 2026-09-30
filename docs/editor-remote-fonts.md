@@ -2,9 +2,10 @@
 
 > Owns the runtime Google Fonts feature: how a face is identified, where the
 > catalogue and the files come from, how the device caches them, and the rules
-> that keep a face from silently turning into Amiri. The bundled registry
-> (`fonts.ts`, `font-families.ts`) is a separate contract — remote land never
-> touches it. When this document and the code disagree, fix the code.
+> that keep a face from silently turning into Amiri. The bundled registry is a
+> separate contract — [`editor-font-loading.md`](editor-font-loading.md) — and
+> remote land never touches it. When this document and the code disagree, fix
+> the code.
 
 ---
 

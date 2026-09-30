@@ -36,6 +36,8 @@ the file to open first. Every path below is copied from a code map in this folde
 | Change the selection box, its handles or the collection bar | [`editor-collections.md`](editor-collections.md) §3                 | `src/editor/groups.ts`, `src/editor/EditorCanvas.tsx`              |
 | Change how a press selects                                  | [`editor-selection.md`](editor-selection.md) §2                     | `src/editor/use-object-gestures.ts`, `src/editor/EditorScreen.tsx` |
 | Add or reorder a selection-bar action                       | [`editor-selection-bar.md`](editor-selection-bar.md) §2             | `src/editor/selection-actions.tsx`                                 |
+| Change when a bundled face loads, or what gates the splash  | [`editor-font-loading.md`](editor-font-loading.md) §1               | `src/theme/fonts.ts`, `src/hooks/use-bootstrap.ts`                 |
+| Change what covers the editor while a design's faces load   | [`editor-font-loading.md`](editor-font-loading.md) §3               | `src/editor/EditorScreen.tsx`                                      |
 | Pin a font family in the picker                             | [`editor-font-pins.md`](editor-font-pins.md) §1                     | `src/theme/font-pins.ts`, `src/storage/font-pins.ts`               |
 | Add a keyboard binding                                      | [`editor-keyboard.md`](editor-keyboard.md) §3                       | `src/editor/shortcuts.ts`                                          |
 | Change a label, role, tooltip or help entry                 | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §2 | `src/editor/help/catalog.ts`                                       |
@@ -52,6 +54,7 @@ the file to open first. Every path below is copied from a code map in this folde
 | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) | Help catalog, tooltips, learn mode                                             | `src/editor/help/catalog.ts`, `src/editor/help/use-help-mode.ts`                                                                           | `check-help.mjs`         |
 | [`editor-keyboard.md`](editor-keyboard.md)                       | Binding table, matcher, chord text                                             | `src/editor/shortcuts.ts`, `src/editor/use-keyboard-shortcuts.web.ts`                                                                      | `check-shortcuts.mjs`    |
 | [`editor-remote-fonts.md`](editor-remote-fonts.md)               | Remote Google Fonts: identity, catalogue, cache, registration, picker, banner  | `src/theme/remote-fonts.ts`, `src/storage/remote-font-cache.ts`, `src/storage/remote-font-registry.ts`, `src/editor/font-picker-sheet.tsx` | `check-remote-fonts.mjs` |
+| [`editor-font-loading.md`](editor-font-loading.md)               | Core/display split, loaded-set registry, cover-then-open, the loader           | `src/theme/fonts.ts`, `src/storage/bundled-font-registry.ts`, `src/editor/skia/text.ts`, `src/components/ui/brand-loader.tsx`              | `check-fonts.mjs`        |
 | [`editor-font-pins.md`](editor-font-pins.md)                     | Pinned font families: id namespaces, storage, picker section, remote fallbacks | `src/theme/font-pins.ts`, `src/storage/font-pins.ts`, `src/editor/font-picker-sheet.tsx`                                                   | `check-font-pins.mjs`    |
 | [`editor-render-contract.md`](editor-render-contract.md)         | Canvas ↔ PNG ↔ SVG agreement                                                   | `src/editor/EditorCanvas.tsx`, `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts`                                                | —                        |
 | [`editor-selection-bar.md`](editor-selection-bar.md)             | The action rail, width budget, pins                                            | `src/editor/selection-actions.tsx`, `src/editor/EditorScreen.tsx`                                                                          | —                        |
@@ -73,6 +76,7 @@ real specification for their tables; run the one that covers what you touched.
 | `scripts/check-help.mjs`         | Catalog ↔ `strings.ts` ↔ `shortcuts.ts`                      | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §5 |
 | `scripts/check-remote-fonts.mjs` | Remote font key format, face status, CDN URLs                | [`editor-remote-fonts.md`](editor-remote-fonts.md) §5               |
 | `scripts/check-font-pins.mjs`    | Pin id namespaces + list operations                          | [`editor-font-pins.md`](editor-font-pins.md) §5                     |
+| `scripts/check-fonts.mjs`        | Core/display split + the display-key scan                    | [`editor-font-loading.md`](editor-font-loading.md) §1               |
 
 Repo-wide, and cheaper than any of them: `npx tsc --noEmit` and `npx eslint src`.
 
@@ -118,8 +122,9 @@ No document in this folder names these, so nothing pins their behavior:
 - `src/editor/insert-sheet.tsx`, `src/editor/text-style-controls.tsx`,
   `src/editor/use-auto-save.ts`.
 - `src/hooks/`, `src/haptics.ts`, `src/i18n/` beyond `strings.ts`.
-- `src/components/ui/` beyond `icon-button.tsx`, plus `gallery/` and `onboarding/`.
-- `src/theme/` beyond `tokens.ts`, `color.ts`, `fonts.ts`, `font-pins.ts`,
+- `src/components/ui/` beyond `icon-button.tsx` and `brand-loader.tsx`, plus
+  `gallery/` and `onboarding/`.
+- `src/theme/` beyond `tokens.ts`, `color.ts`, `font-pins.ts`,
   `presentations.ts` and `remote-fonts.ts` — the visual language itself lives in
   [`../DESIGN.md`](../DESIGN.md).
 - `src/storage/` beyond `settings.ts`, `thumbs.ts`, `font-pins.ts`,
