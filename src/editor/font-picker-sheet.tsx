@@ -16,9 +16,11 @@ import {
   Sheet,
 } from '@/components/ui';
 import { useInstalledRemoteFontKeys } from '@/hooks/use-installed-remote-fonts';
+import { useLoadedBundledFontKeys } from '@/hooks/use-loaded-bundled-fonts';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { useFontPins } from '@/storage/font-pins';
+import { warmDisplayFonts } from '@/storage/bundled-font-registry';
 import {
   filterRemoteFontFamilies,
   getRemoteFontCatalog,
@@ -136,6 +138,24 @@ export function FontPickerSheet({
   const hasRemotePins = pinnedIds.some(
     (id) => parseFontPinId(id)?.source === 'google',
   );
+
+  /**
+   * Warm the display faces while the sheet is open, so tapping a family is
+   * instant rather than a wait. Fire-and-forget: a rejection leaves the snapshot
+   * short and the `ensure` on selection retries the one face that is needed, so
+   * a failed warm-up must not take the sheet down with it.
+   *
+   * `loadedBundled` is read for its re-renders, not its value — each publish
+   * repaints the specimens as their face arrives, which is the whole reason the
+   * warm-up is visible rather than a silent stall behind a static row.
+   */
+  useLoadedBundledFontKeys();
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    void warmDisplayFonts().catch(() => {});
+  }, [visible]);
 
   useEffect(() => {
     const q = query.trim();

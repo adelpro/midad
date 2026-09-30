@@ -74,7 +74,11 @@ import {
   NUDGE_STEP_LARGE,
   type ShortcutContext,
 } from '@/editor/shortcuts';
-import { textLineBreaks, useParagraphFonts } from '@/editor/skia/text';
+import {
+  projectFontKeys,
+  textLineBreaks,
+  useParagraphFonts,
+} from '@/editor/skia/text';
 import { glyphStyleOf, nextGlyphStyle } from '@/editor/glyphs';
 import { useEditorStore } from '@/editor/store';
 import {
@@ -99,6 +103,10 @@ import { pickBackgroundImage } from '@/storage/background-image';
 import { saveImageToLibrary, shareFile, shareImage } from '@/storage/export';
 import { hasMediaLibrary } from '@/storage/platform';
 import { useInstalledRemoteFontKeys } from '@/hooks/use-installed-remote-fonts';
+import { ensureBundledFonts } from '@/storage/bundled-font-registry';
+import { BrandLoader } from '@/components/ui';
+import { bundledDisplayKeysFor } from '@/theme/bundled-fonts';
+import { displayFontKeys } from '@/theme';
 import {
   downloadRemoteFont,
   missingRemoteFontKeys,
@@ -459,17 +467,65 @@ export function EditorScreen() {
   /** The learn-mode binder, held in a variable so the bar head's memo can key on it. */
   const helpPress = help.press;
 
-  // Load the project once.
+  const [projectLoading, setProjectLoading] = useState(false);
+  /**
+   * A face refused to load, so the cover gate is stood down.
+   *
+   * Without this the editor strands: `ensureBundledFonts` rejects, `finally`
+   * clears `projectLoading`, but the provider will never hold the missing face,
+   * so `fontsReady` stays false and `coverVisible` pins the cover over a design
+   * that never opens. One flag is enough because the ensure is a single
+   * `loadAsync` over all missing keys — it publishes all of them or none.
+   */
+  const [ensureFailed, setEnsureFailed] = useState(false);
+
+  // Load the project once — after its display faces. Cover, then open: a design
+  // naming Gulzar must not paint one frame in Amiri while the face loads, so the
+  // ensure happens *before* `loadProject` puts anything on the canvas, and
+  // `coverVisible` below holds the screen for the whole window.
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       if (!id) {
         return;
       }
-      const proj = await loadProjectFile(id);
-      if (proj) {
-        loadProject(proj);
+      setProjectLoading(true);
+      try {
+        const proj = await loadProjectFile(id);
+        if (cancelled) {
+          return;
+        }
+        if (proj) {
+          try {
+            await ensureBundledFonts(
+              bundledDisplayKeysFor(projectFontKeys(proj), displayFontKeys),
+            );
+          } catch {
+            // Open anyway: `buildParagraph` falls the missing face back to
+            // Amiri, which is a legible design, and the bundled registry retries
+            // the face the next time this design is opened. Stranding the user
+            // on a cover for a font that is never coming is strictly worse.
+            if (!cancelled) {
+              setEnsureFailed(true);
+            }
+          }
+          if (cancelled) {
+            return;
+          }
+          loadProject(proj);
+        }
+      } finally {
+        if (!cancelled) {
+          setProjectLoading(false);
+        }
       }
-    })();
+    })().catch(() => {
+      // A read that rejects leaves `project` null; the gate below is already
+      // false by then, so the screen falls through to its own empty branch.
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [id, loadProject]);
 
   // Only dragging is tool-gated; a tap resolves the selection in every tool
@@ -497,20 +553,33 @@ export function EditorScreen() {
   // AsyncStorage. It re-runs when the installed set changes instead — a
   // download from the banner clears itself.
   const projectFontKeySignature = useMemo(
-    () =>
-      project
-        ? [
-            ...new Set(
-              project.objects
-                .filter((o) => o.type === 'text')
-                .map((o) => o.fontKey),
-            ),
-          ]
-            .sort()
-            .join('\u0000')
-        : '',
+    () => (project ? [...projectFontKeys(project)].sort().join('\u0000') : ''),
     [project],
   );
+
+  // ── the cover gate ─────────────────────────────────────────────────────────
+  // The display faces this document names, and whether the live provider can
+  // draw every one of them yet.
+  //
+  // Keyed on the *signature*, not the project object — the same trick the
+  // missing-font banner uses, and for the same reason: a drag re-creates the
+  // project every frame, and a memo keyed on that identity would re-derive this
+  // sixty times a second.
+  const requiredDisplayKeys = useMemo(
+    () =>
+      bundledDisplayKeysFor(
+        projectFontKeySignature.split('\u0000'),
+        displayFontKeys,
+      ),
+    [projectFontKeySignature],
+  );
+  const fontsReady =
+    ensureFailed ||
+    (skiaFonts != null &&
+      requiredDisplayKeys.every((key) => skiaFonts.families.has(key)));
+  // Only on a real design route: the editor is also reachable without an `id`
+  // (a new, empty design), and there is nothing to wait for.
+  const coverVisible = !!id && (projectLoading || !fontsReady);
 
   useEffect(() => {
     let cancelled = false;
@@ -1840,6 +1909,22 @@ export function EditorScreen() {
       void saveProject({ ...current, updatedAt: new Date().toISOString() });
     }
   }, [setProjectName, titleDraft]);
+
+  // Cover, then open. This sits *after* every hook, so the editor's own state
+  // keeps accumulating while the cover is up — the cover is a paint decision,
+  // not a different component. It also has to come before the `!project` branch
+  // below: a design whose faces are still loading has no project on screen yet,
+  // and that branch would show "Loading…" text instead of the pulse.
+  if (coverVisible) {
+    return (
+      <SafeAreaView
+        style={[styles.safe, { backgroundColor: c.paper }]}
+        edges={['top', 'bottom']}
+      >
+        <BrandLoader />
+      </SafeAreaView>
+    );
+  }
 
   if (!project) {
     return (

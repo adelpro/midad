@@ -26,10 +26,26 @@ export async function renderImportedThumbnail(
       await import('@shopify/react-native-skia/lib/module/web');
     await LoadSkiaWeb({ locateFile: () => canvaskitWasmUrl() });
   }
-  const [{ loadParagraphFonts }, { saveProjectThumbnail }] = await Promise.all([
-    import('@/editor/skia/text'),
-    import('@/editor/render/thumbnail'),
+  // The document's own display faces first: `loadParagraphFonts` registers a
+  // display face only once expo-font has loaded it, so skipping this would pin
+  // the imported thumbnail to Amiri.
+  const [
+    { ensureBundledFonts },
+    { bundledDisplayKeysFor },
+    { displayFontKeys },
+  ] = await Promise.all([
+    import('@/storage/bundled-font-registry'),
+    import('@/theme/bundled-fonts'),
+    import('@/theme'),
   ]);
+  const [{ loadParagraphFonts, projectFontKeys }, { saveProjectThumbnail }] =
+    await Promise.all([
+      import('@/editor/skia/text'),
+      import('@/editor/render/thumbnail'),
+    ]);
+  await ensureBundledFonts(
+    bundledDisplayKeysFor(projectFontKeys(project), displayFontKeys),
+  );
   const { fonts } = await loadParagraphFonts();
   try {
     await saveProjectThumbnail(project, fonts);

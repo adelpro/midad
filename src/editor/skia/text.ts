@@ -9,14 +9,16 @@ import {
 import { Platform as SkiaPlatform } from '@shopify/react-native-skia/lib/module/Platform';
 import { useEffect, useState } from 'react';
 
-import type { MidadProject } from '@/storage/project-schema';
+import { getLoadedBundledFontKeys } from '@/storage/bundled-font-registry';
+import { useLoadedBundledFontKeys } from '@/hooks/use-loaded-bundled-fonts';
 import { useInstalledRemoteFontKeys } from '@/hooks/use-installed-remote-fonts';
+import type { MidadProject } from '@/storage/project-schema';
 import {
   bytesForRemoteFont,
   listInstalledRemoteFonts,
 } from '@/storage/remote-font-cache';
 import { refreshInstalledRemoteFonts } from '@/storage/remote-font-registry';
-import { fontAssets } from '@/theme';
+import { coreFontAssets, displayFontAssets } from '@/theme';
 
 /**
  * Arabic text rendering via the Skia Paragraph API.
@@ -41,8 +43,8 @@ function toFontSource(asset: unknown): DataModule {
 }
 
 /**
- * The families the *latest* built provider registered — every bundled key plus
- * the installed remote faces.
+ * The families the *latest* built provider registered — the core faces, the
+ * display faces loaded so far, and the installed remote faces.
  *
  * `buildParagraph` resolves a text object's family through this mirror instead
  * of `Object.hasOwn(fontAssets, …)`: a remote face becomes renderable the
@@ -51,8 +53,16 @@ function toFontSource(asset: unknown): DataModule {
  * owns the re-download prompt for those. The mirror is swapped only after a
  * load completes, so a failed load leaves the previous set (and its decisions)
  * intact.
+ *
+ * It starts at the **core** faces, not at every bundled key. Before this
+ * provider existed nothing was registered, so claiming thirty-seven families
+ * only bought a paragraph that asked for an absent face and got Skia's default
+ * instead of the deliberate Amiri fallback. Core-only is the same rendering and
+ * an honest mirror.
  */
-let registeredFamilies: ReadonlySet<string> = new Set(Object.keys(fontAssets));
+let registeredFamilies: ReadonlySet<string> = new Set(
+  Object.keys(coreFontAssets),
+);
 
 /**
  * A paragraph provider paired with the family names it actually registered.
@@ -69,14 +79,34 @@ export interface ParagraphFontSet {
 }
 
 /**
+ * Every distinct `fontKey` the document's text objects name, in first-seen
+ * order. Unknown and remote keys are included — narrowing to what can actually
+ * be drawn is the caller's job (`bundledDisplayKeysFor`), and a key that stops
+ * being drawable later still has to be visible to the gate that asks.
+ */
+export function projectFontKeys(project: MidadProject): string[] {
+  const seen = new Set<string>();
+  for (const obj of project.objects) {
+    if (obj.type === 'text') {
+      seen.add(obj.fontKey);
+    }
+  }
+  return [...seen];
+}
+
+/**
  * Build the ParagraphBuilder typeface provider outside React.
  *
- * Every family in `fontAssets` **plus every installed remote face** is loaded
- * and registered under its key, so a design can name any one of them
- * (`buildParagraph` falls back to Amiri for keys this provider does not know —
- * bundled faces are always present, remote faces only once installed). Kept
- * separate from the hook because the gallery needs the same provider for a
- * single one-off render, after it has loaded CanvasKit on demand — see
+ * Registers the **core** faces, plus the display faces actually loaded this
+ * session, plus every installed remote face. A display face is absent until
+ * `ensureBundledFonts` loads it, which is the whole point: opening a design no
+ * longer drags in the other twenty-eight calligraphic faces. The cover gate in
+ * `EditorScreen` holds the screen until the document's own faces are in, so a
+ * face missing here is never painted — `buildParagraph`'s Amiri fallback is the
+ * safety net, not the normal path.
+ *
+ * Kept separate from the hook because the gallery needs the same provider for
+ * a single one-off render, after it has loaded CanvasKit on demand — see
  * `renderImportedThumbnail`. The provider is a native/WASM handle, so a one-off
  * caller should `dispose()` it when the render is done.
  */
@@ -84,7 +114,16 @@ export async function loadParagraphFonts(): Promise<ParagraphFontSet> {
   const provider = Skia.TypefaceFontProvider.Make();
   const added: string[] = [];
 
-  const bundled = Object.entries(fontAssets).map(async ([family, asset]) => {
+  // Core faces ship with the app; a display face joins only once expo-font has
+  // actually loaded it. Read the snapshot once — it cannot change under us
+  // mid-loop, and `publish` replaces the reference rather than mutating.
+  const loaded = getLoadedBundledFontKeys();
+  const bundled = [
+    ...Object.entries(coreFontAssets),
+    ...Object.entries(displayFontAssets).filter(([family]) =>
+      loaded.has(family),
+    ),
+  ].map(async ([family, asset]) => {
     const data = await Skia.Data.fromURI(
       SkiaPlatform.resolveAsset(toFontSource(asset)),
     );
@@ -127,14 +166,17 @@ export async function loadParagraphFonts(): Promise<ParagraphFontSet> {
  * The editor's live provider hook.
  *
  * Rebuilds whenever the installed remote-face snapshot changes (a face was
- * downloaded), so the canvas re-shapes with the new face — the `fonts` identity
- * already feeds `useTextLayouts`' memo. It reconciles expo-font first
- * (`refreshInstalledRemoteFonts`), then builds the Skia provider from the same
- * reconciled snapshot, so the two registrations can never drift: the RN `<Text>`
- * paths and the Skia canvas always agree on what is installed.
+ * downloaded) **or a bundled display face finishes loading**, so the canvas
+ * re-shapes with the new face — the set's identity already feeds
+ * `useTextLayouts`' memo and the cover gate's `families.has(…)` check. It
+ * reconciles expo-font first (`refreshInstalledRemoteFonts`), then builds the
+ * Skia provider from the same reconciled snapshot, so the two registrations can
+ * never drift: the RN `<Text>` paths and the Skia canvas always agree on what
+ * is installed.
  */
 export function useParagraphFonts(): ParagraphFontSet | null {
   const remoteFonts = useInstalledRemoteFontKeys();
+  const loadedBundled = useLoadedBundledFontKeys();
   const [paragraphFonts, setParagraphFonts] = useState<ParagraphFontSet | null>(
     null,
   );
@@ -156,10 +198,11 @@ export function useParagraphFonts(): ParagraphFontSet | null {
     return () => {
       active = false;
     };
-    // `remoteFonts` is the rebuild trigger; the body reads the live cache via
-    // `refreshInstalledRemoteFonts`, so the snapshot's *identity* is the only
+    // `remoteFonts` and `loadedBundled` are the rebuild triggers. The body reads
+    // the live cache via `refreshInstalledRemoteFonts` and the live loaded set
+    // via `getLoadedBundledFontKeys`, so each snapshot's *identity* is the only
     // thing that must change to re-run this effect.
-  }, [remoteFonts]);
+  }, [remoteFonts, loadedBundled]);
   return paragraphFonts;
 }
 
