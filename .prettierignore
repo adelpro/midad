@@ -15,12 +15,19 @@ public/
 yarn.lock
 assets/fonts/
 
-# Superpowers skill scratch (not app docs; gitignored via .gitignore)
+# Superpowers design specs and plans. Tracked records now (.gitignore re-includes
+# them), not scratch - but they are the skill's prose, so keep them out of the
+# app's format gate rather than reformatting them.
 docs/superpowers/
 
 # Agent tooling state (gitignored via its own nested .gitignore, which prettier
 # does not read - so without this it walks in and fails the format gate)
 .opencode/
+
+# /brag launch-video output: generated media, a vendored GSAP bundle and the
+# composition's own scratch. Same trap as .opencode/ - untracked and generated,
+# so prettier would otherwise walk in and fail the gate on every run.
+brag-output/
 
 # Verification caches (see AGENTS.md "Checks")
 *.tsbuildinfo

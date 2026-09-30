@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-30
+
+**0.3.0 is 0.3.0-rc.1 promoted to a stable release — no app code changed
+between the two.** The release candidate carried the collections, the `.midad`
+v2 container, Save to Photos, pinned fonts and the rest of the notes below; this
+entry records only what moved in the repository around it.
+
+### Changed
+
+- **The dated design specs and implementation plans under `docs/superpowers/`
+  are tracked again.** They had been caught by the skill scratch ignore, so a
+  plan could vanish in a stray `git clean` the moment it left the working set.
+  The `specs/` and `plans/` directories are re-included by name; the ledger and
+  briefs beside them stay ignored.
+- The **Pro entitlement and watermark gate** now keeps its design spec
+  (`docs/superpowers/specs/2026-09-26-pro-gate-design.md`) and its
+  implementation plan (`docs/superpowers/plans/2026-09-26-pro-gate.md`) in the
+  tree. Nothing in this release implements them — the plan is parked, not
+  started.
+- `AGENTS.md` names `scripts/check-font-pins.mjs` beside the other twelve
+  checks, so the contract table and the verify suite agree again.
+
+### Removed
+
+- The implementation plans for the features this release shipped — flip
+  vertical, the eight-family calligraphic batch, the colour picker, the Google
+  Fonts runtime and font pins — are gone from `docs/superpowers/plans/`. Their
+  design specs stay, and each feature's contract in `docs/` is the durable
+  record.
+
 ## [0.3.0-rc.1] - 2026-09-27
 
 ### Added
