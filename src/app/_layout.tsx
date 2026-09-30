@@ -10,6 +10,10 @@ import { useTheme } from '@/hooks/use-theme';
 import { I18nProvider } from '@/i18n';
 
 SplashScreen.preventAutoHideAsync();
+// The brand loader is the in-app cover (spec D8: never the native splash), so
+// this handoff should read as one continuous arrival into the first route
+// rather than a hard cut from a still frame.
+SplashScreen.setOptions({ fade: true, duration: 200 });
 
 export default function RootLayout() {
   const { ready, error } = useBootstrap();

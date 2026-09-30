@@ -3,7 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 
 import { useSettings } from '@/storage/settings';
-import { fontAssets } from '@/theme';
+import { coreFontAssets } from '@/theme';
 
 /** How long the launch waits for the settings store before using defaults. */
 const HYDRATION_GRACE_MS = 1_500;
@@ -54,8 +54,19 @@ function useSettingsHydrated(): boolean {
   return hydrated;
 }
 
+/**
+ * Hold the launch until the UI is actually able to draw itself.
+ *
+ * The gate is the **core** set — Cairo, Amiri and Geist — and nothing else.
+ * Those are the only faces the first screen needs, so they are the only faces
+ * whose absence is visible before the user can act. The twenty-nine calligraphic
+ * display faces are loaded on demand instead, when a design that names them is
+ * opened, behind the brand loader (see `docs/editor-font-loading.md`); making
+ * the splash wait for faces no screen is showing would trade a real wait for an
+ * invisible one.
+ */
 export function useBootstrap() {
-  const [fontsLoaded, fontError] = useFonts(fontAssets);
+  const [fontsLoaded, fontError] = useFonts(coreFontAssets);
   const settingsHydrated = useSettingsHydrated();
 
   useEffect(() => {
