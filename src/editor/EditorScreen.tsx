@@ -714,7 +714,7 @@ export function EditorScreen() {
       setSplitNotice(t.editor.splitFailed);
       return;
     }
-    const outcome = splitTextObject(obj, skiaFonts, canvas.width);
+    const outcome = splitTextObject(obj, skiaFonts.fonts, canvas.width);
     if (!outcome.ok) {
       setSplitNotice(splitFailureMessage(outcome.reason));
       return;
@@ -1356,7 +1356,7 @@ export function EditorScreen() {
     }
     await saveProject({ ...live, updatedAt: new Date().toISOString() });
     try {
-      const png = renderProjectToPng(live, skiaFonts, {
+      const png = renderProjectToPng(live, skiaFonts?.fonts ?? null, {
         maxWidthPx: THUMB_MAX_WIDTH_PX,
       });
       await saveThumb(live.id, png.base64DataUri);
@@ -1393,7 +1393,9 @@ export function EditorScreen() {
     void runExport('image', async () => {
       const live = useEditorStore.getState().project;
       if (!live) return;
-      const png = renderProjectToPng(live, skiaFonts, { maxWidthPx: 2048 });
+      const png = renderProjectToPng(live, skiaFonts?.fonts ?? null, {
+        maxWidthPx: 2048,
+      });
       await shareImage({
         data: png.base64DataUri,
         format: 'png',
@@ -1411,7 +1413,7 @@ export function EditorScreen() {
       const faces = await collectSvgFontFaces(collectUsedFamilies(live));
       // SVG cannot re-flow Arabic text itself, so resolve the visual line
       // breaks from the same layout the canvas uses.
-      const lineBreaks = skiaFonts ? textLineBreaks(live, skiaFonts) : {};
+      const lineBreaks = skiaFonts ? textLineBreaks(live, skiaFonts.fonts) : {};
       const svg = projectToSvg(live, faces, lineBreaks);
       await shareFile({
         data: svg,
@@ -1449,7 +1451,9 @@ export function EditorScreen() {
     void runExport('photos', async () => {
       const live = useEditorStore.getState().project;
       if (!live) return;
-      const png = renderProjectToPng(live, skiaFonts, { maxWidthPx: 2048 });
+      const png = renderProjectToPng(live, skiaFonts?.fonts ?? null, {
+        maxWidthPx: 2048,
+      });
       const saved = await saveImageToLibrary({
         data: png.base64DataUri,
         format: 'png',

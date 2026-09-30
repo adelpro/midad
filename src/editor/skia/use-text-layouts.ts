@@ -63,7 +63,7 @@ export function useTextLayouts(
   objects: CalligraphyTextObject[],
   canvasWidth: number,
 ): TextLayouts {
-  const fonts = useParagraphFonts();
+  const paragraphFonts = useParagraphFonts();
 
   const signature = useMemo(
     () => layoutSignature(objects, canvasWidth),
@@ -71,7 +71,7 @@ export function useTextLayouts(
   );
 
   const layouts = useMemo(() => {
-    if (!fonts) {
+    if (!paragraphFonts) {
       return EMPTY_LAYOUTS;
     }
     const out: TextLayouts = {};
@@ -92,7 +92,7 @@ export function useTextLayouts(
           maxWidth: canvasWidth,
           shadows: obj.shadows,
         },
-        fonts,
+        paragraphFonts.fonts,
       );
       if (rendered) {
         out[obj.id] = rendered;
@@ -105,7 +105,7 @@ export function useTextLayouts(
     // array identity instead would re-shape every paragraph on every frame of a
     // drag, since a transform patch produces a new array.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, fonts, canvasWidth]);
+  }, [signature, paragraphFonts, canvasWidth]);
 
   /**
    * Replaced generations awaiting disposal. Paragraphs are native handles, so

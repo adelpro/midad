@@ -30,7 +30,7 @@ export async function renderImportedThumbnail(
     import('@/editor/skia/text'),
     import('@/editor/render/thumbnail'),
   ]);
-  const fonts = await loadParagraphFonts();
+  const { fonts } = await loadParagraphFonts();
   try {
     await saveProjectThumbnail(project, fonts);
   } finally {

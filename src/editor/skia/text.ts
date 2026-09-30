@@ -55,6 +55,20 @@ function toFontSource(asset: unknown): DataModule {
 let registeredFamilies: ReadonlySet<string> = new Set(Object.keys(fontAssets));
 
 /**
+ * A paragraph provider paired with the family names it actually registered.
+ *
+ * The set is the honest answer to "can this provider draw `fontKey`?", which is
+ * the question the ensure-then-open gate asks before it lets the editor render.
+ * Shipping the two together means a caller can never hold a provider and
+ * consult a *different* set — the module mirror is a separate, swapped-on-load
+ * thing, whereas this set travels with the provider it describes.
+ */
+export interface ParagraphFontSet {
+  fonts: SkTypefaceFontProvider;
+  families: ReadonlySet<string>;
+}
+
+/**
  * Build the ParagraphBuilder typeface provider outside React.
  *
  * Every family in `fontAssets` **plus every installed remote face** is loaded
@@ -66,7 +80,7 @@ let registeredFamilies: ReadonlySet<string> = new Set(Object.keys(fontAssets));
  * `renderImportedThumbnail`. The provider is a native/WASM handle, so a one-off
  * caller should `dispose()` it when the render is done.
  */
-export async function loadParagraphFonts(): Promise<SkTypefaceFontProvider> {
+export async function loadParagraphFonts(): Promise<ParagraphFontSet> {
   const provider = Skia.TypefaceFontProvider.Make();
   const added: string[] = [];
 
@@ -102,7 +116,11 @@ export async function loadParagraphFonts(): Promise<SkTypefaceFontProvider> {
   await Promise.all([...bundled, ...remote]);
 
   registeredFamilies = new Set(added);
-  return provider;
+  // The mirror itself, not a second `new Set(added)`: it was built from the same
+  // array on the line above and is never mutated in place (each load replaces
+  // the reference), so handing it out makes "this set describes this provider"
+  // structurally true instead of merely true by construction order.
+  return { fonts: provider, families: registeredFamilies };
 }
 
 /**
@@ -115,9 +133,11 @@ export async function loadParagraphFonts(): Promise<SkTypefaceFontProvider> {
  * reconciled snapshot, so the two registrations can never drift: the RN `<Text>`
  * paths and the Skia canvas always agree on what is installed.
  */
-export function useParagraphFonts(): SkTypefaceFontProvider | null {
+export function useParagraphFonts(): ParagraphFontSet | null {
   const remoteFonts = useInstalledRemoteFontKeys();
-  const [fonts, setFonts] = useState<SkTypefaceFontProvider | null>(null);
+  const [paragraphFonts, setParagraphFonts] = useState<ParagraphFontSet | null>(
+    null,
+  );
   useEffect(() => {
     let active = true;
     (async () => {
@@ -125,9 +145,9 @@ export function useParagraphFonts(): SkTypefaceFontProvider | null {
       if (!active) {
         return;
       }
-      const provider = await loadParagraphFonts();
+      const next = await loadParagraphFonts();
       if (active) {
-        setFonts(provider);
+        setParagraphFonts(next);
       }
     })().catch(() => {
       // A failed load leaves text unrendered rather than crashing the screen;
@@ -140,7 +160,7 @@ export function useParagraphFonts(): SkTypefaceFontProvider | null {
     // `refreshInstalledRemoteFonts`, so the snapshot's *identity* is the only
     // thing that must change to re-run this effect.
   }, [remoteFonts]);
-  return fonts;
+  return paragraphFonts;
 }
 
 export interface TextLayoutSpec {
