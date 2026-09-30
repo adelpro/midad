@@ -35,6 +35,7 @@ import {
 } from '@/theme';
 import { familyPinId, googlePinId, parseFontPinId } from '@/theme/font-pins';
 import {
+  filterBundledDuplicates,
   humanizeRemoteFontId,
   parseRemoteFontKey,
   remoteFontKey,
@@ -43,6 +44,37 @@ import {
 
 /** A real phrase, so a row shows the face's letterforms rather than its name. */
 const SPECIMEN = 'بسم الله';
+
+/**
+ * Every folded name a bundled family answers to, mapped to the weights it
+ * provides — the input `filterBundledDuplicates` needs to tell a redundant
+ * Google row from a useful one.
+ *
+ * A family is registered under several spellings: its own key, its label, and
+ * the keys of its variants. The variant keys matter most, because they are
+ * where the two registries' spellings diverge: the bundle calls one family
+ * `noto-naskh` and labels it "Noto Naskh", while Google ships
+ * `noto-naskh-arabic` — only the variant key `NotoNaskhArabic` folds to meet it.
+ *
+ * Module scope, not per-render: the bundled registry is static, so this never
+ * needs recomputing.
+ */
+const bundledWeightsCover: ReadonlyMap<string, readonly number[]> = (() => {
+  const cover = new Map<string, readonly number[]>();
+  for (const family of fontFamilies) {
+    const weights = [...new Set(family.variants.map((v) => v.weight))].sort(
+      (a, b) => a - b,
+    );
+    for (const name of [
+      family.key,
+      family.labelEn,
+      ...family.variants.map((v) => v.key),
+    ]) {
+      cover.set(name.toLowerCase().replace(/[^a-z0-9]/g, ''), weights);
+    }
+  }
+  return cover;
+})();
 /** Debounce before the remote catalog search runs per keystroke. */
 const REMOTE_SEARCH_DEBOUNCE_MS = 200;
 /** Cap on remote rows shown at once (the bundled list has ~22 families). */
@@ -127,7 +159,15 @@ export function FontPickerSheet({
             return;
           }
           setRemoteFamilies(
-            filterRemoteFontFamilies(families, q, REMOTE_RESULT_LIMIT),
+            filterRemoteFontFamilies(
+              // The bundled families are already listed above this section, so
+              // a Google family that only re-offers one is a duplicate row —
+              // unless it carries a weight the bundle lacks, which the bundled
+              // variants cannot reach.
+              filterBundledDuplicates(families, bundledWeightsCover),
+              q,
+              REMOTE_RESULT_LIMIT,
+            ),
           );
           setRemoteState('ready');
         } catch {
@@ -399,76 +439,88 @@ export function FontPickerSheet({
             so the picker's search box doubles as its search field; the catalog
             is searched by display name, and each family row expands to weight
             chips with a download state machine (download → spinner → installed
-            / retry). */}
-        {!!query.trim() && (
-          <>
-            <View style={styles.sectionHead}>
-              <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: c.ink, fontFamily: uiFont },
-                ]}
-              >
-                {t.editor.googleFonts}
-              </Text>
-              <Text
-                style={[styles.meta, { color: c.muted, fontFamily: uiFont }]}
-              >
-                {t.editor.googleFontsHint}
-              </Text>
-            </View>
+            / retry). Families that only re-offer a bundled face are filtered out
+            above, so a query never lists the same typeface twice.
 
-            {remoteState === 'loading' && (
-              <ActivityIndicator
-                color={c.muted}
-                style={styles.remoteLoading}
-                accessibilityLabel={t.common.loading}
-              />
-            )}
-            {remoteState === 'error' && (
-              <Text
-                style={[styles.meta, { color: c.danger, fontFamily: uiFont }]}
-              >
-                {t.editor.fontCatalogFailed}
-              </Text>
-            )}
-
-            {remoteState === 'ready' &&
-              remoteFamilies.map((family) => (
-                <RemoteFamilyRow
-                  key={family.id}
-                  id={family.id}
-                  name={family.family}
-                  weights={family.weights}
-                  hasArabic={family.subsets.includes('arabic')}
-                  open={family.id === openRemoteId}
-                  onToggleOpen={() => {
-                    setOpenRemoteId(
-                      family.id === openRemoteId ? null : family.id,
-                    );
-                    setInstallErrorKey(null);
-                  }}
-                  pinned={pinnedIds.includes(googlePinId(family.id))}
-                  onTogglePin={() => toggleFontPin(googlePinId(family.id))}
-                  value={value}
-                  installedRemote={installedRemote}
-                  installing={installing}
-                  installErrorKey={installErrorKey}
-                  onInstall={(id, weight) => void installFace(id, weight)}
-                />
-              ))}
-
-            {remoteState === 'ready' &&
-              matches.length === 0 &&
-              remoteFamilies.length === 0 && (
+            The section header hides when the search resolved to nothing: with
+            every hit deduplicated away, a lone "Google Fonts" heading above an
+            empty list reads as a broken section rather than an empty result. */}
+        {!!query.trim() &&
+          (remoteState !== 'ready' || remoteFamilies.length > 0) && (
+            <>
+              <View style={styles.sectionHead}>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: c.ink, fontFamily: uiFont },
+                  ]}
+                >
+                  {t.editor.googleFonts}
+                </Text>
                 <Text
                   style={[styles.meta, { color: c.muted, fontFamily: uiFont }]}
                 >
-                  {t.editor.noFontResults}
+                  {t.editor.googleFontsHint}
+                </Text>
+              </View>
+
+              {remoteState === 'loading' && (
+                <ActivityIndicator
+                  color={c.muted}
+                  style={styles.remoteLoading}
+                  accessibilityLabel={t.common.loading}
+                />
+              )}
+              {remoteState === 'error' && (
+                <Text
+                  style={[styles.meta, { color: c.danger, fontFamily: uiFont }]}
+                >
+                  {t.editor.fontCatalogFailed}
                 </Text>
               )}
-          </>
-        )}
+
+              {remoteState === 'ready' &&
+                remoteFamilies.map((family) => (
+                  <RemoteFamilyRow
+                    key={family.id}
+                    id={family.id}
+                    name={family.family}
+                    weights={family.weights}
+                    hasArabic={family.subsets.includes('arabic')}
+                    open={family.id === openRemoteId}
+                    onToggleOpen={() => {
+                      setOpenRemoteId(
+                        family.id === openRemoteId ? null : family.id,
+                      );
+                      setInstallErrorKey(null);
+                    }}
+                    pinned={pinnedIds.includes(googlePinId(family.id))}
+                    onTogglePin={() => toggleFontPin(googlePinId(family.id))}
+                    value={value}
+                    installedRemote={installedRemote}
+                    installing={installing}
+                    installErrorKey={installErrorKey}
+                    onInstall={(id, weight) => void installFace(id, weight)}
+                  />
+                ))}
+
+              {/* A query that matched only deduplicated families still has bundled
+                rows above, so "no results" must require both lists to be empty —
+                which is what `matches.length === 0` already asserts. */}
+              {remoteState === 'ready' &&
+                matches.length === 0 &&
+                remoteFamilies.length === 0 && (
+                  <Text
+                    style={[
+                      styles.meta,
+                      { color: c.muted, fontFamily: uiFont },
+                    ]}
+                  >
+                    {t.editor.noFontResults}
+                  </Text>
+                )}
+            </>
+          )}
       </ScrollView>
 
       <Button label={t.common.done} onPress={closeSheet} fullWidth />

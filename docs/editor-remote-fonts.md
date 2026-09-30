@@ -98,13 +98,18 @@ prefix matches first, then substring, capped. Arabic support is
 `family.subsets.includes('arabic')` — the picker badge lives in Phase 2, the
 data is here.
 
+The picker runs `filterBundledDuplicates` over the catalogue _before_ searching
+it, so a query never lists the same typeface twice — see §7.
+
 ## 5. What the check pins
 
 `scripts/check-remote-fonts.mjs` (wired into `verify.mjs`) transpiles
 `remote-fonts.ts` and asserts: valid/invalid key formats (lowercase slug only),
 build/parse round-trip, id and weight normalisers, the display-label helpers
 (`humanizeRemoteFontId`, `remoteFontLabel`), the face-status state machine, the
-CDN URL builder, and that `remote-fonts.ts` declares **no imports** and never
+CDN URL builder, `filterBundledDuplicates` (redundant twins dropped, extra-weight
+families kept, empty weight lists never treated as redundant, unrelated families
+untouched), and that `remote-fonts.ts` declares **no imports** and never
 mentions the bundled registry or React Native. It also asserts the catalogue
 and cache modules exist and reuse the pure helpers.
 
@@ -202,6 +207,51 @@ AsyncStorage.
   `listInstalledRemoteFonts` skips purged entries, the missing-font banner
   re-downloads on use, and the catalog JSON is cached (weekly) so search keeps
   working offline after the first fetch.
+
+### Bundled twins are filtered out of the Google section
+
+The picker lists the bundled families **and** searches Google under the same
+query, so a bundled face that also exists upstream used to appear twice — once
+in the bundled list, once under "Google Fonts". `filterBundledDuplicates`
+(`src/theme/remote-fonts.ts`) drops the second copy.
+
+The decision is **weight coverage, not name alone**, because the two registries
+disagree about which weights a face has:
+
+| Family                | Bundled   | Google  | Outcome                            |
+| --------------------- | --------- | ------- | ---------------------------------- |
+| `Amiri`, `Aref Ruqaa` | 400/700   | 400/700 | hidden — bundle is complete        |
+| `Gulzar`, `Vibes` …   | 400       | 400     | hidden                             |
+| `Kufam`               | 400       | 400–900 | **kept** — bundle can't reach 500+ |
+| `Lateef`              | 400/700   | 200–800 | **kept**                           |
+| `El Messiri`, `Mirza` | 400(/700) | 400–700 | **kept**                           |
+
+A row is hidden only when the bundled family already provides _every_ weight
+Google offers. Hiding on name alone would silently delete access to weights the
+bundled variants cannot select, which is a capability loss dressed as a
+deduplication.
+
+**Name matching is loose on purpose.** Matching folds case and strips every
+non-alphanumeric, and the coverage map is keyed by _all_ of a bundled family's
+spellings — its key, its label, and each variant key. Variant keys are load-
+bearing: the bundle calls one family `noto-naskh` and labels it "Noto Naskh",
+while Google ships `noto-naskh-arabic`, so only the variant key `NotoNaskhArabic`
+folds to meet it. Keying off the family slug alone would miss it and the
+duplicate would return.
+
+An **empty weight list on either side is not evidence of redundancy** — the row
+is kept. Showing a row the user can no longer pick is worse than showing a twin.
+
+Three bundled families have no Google counterpart at all (`Bouazzi Maghribi`,
+`AMoshref Thulth`, `Layla Thuluth` are not on Fontsource), so nothing to filter.
+`Aref Ruqaa Ink` is a _different_ typeface and correctly stays visible when the
+user searches "Aref Ruqaa".
+
+Filtering happens **before** `filterRemoteFontFamilies`, so it applies to the
+whole catalogue rather than the capped result window — otherwise a page of 30
+could be entirely duplicates while real matches sat beyond the cap. The section
+header also hides when dedup empties the list, so a lone "Google Fonts" heading
+over nothing doesn't read as a broken section.
 
 ### Known limit: Latin glyphs in a remote face
 

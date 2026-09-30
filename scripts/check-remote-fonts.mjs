@@ -38,6 +38,7 @@ const {
   remoteFontLabel,
   faceStatusForKey,
   remoteFontTtfUrl,
+  filterBundledDuplicates,
 } = moduleShim.exports;
 
 let failures = 0;
@@ -130,6 +131,48 @@ if (remoteFontLabel('remote:markazi-text:700') !== 'Markazi Text · 700') {
 }
 if (remoteFontLabel('Amiri') !== null || remoteFontLabel('') !== null) {
   fail('remoteFontLabel must return null for non-remote keys');
+}
+
+// ── bundled-duplicate suppression ────────────────────────────────────────────
+// A Google family whose name matches a bundled family is a duplicate *only*
+// when the bundled copy already covers every weight Google offers. If Google
+// has a weight the bundle lacks, it is a different, useful offer and stays.
+const dupFamilies = [
+  { id: 'amiri', family: 'Amiri', weights: [400, 700] },
+  { id: 'noto-naskh-arabic', family: 'Noto Naskh Arabic', weights: [400, 700] },
+  { id: 'kufam', family: 'Kufam', weights: [400, 500, 600, 700] },
+  { id: 'amiri-quran', family: 'Amiri Quran', weights: [400] },
+];
+const bundledCover = new Map([
+  ['amiri', [400, 700]], // bundled covers every weight Google offers -> dropped
+  // The bundle keys this family `noto-naskh` and labels it "Noto Naskh", so the
+  // only folded name that meets Google's `noto-naskh-arabic` is the *variant*
+  // key `NotoNaskhArabic`. The coverage map is keyed off variant keys.
+  ['notonaskharabic', [400, 700]],
+  ['kufam', [400]], // bundled is 400-only, Google reaches 700 -> kept
+]);
+const kept = filterBundledDuplicates(dupFamilies, bundledCover);
+const keptIds = kept.map((f) => f.id).sort();
+if (JSON.stringify(keptIds) !== JSON.stringify(['amiri-quran', 'kufam'])) {
+  fail(`filterBundledDuplicates kept ${JSON.stringify(keptIds)}`);
+}
+// A name match with no weight overlap claim is kept, never silently dropped.
+if (
+  filterBundledDuplicates(
+    [{ id: 'amiri', family: 'Amiri', weights: [] }],
+    bundledCover,
+  ).length !== 1
+) {
+  fail('filterBundledDuplicates dropped a family with unknown weights');
+}
+// A completely unrelated family is never touched.
+if (
+  filterBundledDuplicates(
+    [{ id: 'markazi-text', family: 'Markazi Text', weights: [400] }],
+    bundledCover,
+  ).length !== 1
+) {
+  fail('filterBundledDuplicates dropped an unrelated family');
 }
 
 // ── face status machine ──────────────────────────────────────────────────────

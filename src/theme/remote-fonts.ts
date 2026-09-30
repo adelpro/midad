@@ -161,6 +161,59 @@ export function faceStatusForKey(
 }
 
 /**
+ * A Google family paired with the bundled family it duplicates, if any.
+ * Only the fields the decision needs, so callers can pass catalogue rows and
+ * registry rows through the same function.
+ */
+export interface BundledDuplicateCandidate {
+  id: string;
+  family: string;
+  weights: readonly number[];
+}
+
+/** Case- and separator-insensitive key for matching a name against the bundle. */
+function foldTypefaceName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Drop the Google families that merely re-offer a bundled face.
+ *
+ * The picker lists the bundled families *and* searches Google under the same
+ * query, so any bundled face that also exists upstream appeared twice — once
+ * bundled, once under "Google Fonts" — for no gain. This removes the second
+ * copy, but only when it is genuinely redundant: if Google offers a weight the
+ * bundled copy lacks (`Kufam` is bundled at 400 only, upstream ships 400–900),
+ * the row is a real upgrade and stays, because the bundled variants cannot
+ * reach those weights.
+ *
+ * `bundledWeights` maps a folded bundled name to the weights that family
+ * provides. Matching is deliberately loose on punctuation and case, because the
+ * two registries spell the same face differently: Google's `noto-naskh-arabic`
+ * is the bundle's `noto-naskh`, whose own label drops the "arabic".
+ *
+ * Pure: the caller supplies the coverage map, so this module stays import-free
+ * and never reads the bundled registry itself.
+ */
+export function filterBundledDuplicates<T extends BundledDuplicateCandidate>(
+  families: readonly T[],
+  bundledWeights: ReadonlyMap<string, readonly number[]>,
+): T[] {
+  return families.filter((family) => {
+    const bundled = bundledWeights.get(foldTypefaceName(family.id));
+    if (!bundled) {
+      return true;
+    }
+    // An unknown weight list on either side is not evidence of redundancy:
+    // showing a row the user can no longer pick is worse than showing a twin.
+    if (bundled.length === 0 || family.weights.length === 0) {
+      return true;
+    }
+    return family.weights.some((weight) => !bundled.includes(weight));
+  });
+}
+
+/**
  * Direct per-subset TTF download URL on the Fontsource CDN, which mirrors
  * `github.com/google/fonts` (the same source the bundled faces came from).
  * CORS-open on every platform, so native and web download the same bytes.
