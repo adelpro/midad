@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A soft-pulsing brand loader covers the wait before the editor can draw.**
+  Opening a design now loads the calligraphic faces that design names _before_
+  anything reaches the canvas, and a paper cover with the brand mark breathing on
+  a 900 ms cycle holds the screen for that window — a gentle scale/opacity
+  vibration, not a progress bar and not a path-drawing animation. It is neither
+  Skia nor an SVG draw on purpose: web needs CanvasKit loaded before Skia can be
+  touched at all, and a stroke-draw is web-only on `react-native-svg`, so a
+  transform pulse is one implementation on web, Android and iOS. Reduce Motion
+  skips the loop and rests the mark at scale 1.
+- **A contract for when a bundled face loads** (`docs/editor-font-loading.md`),
+  covering the core/display split, the loaded-set registry, the cover-then-open
+  policy, and the two costs the design knowingly keeps.
+
+### Changed
+
+- **The app boots on eight font faces instead of thirty-seven.** The launch
+  waited on the entire bundled registry while the first screen only ever draws
+  Cairo, Amiri and Geist — a real wait for a benefit nobody could see. The
+  registry is now split: those eight gate the splash, and the twenty-nine
+  calligraphic faces load on demand. A design names its own faces, they are
+  loaded behind the loader, and the editor is not allowed to paint until the
+  typeface provider actually holds every one of them — so a Gulzar design never
+  flashes a frame of Amiri on the way in. Opening the font picker warms the rest
+  in the background, and each specimen repaints as its face arrives.
+  Measured on a real cold page load of the web build: the gallery now fetches
+  **8** font files where it fetched all 37, and a document that names two
+  calligraphic faces fetches **10** — the same eight, plus exactly the two it
+  needs. The trade-offs that remain are written down rather than left to be
+  rediscovered: a warm open still shows the loader for ~700 ms on web while the
+  provider rebuilds, and web fetches each face twice (once for `@font-face`, once
+  for Skia). Both are render-contract changes to fix properly, so both are
+  deferred.
+- **The Pro gate design spec was reworked in a pricing session, and its
+  implementation plan is now marked stale.** Ads with a Pro unlock were proposed
+  and rejected — they do not reach this app's scale, they work against the
+  export-and-share loop that is the whole growth channel, and they would trade
+  the "your design data never leaves your device" claim for an ad-tracking
+  identity before there is a user base to track. **Google Fonts moved into the
+  gate** as a five-face allowance rather than a hard lock: the catalogue stays
+  browsable and only the download is metered, which puts the upsell at the
+  moment of peak intent and lands on a single call site. **Export quality**
+  (resolution, JPEG, transparent PNG) replaced cleanliness as the headline Pro
+  benefit, because every PNG is currently hard-coded to 2048 px and that gap
+  costs nothing to sell. No app code changed, and none of the decisions are
+  approved — the spec's open-questions section was restructured into settled
+  and open, and the plan is not to be executed as written.
+
+### Fixed
+
+- **The font picker listed the same family twice.** Searching for a family that
+  ships with the app _and_ exists on Google Fonts — Amiri, Reem Kufi, Gulzar —
+  showed one row under the bundled list and another under "Google Fonts", with
+  no indication they were the same thing. The Google section now hides a family
+  the app already ships, but only when the bundled copy covers every weight
+  Google offers: eight families are kept reachable because Google genuinely
+  widens them (El Messiri, Kufam, Lateef, Lemonada, Marhey, Mirza, Reem Kufi,
+  Scheherazade New). Hiding on name alone would have removed those eight from
+  the picker entirely.
+
 ## [0.3.0] - 2026-09-30
 
 **0.3.0 is 0.3.0-rc.1 promoted to a stable release — no app code changed
