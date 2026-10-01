@@ -1,5 +1,11 @@
 import type { FontKey } from './fonts';
 
+/**
+ * The scripts a bundled face can cover. Drives the picker's specimen text, its
+ * sectioning, and whether a word in that face can be split into movable parts.
+ */
+export type FontScript = 'arabic' | 'latin';
+
 /** One pickable face: a keyed asset plus its weight and localized name. */
 export interface FontVariant {
   key: FontKey;
@@ -18,6 +24,12 @@ export interface FontVariant {
  */
 export interface FontFamily {
   key: string;
+  /**
+   * Required, not optional. An absent tag silently falls back to an Arabic
+   * specimen and section, which is the silent-wrong-face class this registry
+   * exists to avoid — so the compiler should catch the omission instead.
+   */
+  script: FontScript;
   labelAr: string;
   labelEn: string;
   styleTagAr: string;
@@ -30,6 +42,7 @@ export interface FontFamily {
 export const fontFamilies: readonly FontFamily[] = [
   {
     key: 'amiri',
+    script: 'arabic',
     labelAr: 'أميري',
     labelEn: 'Amiri',
     styleTagAr: 'نسخ',
@@ -42,6 +55,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'amiri-quran',
+    script: 'arabic',
     labelAr: 'أميري قرآن',
     labelEn: 'Amiri Quran',
     styleTagAr: 'قرآن',
@@ -53,6 +67,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'lateef',
+    script: 'arabic',
     labelAr: 'لطيف',
     labelEn: 'Lateef',
     styleTagAr: 'نسخ تقليدي',
@@ -65,6 +80,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'noto-naskh',
+    script: 'arabic',
     labelAr: 'نوتو نسخ',
     labelEn: 'Noto Naskh',
     styleTagAr: 'نسخ محايد',
@@ -87,6 +103,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'aref-ruqaa',
+    script: 'arabic',
     labelAr: 'عارف رقعة',
     labelEn: 'Aref Ruqaa',
     styleTagAr: 'رقعة',
@@ -104,6 +121,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'rakkas',
+    script: 'arabic',
     labelAr: 'ركّاس',
     labelEn: 'Rakkas',
     styleTagAr: 'رقعة عرضية',
@@ -115,6 +133,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'reem-kufi',
+    script: 'arabic',
     labelAr: 'ريم كوفي',
     labelEn: 'Reem Kufi',
     styleTagAr: 'كوفي حديث',
@@ -127,6 +146,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'noto-kufi',
+    script: 'arabic',
     labelAr: 'نوتو كوفي',
     labelEn: 'Noto Kufi',
     styleTagAr: 'كوفي',
@@ -149,6 +169,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'qahiri',
+    script: 'arabic',
     labelAr: 'قاهري',
     labelEn: 'Qahiri',
     styleTagAr: 'كوفي قديم',
@@ -160,6 +181,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'katibeh',
+    script: 'arabic',
     labelAr: 'كاتبة',
     labelEn: 'Katibeh',
     styleTagAr: 'ثلث',
@@ -171,6 +193,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'jomhuria',
+    script: 'arabic',
     labelAr: 'جمهورية',
     labelEn: 'Jomhuria',
     styleTagAr: 'ثلث عرضي',
@@ -182,6 +205,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'lemonada',
+    script: 'arabic',
     labelAr: 'ليمونادة',
     labelEn: 'Lemonada',
     styleTagAr: 'عرض حديث',
@@ -194,6 +218,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'vibes',
+    script: 'arabic',
     labelAr: 'فايبس',
     labelEn: 'Vibes',
     styleTagAr: 'زخرفي',
@@ -205,6 +230,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'bouazzi-maghribi',
+    script: 'arabic',
     labelAr: 'بوزي مغربي',
     labelEn: 'Bouazzi Maghribi',
     styleTagAr: 'مغربي',
@@ -221,6 +247,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'amoshref-thulth',
+    script: 'arabic',
     labelAr: 'أمشرف ثلث',
     labelEn: 'AMoshref Thulth',
     styleTagAr: 'ثلث',
@@ -237,6 +264,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'layla-thuluth',
+    script: 'arabic',
     labelAr: 'ليلى الثلث',
     labelEn: 'Layla Thuluth',
     styleTagAr: 'ثلث تقليدي',
@@ -248,6 +276,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'gulzar',
+    script: 'arabic',
     labelAr: 'گلزار',
     labelEn: 'Gulzar',
     styleTagAr: 'نستعليق',
@@ -259,6 +288,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'kufam',
+    script: 'arabic',
     labelAr: 'كوفام',
     labelEn: 'Kufam',
     styleTagAr: 'كوفي هندسي',
@@ -270,6 +300,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'scheherazade-new',
+    script: 'arabic',
     labelAr: 'شهرزاد الجديد',
     labelEn: 'Scheherazade New',
     styleTagAr: 'نسخ قرآني',
@@ -292,6 +323,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'mirza',
+    script: 'arabic',
     labelAr: 'ميرزا',
     labelEn: 'Mirza',
     styleTagAr: 'فارسي',
@@ -304,6 +336,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'el-messiri',
+    script: 'arabic',
     labelAr: 'المصيري',
     labelEn: 'El Messiri',
     styleTagAr: 'عرضي أنيق',
@@ -315,6 +348,7 @@ export const fontFamilies: readonly FontFamily[] = [
   },
   {
     key: 'marhey',
+    script: 'arabic',
     labelAr: 'مرحي',
     labelEn: 'Marhey',
     styleTagAr: 'عرضي مرح',
@@ -354,3 +388,21 @@ export function defaultVariantForKey(fontKey: string): string {
     familyForVariant(fontKey)?.defaultVariant ?? fontKey.replace(/-Bold$/, '')
   );
 }
+
+/**
+ * Whether a face's script supports splitting a word into movable parts.
+ *
+ * False only for a known Latin family: Latin clusters are not connected runs,
+ * so per-cluster splitting severs the ligatures and kerning the typeface is
+ * built on. Unknown and remote keys return true — a remote font declares its
+ * own coverage in `subsets`, and refusing one we cannot classify would be a
+ * regression against today's behaviour.
+ *
+ * See `docs/editor-split-and-rejoin.md` §2 for the joining argument this
+ * qualifies.
+ */
+export function familySupportsSplit(fontKey: string): boolean {
+  return familyForVariant(fontKey)?.script !== 'latin';
+}
+
+

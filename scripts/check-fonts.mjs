@@ -32,7 +32,8 @@ const { outputText } = ts.transpileModule(familiesSource, {
 });
 const moduleShim = { exports: {} };
 new Function('exports', 'module', outputText)(moduleShim.exports, moduleShim);
-const { fontFamilies, familyForVariant, variantFor } = moduleShim.exports;
+const { fontFamilies, familyForVariant, variantFor, familySupportsSplit } =
+  moduleShim.exports;
 
 /**
  * Keys declared in one `fontAssets`-style object literal, e.g. `Amiri: require(...)`.
@@ -115,6 +116,13 @@ for (const family of fontFamilies) {
   if (family.variants.length === 0) {
     fail(`family ${family.key} has no variants`);
   }
+  // Required, not optional: a missing tag silently falls back to an Arabic
+  // specimen, which is the silent-wrong-face class this registry exists to avoid.
+  if (family.script !== 'arabic' && family.script !== 'latin') {
+    fail(
+      `family ${family.key} declares script ${JSON.stringify(family.script)}`,
+    );
+  }
   if (!family.variants.some((v) => v.key === family.defaultVariant)) {
     fail(`family ${family.key} defaultVariant is not one of its variants`);
   }
@@ -137,7 +145,21 @@ for (const family of fontFamilies) {
     if (variantFor(v.key)?.key !== v.key) {
       fail(`variantFor(${v.key}) did not return its variant`);
     }
+    // The split predicate must agree with the family's own tag, for every
+    // variant — the guard in split.ts reads it from a stored `fontKey`.
+    if (familySupportsSplit(v.key) !== (family.script !== 'latin')) {
+      fail(
+        `familySupportsSplit(${v.key}) disagrees with script ${family.script}`,
+      );
+    }
   }
+}
+
+// An unknown key must not be refused: a remote font declares its own coverage
+// in `subsets`, and refusing one we cannot classify would regress today's
+// behaviour.
+if (!familySupportsSplit('NotARealFace')) {
+  fail('familySupportsSplit refused an unknown key');
 }
 
 for (const key of assets) {
