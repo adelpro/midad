@@ -74,6 +74,17 @@ const cases = [
     expect: ['سم', 'ء'],
   },
   {
+    // This assertion is TRUE and must stay true — do not "fix" it by merging
+    // Latin letters. `segmentClusters` is a pure function over a string with no
+    // font family to consult, and Latin is genuinely non-joining, so five units
+    // is the correct answer to the question it is asked.
+    //
+    // The Latin *refusal* lives one layer up: `splitTextObject` consults
+    // `familySupportsSplit` and returns 'latin-script' before ever calling this
+    // function, so a Latin word is never segmented per letter in the first
+    // place. That guard is pinned by `check-fonts.mjs`, which cannot transpile
+    // `split.ts` (it imports Skia) and asserts the guard's presence and position
+    // at the source level instead. See `docs/editor-split-and-rejoin.md` §2.
     name: 'Latin has no joining, so letters split individually',
     text: 'hello',
     expect: ['h', 'e', 'l', 'l', 'o'],

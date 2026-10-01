@@ -318,6 +318,19 @@ if (!/fontSections\.map/.test(pickerSource)) {
   );
 }
 
+// ── paragraph direction follows the text, never the interface ──────────────
+// A Latin text object must read left-to-right even in an Arabic session. The
+// interface mirrors under forceRTL, so if direction were ever taken from the UI
+// language rather than the string, Latin artwork would silently flip in Arabic
+// mode and nowhere else — the kind of bug that passes review and reaches users.
+if (/isArabic\s*=\s*\/\[[^\]]*\]\/\.test\(spec\.text\)/.test(skiaTextSource)) {
+  // present and text-derived: the correct shape
+} else if (/textDirection/.test(skiaTextSource)) {
+  fail(
+    'skia/text.ts no longer derives textDirection from the text itself — a Latin object could be mirrored by the UI language',
+  );
+}
+
 // Classic must strip a legacy bold suffix for a family the registry dropped.
 const { defaultVariantForKey } = moduleShim.exports;
 for (const [input, expected] of [

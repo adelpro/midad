@@ -27,6 +27,38 @@ exactly. No glyph-path access, no font surgery.
 
 `مدرسة` → `مد` | `ر` | `سة`
 
+### The precondition this argument rests on
+
+**That argument holds only for a connected run.** It is a statement about joining
+letters that join, and it is silent about everything else. A cluster that is _not_
+a connected run gets no such guarantee: shaping its letters alone says nothing
+about what the whole run would have produced.
+
+The precondition used to be left unstated, and Latin is the case that violates it.
+`joiningType` types Latin as `U` (non-joining, §2 below), so a Latin cluster is a
+single letter, not a connected run. Separating the letters of a Latin word severs
+every kerning pair, and in a script face it severs the connections that _are_ the
+typeface — `PinyonScript`, `GreatVibes` and `Allura` lose the ligatures and the
+joined strokes that define them. That is silent corruption, not a refused split:
+the parts are produced, they are placed correctly by §4, and they are simply the
+wrong shapes.
+
+So a Latin face is **refused before it is segmented** (§6), by
+`familySupportsSplit` in `src/theme/font-families.ts`, which reads the
+`FontFamily.script` tag. This is why that tag is required rather than optional.
+
+Two ways out, neither taken:
+
+- **Split per word instead of per cluster.** Shaping-safe by construction, and a
+  real capability. It also redefines what "split" means for one script while the
+  feature is new, and per-letter lettering stays unavailable. Worth its own
+  feature, once the interaction is understood.
+- **Keep ligatures together** by reading the font's own ligature data (`ffi` as
+  one unit). The correct long-term answer, and it depends on shaped glyph runs
+  being reachable from `SkParagraph` in the React Native Skia binding. That was
+  not verified, and an unverified platform assumption is not a design. If it
+  turns out to be reachable, the refusal should be revisited.
+
 ### Joining types
 
 `joiningType(cp)` classifies each code point:
@@ -137,6 +169,7 @@ All parts keeping the source's `zIndex` is what makes them paint in reading orde
 | Reason             | When                                                |
 | ------------------ | --------------------------------------------------- |
 | `already-a-part`   | `source.part` is set — no nested splitting          |
+| `latin-script`     | the face is tagged `script: 'latin'` — see §2       |
 | `too-few-clusters` | fewer than 2 clusters (nothing to separate)         |
 | `cluster-wrapped`  | a cluster's `getRectsForRange` returns **≠ 1 rect** |
 | `layout-failed`    | the paragraph could not be laid out (fonts missing) |
@@ -144,6 +177,17 @@ All parts keeping the source's `zIndex` is what makes them paint in reading orde
 `cluster-wrapped` is the interesting one: a cluster that straddles a **soft wrap**
 has no single position to move to, so the split is refused. It is checked on both
 the source rect and the standalone part rect.
+
+`latin-script` is refused **before** `segmentClusters` runs, so a Latin word is
+never segmented per letter in the first place, and after the `already-a-part`
+check so the more specific reason still wins for a part. The order is pinned by
+assertion in `scripts/check-fonts.mjs`, because `split.ts` imports Skia and
+cannot be transpiled standalone the way `clusters.ts` can.
+
+The control is **not** disabled when a Latin face is selected. It stays
+pressable and the refusal surfaces through the existing `splitNotice`, because a
+disabled button tells a sighted user nothing about why and a control that
+disappears between selections reads as a glitch.
 
 Temporary paragraphs are disposed in `finally` blocks — `partLayout` per
 iteration and `sourceParagraph` around the whole loop — so a refusal part-way
@@ -210,6 +254,24 @@ from the saved parts alone.
 **4 guard cases** — `canSplitIntoClusters` must be `false` for `كتب`, `لا` and
 `"   "`, and `true` for `مدرسة`.
 
+### The Latin case in this script is correct — do not "fix" it
+
+`check-clusters.mjs` asserts that Latin letters split individually, because
+`joiningType` types them `U`. **That assertion is true and must stay true.**
+`segmentClusters` is a pure function over a string; it has no font family to
+consult and correctly reports that `hello` is five non-joining units.
+
+The refusal described in §2 lives **one layer up**, in `splitTextObject`, which
+does know the font family. Splitting the concern across the two layers is the
+point: `clusters.ts` stays a standalone-testable string function, and the
+script-aware decision stays in the object-level function that can act on it.
+
+So the executable spec is split too, and deliberately: `check-clusters.mjs` pins
+segmentation, and `check-fonts.mjs` pins the predicate, the guard's presence, and
+the guard's position. Anyone reading this later who finds the Latin assertion and
+concludes it encodes a bug should read §2 first — inverting it would break a true
+statement about a function that has no business knowing about scripts.
+
 **Run `node scripts/check-clusters.mjs` after touching `clusters.ts`.** It exits
 non-zero on failure. Add a case for any joining behaviour you change — the
 default-to-`D` rule and the range tables are exactly the kind of thing that
@@ -223,8 +285,10 @@ silently regresses.
 | Joining-type ranges, `INVISIBLE_CHARS`, `rendersInk`     | `src/editor/text/clusters.ts`   |
 | `TextCluster`, `JoiningType`                             | `src/editor/text/clusters.ts`   |
 | `splitTextObject`, `mergePartTexts`, `SplitFailure`      | `src/editor/text/split.ts`      |
+| `familySupportsSplit`, the `script` tag                  | `src/theme/font-families.ts`    |
 | Shaping used by both directions (`layoutArabicText`)     | `src/editor/skia/text.ts`       |
 | `splitObjectIntoParts`, `mergeObjectParts`               | `src/editor/store.ts`           |
 | Split/rejoin UI entry points, centroid rejoin            | `src/editor/EditorScreen.tsx`   |
 | `TextPartRef` (`rootId`, `index`, `count`, `gapBefore`)  | `src/storage/project-schema.ts` |
-| Executable spec                                          | `scripts/check-clusters.mjs`    |
+| Executable spec (segmentation)                           | `scripts/check-clusters.mjs`    |
+| Executable spec (the guard and the predicate)            | `scripts/check-fonts.mjs`       |
