@@ -34,6 +34,7 @@ import {
   spacing,
   typeScale,
   type FontFamily,
+  type FontScript,
 } from '@/theme';
 import { familyPinId, googlePinId, parseFontPinId } from '@/theme/font-pins';
 import {
@@ -44,8 +45,23 @@ import {
   type RemoteFontFamily,
 } from '@/theme/remote-fonts';
 
-/** A real phrase, so a row shows the face's letterforms rather than its name. */
-const SPECIMEN = 'بسم الله';
+/**
+ * A real phrase, so a row shows the face's letterforms rather than its name.
+ *
+ * Per script, because the faces are. An Arabic phrase in a Latin face shows
+ * nothing useful: the picker renders through React Native `Text`, so a face
+ * that cannot draw the sample falls back to the platform font rather than
+ * failing — which made every Latin row identical Arabic text in a fallback
+ * face, telling the designer nothing about the faces on offer.
+ *
+ * The Latin sample is chosen to show what a script face is *for*: `Affection`
+ * has an `ff` ligature, a tall `f` ascender and a `ct` pair, none of which
+ * `Lorem ipsum` exercises.
+ */
+const SPECIMENS: Record<FontScript, string> = {
+  arabic: 'بسم الله',
+  latin: 'Affection',
+};
 
 /**
  * Every folded name a bundled family answers to, mapped to the weights it
@@ -299,6 +315,21 @@ export function FontPickerSheet({
     );
   }, [query]);
 
+  /**
+   * The filtered bundled list, partitioned by script. Arabic first: it is the
+   * app's own script and the larger of the two sets, so the section a session
+   * usually wants is the one above the fold.
+   */
+  const fontSections = useMemo(
+    () =>
+      (['arabic', 'latin'] as const).map((script) => ({
+        script,
+        title: script === 'arabic' ? t.editor.arabicFonts : t.editor.latinFonts,
+        families: matches.filter((f) => f.script === script),
+      })),
+    [matches, t],
+  );
+
   return (
     <Sheet
       visible={visible}
@@ -433,27 +464,48 @@ export function FontPickerSheet({
           </View>
         )}
 
-        {matches.map((family) => {
-          const selected = family.key === activeKey;
-          return (
-            <View key={family.key}>
-              <BundledFamilyRow
-                family={family}
-                selected={selected}
-                pinned={pinnedIds.includes(familyPinId(family.key))}
-                onPress={() => onChange(family.defaultVariant)}
-                onTogglePin={() => toggleFontPin(familyPinId(family.key))}
-              />
-              {selected && family.variants.length > 1 && (
-                <BundledVariantChips
-                  family={family}
-                  value={value}
-                  onChange={onChange}
-                />
-              )}
+        {/* The bundled list, grouped by script. Grouping partitions the already
+            filtered `matches` rather than filtering twice, so the search box
+            keeps working across both sections. An empty section renders no
+            header at all, for the same reason the Google Fonts header hides on
+            an empty result: a heading above nothing reads as a broken section. */}
+        {fontSections.map((section) =>
+          section.families.length === 0 ? null : (
+            <View key={section.script}>
+              <View style={styles.sectionHead}>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: c.ink, fontFamily: uiFont },
+                  ]}
+                >
+                  {section.title}
+                </Text>
+              </View>
+              {section.families.map((family) => {
+                const selected = family.key === activeKey;
+                return (
+                  <View key={family.key}>
+                    <BundledFamilyRow
+                      family={family}
+                      selected={selected}
+                      pinned={pinnedIds.includes(familyPinId(family.key))}
+                      onPress={() => onChange(family.defaultVariant)}
+                      onTogglePin={() => toggleFontPin(familyPinId(family.key))}
+                    />
+                    {selected && family.variants.length > 1 && (
+                      <BundledVariantChips
+                        family={family}
+                        value={value}
+                        onChange={onChange}
+                      />
+                    )}
+                  </View>
+                );
+              })}
             </View>
-          );
-        })}
+          ),
+        )}
 
         {/* Google Fonts — the on-demand section. It appears only while typing,
             so the picker's search box doubles as its search field; the catalog
@@ -671,7 +723,7 @@ function BundledFamilyRow({
             { color: c.ink, fontFamily: family.defaultVariant },
           ]}
         >
-          {SPECIMEN}
+          {SPECIMENS[family.script]}
         </Text>
         <Text style={[styles.meta, { color: c.muted, fontFamily: uiFont }]}>
           {label(family.labelAr, family.labelEn)} ·{' '}

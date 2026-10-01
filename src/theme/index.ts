@@ -16,7 +16,7 @@ export {
 } from './fonts';
 export type { FontKey, FontRoles } from './fonts';
 export { familyForVariant, fontFamilies, variantFor } from './font-families';
-export type { FontFamily, FontVariant } from './font-families';
+export type { FontFamily, FontScript, FontVariant } from './font-families';
 export {
   boldSiblingForKey,
   DEFAULT_LEADING_RATIO,

@@ -256,6 +256,68 @@ if (
   );
 }
 
+// ── the picker must not show one specimen for both scripts ─────────────────
+// `SPECIMEN` used to be a single Arabic phrase for all 22 families. With ten
+// Latin faces that is worse than tofu in appearance only: the picker renders
+// through RN Text, so a face that cannot render the sample falls back to the
+// platform font, and every Latin row would show Arabic text in a fallback
+// face — ten identical rows telling the designer nothing.
+const pickerSource = readFileSync(
+  join(here, '..', 'src', 'editor', 'font-picker-sheet.tsx'),
+  'utf8',
+);
+if (/const SPECIMEN = '/.test(pickerSource)) {
+  fail(
+    'font-picker-sheet.tsx still has a single hardcoded SPECIMEN for every family',
+  );
+}
+if (!/SPECIMENS\s*:\s*Record<FontScript/.test(pickerSource)) {
+  fail(
+    'font-picker-sheet.tsx has no per-script SPECIMENS record keyed by FontScript',
+  );
+}
+// The record must actually cover both scripts, and the row must read it through
+// the family tag rather than hardcoding one.
+if (!/arabic:\s*'[^']+'[\s\S]*latin:\s*'[^']+'/.test(pickerSource)) {
+  fail('SPECIMENS does not define both an arabic and a latin specimen');
+}
+// The latin sample must be Latin script, not just any string. Asserting the
+// exact value would be a test of taste that fails on a legitimate reword; what
+// matters is that the sample is in the script the face claims to cover.
+const latinSpecimen = pickerSource.match(/latin:\s*'([^']+)'/)?.[1];
+if (latinSpecimen && /[؀-ۿ]/.test(latinSpecimen)) {
+  fail(`the latin specimen is Arabic script: ${latinSpecimen}`);
+}
+if (!/SPECIMENS\[\s*family\.script\s*\]/.test(pickerSource)) {
+  fail('the bundled row does not pick its specimen from family.script');
+}
+
+// The bundled list is grouped by script. What must hold is not the name
+// `fontSections` but the partition itself: every filtered family appears in
+// exactly one section, so grouping can neither drop a row nor show it twice.
+if (!/fontSections/.test(pickerSource)) {
+  fail(
+    'font-picker-sheet.tsx does not group the bundled list into fontSections',
+  );
+}
+// The grouping filters on the family's own tag. The component iterates the
+// scripts rather than hardcoding two literal filters, so assert the filter
+// reads `f.script` against the loop variable and that both scripts are named
+// in the iteration.
+if (!/f\.script\s*===\s*script/.test(pickerSource)) {
+  fail('the bundled list is not partitioned on the family script tag');
+}
+if (!/\(\['arabic',\s*'latin'\]\s+as const\)/.test(pickerSource)) {
+  fail('the picker does not iterate over both scripts when grouping');
+}
+// The render must iterate the grouped sections, not the flat filtered list —
+// otherwise the headers are computed and never shown.
+if (!/fontSections\.map/.test(pickerSource)) {
+  fail(
+    'the picker does not render fontSections, so the section headers never appear',
+  );
+}
+
 // Classic must strip a legacy bold suffix for a family the registry dropped.
 const { defaultVariantForKey } = moduleShim.exports;
 for (const [input, expected] of [
