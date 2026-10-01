@@ -189,6 +189,7 @@ export interface Translation {
     splitNeedsTwoParts: string;
     splitWrapped: string;
     splitFailed: string;
+    splitLatinScript: string;
     // Style navigator and per-object style sheet.
     style: string;
     fontSize: string;
@@ -526,6 +527,8 @@ export const strings: Record<Language, Translation> = {
       splitNeedsTwoParts: 'لا يمكن التقسيم: الحروف كلها متصلة.',
       splitWrapped: 'لا يمكن تقسيم نصّ يتجاوز سطرًا واحدًا.',
       splitFailed: 'تعذّر تقسيم النص.',
+      splitLatinScript:
+        'لا يمكن التقسيم: هذا خط لاتيني، وحروفه مرتبطة بخطوط الاتصال.',
       style: 'النمط',
       fontSize: 'حجم الخط',
       fontFamily: 'الخط',
@@ -829,6 +832,8 @@ export const strings: Record<Language, Translation> = {
       splitNeedsTwoParts: 'Can’t split: these letters are all connected.',
       splitWrapped: 'Can’t split text that spans more than one line.',
       splitFailed: 'Couldn’t split the text.',
+      splitLatinScript:
+        'Can’t split: this is a Latin face, and its letters are joined by connecting strokes.',
       style: 'Style',
       fontSize: 'Font size',
       fontFamily: 'Font',

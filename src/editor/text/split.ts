@@ -3,6 +3,7 @@ import type { SkTypefaceFontProvider } from '@shopify/react-native-skia';
 import { layoutArabicText, type TextLayoutSpec } from '@/editor/skia/text';
 import { segmentClusters } from '@/editor/text/clusters';
 import type { CalligraphyTextObject } from '@/storage/project-schema';
+import { familySupportsSplit } from '@/theme/font-families';
 
 /** Why a text object could not be turned into parts. */
 export type SplitFailure =
@@ -13,7 +14,14 @@ export type SplitFailure =
   /** A cluster soft-wrapped across lines, so it cannot stand alone. */
   | 'cluster-wrapped'
   /** The paragraph could not be laid out (fonts missing). */
-  | 'layout-failed';
+  | 'layout-failed'
+  /**
+   * The face's script does not split. Latin clusters are not connected runs,
+   * so a Latin cluster is not a shaped unit of its own and separating the
+   * letters of a word severs the ligatures and kerning the typeface is built
+   * on — in a script face, the connections *are* the typeface.
+   */
+  | 'latin-script';
 
 export type SplitOutcome =
   | { ok: true; parts: CalligraphyTextObject[] }
@@ -47,10 +55,17 @@ function specFor(
 /**
  * Break a text object into one object per connected glyph cluster.
  *
- * Each cluster is shaped on its own, which reproduces the original glyph forms
- * exactly: the first letter of a connected run is always in initial form and the
- * last in final form, which is what the shaper picks for the same run in
- * isolation. See `clusters.ts`.
+ * For a **connected run** — the only case this accepts — each cluster is shaped
+ * on its own, which reproduces the original glyph forms exactly: the first
+ * letter of a connected run is always in initial form and the last in final
+ * form, which is what the shaper picks for the same run in isolation. See
+ * `clusters.ts`.
+ *
+ * The connected-run precondition is load-bearing, not descriptive. A Latin
+ * cluster is not a connected run (`clusters.ts` types Latin non-joining), so
+ * the argument does not transfer to it and a Latin face is refused up front by
+ * `familySupportsSplit` rather than silently mangled. Splitting per word would
+ * satisfy the precondition too, and is worth revisiting as its own feature.
  *
  * Placement is derived by *measuring twice*: the cluster's tight ink rect inside
  * the original paragraph, and the same cluster's tight ink rect in its own
@@ -70,6 +85,10 @@ export function splitTextObject(
 ): SplitOutcome {
   if (source.part) {
     return { ok: false, reason: 'already-a-part' };
+  }
+
+  if (!familySupportsSplit(source.fontKey)) {
+    return { ok: false, reason: 'latin-script' };
   }
 
   const clusters = segmentClusters(source.text);

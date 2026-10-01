@@ -791,6 +791,8 @@ export function EditorScreen() {
           return t.editor.splitNeedsTwoParts;
         case 'cluster-wrapped':
           return t.editor.splitWrapped;
+        case 'latin-script':
+          return t.editor.splitLatinScript;
         default:
           return t.editor.splitFailed;
       }

@@ -218,6 +218,44 @@ if (skiaTextSource.includes(' in fontAssets')) {
   fail('skia/text.ts still uses `in fontAssets` instead of hasOwn');
 }
 
+// ── the split refusal is actually wired up ─────────────────────────────────
+// `familySupportsSplit` being correct is not enough: `split.ts` imports Skia, so
+// it cannot be transpiled here, and the guard could be deleted or moved without
+// any runtime assertion noticing. What matters is *where* the guard sits —
+// before `segmentClusters`, so a Latin face is refused before it is segmented
+// per letter, and after the `source.part` check, so an already-split part still
+// reports the more specific reason.
+const splitSource = readFileSync(
+  join(here, '..', 'src', 'editor', 'text', 'split.ts'),
+  'utf8',
+);
+if (!splitSource.includes("reason: 'latin-script'")) {
+  fail('split.ts does not refuse a latin face — the guard is missing');
+}
+const guardAt = splitSource.indexOf('familySupportsSplit(source.fontKey)');
+const segmentAt = splitSource.indexOf('segmentClusters(source.text)');
+const partCheckAt = splitSource.indexOf('source.part');
+if (guardAt === -1) {
+  fail('split.ts never calls familySupportsSplit');
+} else if (partCheckAt === -1 || guardAt < partCheckAt) {
+  fail('split.ts checks familySupportsSplit before the already-a-part check');
+} else if (segmentAt === -1 || guardAt > segmentAt) {
+  fail(
+    'split.ts checks familySupportsSplit after segmentClusters — a latin face would be segmented before being refused',
+  );
+}
+
+// The docblock's claim that splitting reproduces the original glyph forms is
+// true only for a connected run, which a Latin cluster is not. It must not
+// assert it unconditionally.
+if (
+  /first letter of a connected run is always in initial form/.test(splitSource)
+) {
+  fail(
+    'split.ts docblock states the connected-run shaping claim without its precondition',
+  );
+}
+
 // Classic must strip a legacy bold suffix for a family the registry dropped.
 const { defaultVariantForKey } = moduleShim.exports;
 for (const [input, expected] of [
