@@ -162,6 +162,35 @@ if (!familySupportsSplit('NotARealFace')) {
   fail('familySupportsSplit refused an unknown key');
 }
 
+// ── the script split of the two registries ─────────────────────────────────
+// Every Latin face is display-only. Nothing on the first screen draws one, so
+// putting any in coreFontAssets would undo the measured cold-boot win — the
+// reason the 29 Arabic display faces live in the lazy half. This is the
+// invariant the lazy-fonts work established, restated for the Latin set.
+const latinFamilies = fontFamilies.filter((f) => f.script === 'latin');
+if (latinFamilies.length === 0) {
+  fail('no family declares script: latin — the Latin set is missing');
+}
+for (const family of latinFamilies) {
+  for (const v of family.variants) {
+    if (!displayKeys.has(v.key)) {
+      fail(`latin variant ${v.key} is not in displayFontAssets`);
+    }
+    if (coreKeys.has(v.key)) {
+      fail(`latin variant ${v.key} is in coreFontAssets — it must stay lazy`);
+    }
+  }
+}
+
+// The core set is what a cold gallery pays for. It is exactly the eight faces
+// the first screen draws, and adding to it is a boot-cost regression that no
+// other check would catch.
+if (coreKeys.size !== 8) {
+  fail(
+    `coreFontAssets has ${coreKeys.size} entries, expected 8 — the cold-boot set grew`,
+  );
+}
+
 for (const key of assets) {
   if (!UI_ONLY.has(key) && !seen.has(key)) {
     fail(`fontAssets entry ${key} belongs to no family (orphan)`);

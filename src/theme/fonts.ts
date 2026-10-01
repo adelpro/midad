@@ -11,10 +11,10 @@
  *    sans (Cairo), the Latin UI sans (Geist), and the display face every first
  *    screen reaches through `fontRoles.display` / `displayBold` (Amiri). Only
  *    these gate the splash.
- *  - `displayFontAssets` — the twenty-nine calligraphic faces. Nothing on the
- *    first screen draws them, so they load on demand: opening a design ensures
- *    the faces its own text objects name, and the font picker warms the rest in
- *    the background.
+ *  - `displayFontAssets` — the twenty-nine Arabic calligraphic faces and the
+ *    ten Latin ones. Nothing on the first screen draws them, so they load on
+ *    demand: opening a design ensures the faces its own text objects name, and
+ *    the font picker warms the rest in the background.
  *
  * `fontAssets` stays their union, so `FontKey`, `font-families.ts`, the picker
  * and the SVG exporter keep their current shape.
@@ -44,6 +44,24 @@
  *  - Mirza            → Persian text (400/700)
  *  - ElMessiri        → Elegant display, variable pinned to 400
  *  - Marhey           → Playful display (400)
+ *
+ * Latin calligraphic faces. `font-families.ts` tags each family `latin`, and
+ * that tag is load-bearing three ways: the picker gives them a Latin specimen
+ * and their own section, and `familySupportsSplit` refuses to split a word in
+ * one — a Latin cluster is not a connected run, so per-cluster splitting
+ * severs the connections a script face is made of. All ten are display-only,
+ * so they cost nothing at cold boot.
+ *
+ *  - PinyonScript     → Formal copperplate (400)
+ *  - GreatVibes       → Formal script (400)
+ *  - Allura           → Flowing script (400)
+ *  - Tangerine        → Light script (400)
+ *  - Parisienne       → Modern script (400)
+ *  - Yellowtail       → Brush script (400)
+ *  - Sacramento       → Elegant brush (400)
+ *  - DancingScript    → Handwritten (400/700)
+ *  - Pacifico         → Wide brush (400)
+ *  - EBGaramond       → Old-style serif (400/700)
  */
 
 /** The eager set: the only faces that gate the splash. */
@@ -92,6 +110,18 @@ export const displayFontAssets = {
   'Mirza-Bold': require('@/assets/fonts/mirza-arabic-700.ttf'),
   ElMessiri: require('@/assets/fonts/el-messiri-arabic-400.ttf'),
   Marhey: require('@/assets/fonts/marhey-arabic-400.ttf'),
+  PinyonScript: require('@/assets/fonts/pinyon-script-latin-400.ttf'),
+  GreatVibes: require('@/assets/fonts/great-vibes-latin-400.ttf'),
+  Allura: require('@/assets/fonts/allura-latin-400.ttf'),
+  Tangerine: require('@/assets/fonts/tangerine-latin-400.ttf'),
+  Parisienne: require('@/assets/fonts/parisienne-latin-400.ttf'),
+  Yellowtail: require('@/assets/fonts/yellowtail-latin-400.ttf'),
+  Sacramento: require('@/assets/fonts/sacramento-latin-400.ttf'),
+  DancingScript: require('@/assets/fonts/dancing-script-latin-400.ttf'),
+  'DancingScript-Bold': require('@/assets/fonts/dancing-script-latin-700.ttf'),
+  Pacifico: require('@/assets/fonts/pacifico-latin-400.ttf'),
+  EBGaramond: require('@/assets/fonts/eb-garamond-latin-400.ttf'),
+  'EBGaramond-Bold': require('@/assets/fonts/eb-garamond-latin-700.ttf'),
 } as const;
 
 export const fontAssets = {

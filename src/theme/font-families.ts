@@ -358,6 +358,143 @@ export const fontFamilies: readonly FontFamily[] = [
       { key: 'Marhey', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
     ],
   },
+
+  // ── Latin ─────────────────────────────────────────────────────────────────
+  // Calligraphic Latin faces. `script: 'latin'` is what stops the picker's
+  // Arabic specimen, puts them in their own section, and makes
+  // `familySupportsSplit` refuse — see docs/editor-split-and-rejoin.md §2.
+  {
+    key: 'pinyon-script',
+    script: 'latin',
+    labelAr: 'بينيون سكريبت',
+    labelEn: 'Pinyon Script',
+    styleTagAr: 'مخطوطة رسمية',
+    styleTagEn: 'Formal Script',
+    defaultVariant: 'PinyonScript',
+    variants: [
+      { key: 'PinyonScript', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'great-vibes',
+    script: 'latin',
+    labelAr: 'غريت فايبس',
+    labelEn: 'Great Vibes',
+    styleTagAr: 'مخطوطة أنيقة',
+    styleTagEn: 'Elegant Script',
+    defaultVariant: 'GreatVibes',
+    variants: [
+      { key: 'GreatVibes', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'allura',
+    script: 'latin',
+    labelAr: 'ألورا',
+    labelEn: 'Allura',
+    styleTagAr: 'مخطوطة انسيابية',
+    styleTagEn: 'Flowing Script',
+    defaultVariant: 'Allura',
+    variants: [
+      { key: 'Allura', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'tangerine',
+    script: 'latin',
+    labelAr: 'تانجرين',
+    labelEn: 'Tangerine',
+    styleTagAr: 'مخطوطة خفيفة',
+    styleTagEn: 'Light Script',
+    defaultVariant: 'Tangerine',
+    variants: [
+      { key: 'Tangerine', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'parisienne',
+    script: 'latin',
+    labelAr: 'باريزيان',
+    labelEn: 'Parisienne',
+    styleTagAr: 'مخطوطة عصرية',
+    styleTagEn: 'Modern Script',
+    defaultVariant: 'Parisienne',
+    variants: [
+      { key: 'Parisienne', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'yellowtail',
+    script: 'latin',
+    labelAr: 'يلوتيل',
+    labelEn: 'Yellowtail',
+    styleTagAr: 'فرشاة',
+    styleTagEn: 'Brush Script',
+    defaultVariant: 'Yellowtail',
+    variants: [
+      { key: 'Yellowtail', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'sacramento',
+    script: 'latin',
+    labelAr: 'ساكرامنتو',
+    labelEn: 'Sacramento',
+    styleTagAr: 'فرشاة أنيقة',
+    styleTagEn: 'Elegant Brush',
+    defaultVariant: 'Sacramento',
+    variants: [
+      { key: 'Sacramento', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'dancing-script',
+    script: 'latin',
+    labelAr: 'دانسينغ سكريبت',
+    labelEn: 'Dancing Script',
+    styleTagAr: 'خط يدوي',
+    styleTagEn: 'Handwritten',
+    defaultVariant: 'DancingScript',
+    variants: [
+      {
+        key: 'DancingScript',
+        labelAr: 'عادي',
+        labelEn: 'Regular',
+        weight: 400,
+      },
+      {
+        key: 'DancingScript-Bold',
+        labelAr: 'عريض',
+        labelEn: 'Bold',
+        weight: 700,
+      },
+    ],
+  },
+  {
+    key: 'pacifico',
+    script: 'latin',
+    labelAr: 'باسيفيكو',
+    labelEn: 'Pacifico',
+    styleTagAr: 'فرشاة عريضة',
+    styleTagEn: 'Wide Brush',
+    defaultVariant: 'Pacifico',
+    variants: [
+      { key: 'Pacifico', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+    ],
+  },
+  {
+    key: 'eb-garamond',
+    script: 'latin',
+    labelAr: 'إي بي غاراموند',
+    labelEn: 'EB Garamond',
+    styleTagAr: 'سيريف عتيق',
+    styleTagEn: 'Old-Style Serif',
+    defaultVariant: 'EBGaramond',
+    variants: [
+      { key: 'EBGaramond', labelAr: 'عادي', labelEn: 'Regular', weight: 400 },
+      { key: 'EBGaramond-Bold', labelAr: 'عريض', labelEn: 'Bold', weight: 700 },
+    ],
+  },
 ];
 
 const familyByVariant = new Map<string, FontFamily>();
@@ -404,5 +541,3 @@ export function defaultVariantForKey(fontKey: string): string {
 export function familySupportsSplit(fontKey: string): boolean {
   return familyForVariant(fontKey)?.script !== 'latin';
 }
-
-
