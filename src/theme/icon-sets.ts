@@ -43,6 +43,12 @@ export const ICON_SEARCH_LIMIT = 32;
  * the ink. A palette set is refused by the picker with a reason, not silently
  * recoloured.
  *
+ * **Filled paths only.** The three renderers and the preview all draw a path by
+ * *filling* it, so a set whose icons are outlines meant to be stroked
+ * (`fill="none" stroke="…"`, as Tabler and Lucide are) would import as solid
+ * silhouettes — not the icon the user picked. Those sets are left out rather than
+ * drawn wrongly; adding stroke support is what would earn them a row here.
+ *
  * `THIRD-PARTY-ICONS.md` is the human-readable copy of this table and
  * `scripts/check-icons.mjs` pins the two together, so a set cannot be offered
  * without its licence being recorded.
@@ -73,22 +79,6 @@ export const ICON_SET_ALLOWLIST = {
       title: 'MIT',
       spdx: 'MIT',
       url: 'https://github.com/phosphor-icons/core/blob/main/LICENSE',
-    },
-  },
-  tabler: {
-    name: 'Tabler Icons',
-    license: {
-      title: 'MIT',
-      spdx: 'MIT',
-      url: 'https://github.com/tabler/tabler-icons/blob/master/LICENSE',
-    },
-  },
-  lucide: {
-    name: 'Lucide',
-    license: {
-      title: 'ISC',
-      spdx: 'ISC',
-      url: 'https://github.com/lucide-icons/lucide/blob/main/LICENSE',
     },
   },
   bi: {
