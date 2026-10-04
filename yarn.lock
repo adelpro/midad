@@ -1663,9 +1663,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@expo/ui@npm:^57.0.19":
-  version: 57.0.19
-  resolution: "@expo/ui@npm:57.0.19"
+"@expo/ui@npm:^57.0.19, @expo/ui@npm:~57.0.21":
+  version: 57.0.21
+  resolution: "@expo/ui@npm:57.0.21"
   dependencies:
     sf-symbols-typescript: "npm:^2.1.0"
     vaul: "npm:^1.1.2"
@@ -1683,31 +1683,7 @@ __metadata:
       optional: true
     react-native-worklets:
       optional: true
-  checksum: 10c0/e34cc5c634a77f2ab833c24dc19ee9599fffa4448013efedce517124e021db6935f3b60b28c9281fb3b590f50e9db68b7bbebe668771bb4106e8e57a1f252161
-  languageName: node
-  linkType: hard
-
-"@expo/ui@npm:~57.0.20":
-  version: 57.0.20
-  resolution: "@expo/ui@npm:57.0.20"
-  dependencies:
-    sf-symbols-typescript: "npm:^2.1.0"
-    vaul: "npm:^1.1.2"
-  peerDependencies:
-    "@babel/core": "*"
-    expo: "*"
-    react: "*"
-    react-dom: "*"
-    react-native: "*"
-    react-native-worklets: "*"
-  peerDependenciesMeta:
-    "@babel/core":
-      optional: true
-    react-dom:
-      optional: true
-    react-native-worklets:
-      optional: true
-  checksum: 10c0/9d357038781298e841ecb5a8b8c8c1d0cd0f2d4bd723cd696dfce950b4729939bf7af47d69c1c8e821db479d5505cb5bb8b22717b015ee7181dd2d96cefaa0b4
+  checksum: 10c0/7e4141a184ad0791d9c6d57b7506ebe3ac151c9f71689da56b86939ed2ba03df721704d99eb7b76b25ee53e270d33e7eebad303a1ab3ad186c792f86f39750e3
   languageName: node
   linkType: hard
 
@@ -7071,7 +7047,7 @@ __metadata:
   dependencies:
     "@commitlint/cli": "npm:^21.2.2"
     "@commitlint/config-conventional": "npm:^21.2.2"
-    "@expo/ui": "npm:~57.0.20"
+    "@expo/ui": "npm:~57.0.21"
     "@react-native-async-storage/async-storage": "npm:2.2.0"
     "@shopify/flash-list": "npm:2.0.2"
     "@shopify/react-native-skia": "npm:2.6.2"
