@@ -1,4 +1,4 @@
-import { BottomSheet } from '@expo/ui';
+import BottomSheet, { BottomSheetView } from '@expo/ui/community/bottom-sheet';
 import type { PropsWithChildren } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
@@ -36,11 +36,19 @@ export interface SheetProps extends PropsWithChildren {
 const MAX_BODY_FRACTION = 0.82;
 
 /**
- * Bottom sheet, the same on every OS. `@expo/ui`'s universal `BottomSheet`
- * renders the SwiftUI sheet on iOS, the Compose `ModalBottomSheet` on Android
- * and a Vaul dialog drawer on the web, so the platform owns presentation, the
- * drag-to-dismiss gesture, back-press/Escape dismissal, focus trapping, body
- * scroll lock and reduced motion — and the app owns the content (DESIGN.md §4).
+ * Bottom sheet, the same on every OS. `@expo/ui/community/bottom-sheet` wraps
+ * the platform primitives — the SwiftUI sheet on iOS, Compose's
+ * `ModalBottomSheet` on Android and a Vaul drawer on the web — so the platform
+ * owns presentation, drag-to-dismiss, back-press/Escape dismissal, focus
+ * trapping, body-scroll lock and reduced motion, and the app owns the content
+ * (DESIGN.md §4).
+ *
+ * The universal `@expo/ui` `BottomSheet` cannot be used here. It drops children
+ * into a Compose `Column` that carries only padding — no `fillMaxWidth()` and no
+ * width of its own — and Yoga does not run inside that native host, so the body
+ * fell back to its intrinsic width and, in RTL, hugged the right edge. The
+ * community variant hosts the same children through `RNHostView` with the window
+ * width, which is exactly the sizing the universal one omits.
  *
  * Everything inside is the app's own column: the pill handle, the title / close
  * row, then the caller's children. The column is bounded at 82% of the window
@@ -50,8 +58,9 @@ const MAX_BODY_FRACTION = 0.82;
  * cap just moved into the content.
  *
  * On the web the drawer stretches full-width by default, so `public/midad-web.css`
- * caps it at `layout.maxContent` and centres it — keeping the DESIGN.md §5 rule
- * that a wide display cannot stretch the panel across the window.
+ * caps it at `min(720px, 92vw)` and centres it. A sheet gets a wider cap than an
+ * inline surface's `layout.maxContent` (480): a modal is not a column of text,
+ * and 480 reads as cramped for a list of specimens (DESIGN.md §5).
  */
 export function Sheet({
   visible,
@@ -67,13 +76,13 @@ export function Sheet({
 
   return (
     <BottomSheet
-      isPresented={visible}
-      onDismiss={onClose}
-      showDragIndicator={false}
-      containerColor={c.surface}
-      contentPadding={0}
+      index={visible ? 0 : -1}
+      onClose={onClose}
+      enablePanDownToClose
+      handleComponent={null}
+      backgroundStyle={{ backgroundColor: c.surface }}
     >
-      <View
+      <BottomSheetView
         style={[
           styles.body,
           {
@@ -102,7 +111,7 @@ export function Sheet({
           <Text style={[styles.title, { color: c.ink }]}>{title}</Text>
         ) : null}
         {children}
-      </View>
+      </BottomSheetView>
     </BottomSheet>
   );
 }

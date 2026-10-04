@@ -1,4 +1,4 @@
-/* midad-web.css — web-only overrides for @expo/ui's universal `BottomSheet`,
+/* midad-web.css — web-only overrides for `@expo/ui/community/bottom-sheet`,
    which renders a Vaul drawer on the web. Loaded from src/app/_layout.tsx
    (expo-router <Head>), so this file never touches a native bundle.
 
@@ -6,12 +6,18 @@
    drawer's positioning and radius inline, so `!important` is required. */
 
 [data-vaul-drawer] {
-  /* DESIGN.md §5: surfaces are capped at `layout.maxContent` and centred, so a
-     wide display cannot stretch the panel — or its contents — across the
-     window. The drawer is `position: fixed; left: 0; right: 0`; the cap plus
-     auto inline margins centre it. */
-  max-width: 480px !important;
+  /* A sheet is its own surface, not a column of text, so it takes a wider cap
+     than `layout.maxContent` (480): 480 reads as cramped for a list of
+     specimens (DESIGN.md §5). The drawer is `position: fixed; left: 0;
+     right: 0`; the cap plus auto inline margins centre it. */
+  max-width: min(720px, 92vw) !important;
   margin-inline: auto !important;
+
+  /* The library's drawer content carries `padding: 0 16px`; the sheet's own
+     `paddingHorizontal` (the `Sheet` `contentPadding` prop) is the single
+     source of the inset, so zero the library's to avoid doubling it. */
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 
   /* DESIGN.md §4: sheets use radius 12 top corners; Vaul defaults to 16. */
   border-top-left-radius: 12px !important;
