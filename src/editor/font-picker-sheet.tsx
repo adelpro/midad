@@ -824,7 +824,7 @@ function RemoteFamilyRow({
     <View>
       <View
         style={[
-          styles.row,
+          styles.remoteRow,
           {
             borderColor: open ? c.ink : c.border,
             backgroundColor: open ? c.surfaceAlt : c.surface,
@@ -950,7 +950,7 @@ const styles = StyleSheet.create({
   list: { flexShrink: 1 },
   listBody: { gap: spacing.sm, paddingBottom: spacing.md },
   row: {
-    borderWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.lg,
     paddingStart: spacing.md,
     paddingEnd: spacing.xs,
@@ -960,7 +960,21 @@ const styles = StyleSheet.create({
   },
   rowBody: {
     flex: 1,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
+    gap: spacing.xs,
+  },
+  /**
+   * The Google section's rows keep their card. They are a different kind of row —
+   * a downloaded face with a badge and a weight-chip state machine — and the
+   * border is what anchors that difference against the flat bundled list above.
+   */
+  remoteRow: {
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingStart: spacing.md,
+    paddingEnd: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   pin: {
@@ -971,7 +985,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  specimen: { fontSize: 26 },
+  specimen: { fontSize: 20 },
   meta: {
     fontSize: typeScale.caption.size,
     lineHeight: typeScale.caption.lineHeight,
