@@ -265,6 +265,43 @@ for (const [path, label] of [
   }
 }
 
+// ── the two names for the same bytes must not be confused ─────────────────
+// The container names an asset `assets/<objectId>.<ext>`; the device store names
+// it `img_<objectId>.<ext>`. A lookup that compares one against the other matches
+// nothing, and the round trip silently drops every image — which is exactly what
+// the first version of the import repair did. Assert the archive lookup derives
+// its name from the object id rather than from the object's own `imageFile`.
+const importSource = readFileSync(
+  join(root, 'src/storage/import-project.ts'),
+  'utf8',
+);
+if (!importSource.includes('assetEntryName(')) {
+  fail(
+    'the import lookup does not derive the archive entry name from the object',
+  );
+}
+if (
+  /a\.name ===\s*object\.imageFile|a\.name ===\s*imageFile/.test(importSource)
+) {
+  fail(
+    'the import lookup compares an archive entry name against a device file name — they never match',
+  );
+}
+
+// The round-trip assertion, run for real: pack an image object, unpack it, and
+// check the entry name the reader must look for is the one the writer produced.
+if (designFile) {
+  const entry = designFile.assetEntryName('i_1', 'image/jpeg');
+  if (entry !== 'assets/i_1.jpg') {
+    fail(`assetEntryName produced ${entry}`);
+  }
+  // The device name the object stores must NOT be the archive name, or the
+  // distinction the fix depends on has collapsed.
+  if (entry === 'img_i_1.jpg') {
+    fail('the archive and device asset names have become the same string');
+  }
+}
+
 // The saves that can sweep must retain history ids, or a 1-second autosave
 // deletes the bytes an undo is about to need.
 const autoSaveSource = readFileSync(

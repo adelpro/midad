@@ -1,5 +1,5 @@
 import { copyImageAssets } from '@/storage/copy-assets';
-import { unpackDesign } from '@/storage/design-file';
+import { assetEntryName, unpackDesign } from '@/storage/design-file';
 import {
   PROJECT_FILE_VERSION,
   type MidadProject,
@@ -83,12 +83,18 @@ export async function importProjectFile(
       createdAt: typeof src.createdAt === 'string' ? src.createdAt : now,
       updatedAt: now,
     };
-    // Every placed image's bytes, out of the archive and into the store, keyed by
-    // the object id the document already references. Without this the objects
-    // import with an `imageFile` pointing at bytes that were never written, and
-    // they render empty — a silent loss of the user's own content.
-    await copyImageAssets(imported, id, async (imageFile) => {
-      const asset = assets.find((a) => a.name === imageFile);
+    // Every placed image's bytes, out of the archive and into the store.
+    //
+    // The lookup goes through `assetEntryName` rather than comparing the entry
+    // name to the object's own `imageFile`: those are **two different names for
+    // the same bytes**. The archive entry is `assets/<objectId>.<ext>` and the
+    // device file is `img_<objectId>.<ext>`, so a match on `imageFile` finds
+    // nothing at all — which is how a round-tripped design lost every one of its
+    // images while importing without an error.
+    await copyImageAssets(imported, id, async (object) => {
+      const asset = assets.find(
+        (a) => a.name === assetEntryName(object.id, object.imageMime),
+      );
       return asset ? { bytes: asset.bytes, mime: asset.mime } : null;
     });
     await saveProject(imported);
