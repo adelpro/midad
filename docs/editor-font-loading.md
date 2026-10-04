@@ -342,8 +342,7 @@ and the outcome are recorded in §7.2.
 
 Measured on an Android 16 x86_64 emulator (Pixel 9 Pro AVD, **software** GPU),
 debug build against Metro. Each sample cleared the app's data first, so
-`loadAsync` read every file off the APK with no on-disk font cache to serve it —
-without that, the same 29 faces resolved in 2 ms. Metro's own bundling was warmed
+`loadAsync` read every file off the APK with no on-disk font cache to serve it. Metro's own bundling was warmed
 beforehand and no bundle was built during a sample.
 
 | Sample | 29 Arabic | all 41  | added   |
@@ -353,9 +352,15 @@ beforehand and no bundle was built during a sample.
 | 3      | 7690 ms   | 7918 ms | 228 ms  |
 
 Medians give **667 ms** added, comfortably over the line. The per-pair spread of
-228–3315 ms is the real result, and it says the number is not measurable here:
-the same code on the same machine produced a 5× spread in the derived
-difference.
+228–3315 ms is the real result: the same code on the same machine produced a 5×
+spread in the derived difference.
+
+The spread has a cause, and it is not the font loading. Reloads taken during the
+same session landed in two other regimes entirely — `all 41` at **929 / 1161 /
+1225 ms** with the OS page cache warm and a real parse, and the 29 Arabic faces
+at **1–4 ms** once expo-font's own on-disk cache existed. So the absolute figure
+for one unchanged code path moves by roughly **8×** on nothing but cache state,
+which is why the derived difference wanders.
 
 It is also the wrong scale. 7.5 s to load 29 faces is not a phone; it is a
 debug build on a software rasteriser, inflated by a factor nobody has measured.
