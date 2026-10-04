@@ -35,6 +35,7 @@ import {
 } from '@/editor/hit-test';
 import { GlyphRenderer } from '@/editor/skia/glyph-shape';
 import { IMAGE_BASE_SIZE } from '@/editor/skia/image-shape';
+import { ICON_BASE_SIZE, IconRenderer } from '@/editor/skia/icon-shape';
 import { SHAPE_BASE_SIZE } from '@/editor/skia/shape-geometry';
 import { ShapeRenderer } from '@/editor/skia/shapes';
 import {
@@ -63,6 +64,10 @@ function objectBox(
       const layout = layouts[obj.id];
       return textObjectSize(layout, obj.fontSize, obj.wrapWidth);
     }
+    case 'icon':
+      // Square, like a shape: the drawing scales from the icon's own viewBox
+      // into this box, so the box does not follow the viewBox's aspect.
+      return { width: ICON_BASE_SIZE, height: ICON_BASE_SIZE };
     case 'image':
       // A placed image's box follows its own aspect, so the frame hugs the
       // picture instead of letterboxing it inside a square.
@@ -411,6 +416,17 @@ const ObjectLayer = memo(function ObjectLayer({
       // way the shape and glyph renderers do — `PlacedImage` draws at 0,0 and the
       // caller's box is already the object's frame.
       <PlacedImage uri={obj.imageUri} width={box.width} height={box.height} />
+    ) : obj.type === 'icon' ? (
+      // Centred on the object origin the way shapes and glyphs are: the
+      // renderer draws into 0..size, so the caller supplies the shift.
+      <Group
+        transform={[
+          { translateX: -box.width / 2 },
+          { translateY: -box.height / 2 },
+        ]}
+      >
+        <IconRenderer icon={obj} size={box.width} />
+      </Group>
     ) : obj.type === 'shape' ? (
       // Renderers draw into a 0..size box, so shift it to sit centred on
       // the object origin — which is what the overlay and hit-test assume.

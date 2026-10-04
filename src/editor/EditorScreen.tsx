@@ -1761,7 +1761,8 @@ export function EditorScreen() {
       isText: !!selectedText,
       isGlyph: selectedIds.length === 1 && selectedObject?.type === 'glyph',
       isPlacedAsset:
-        selectedIds.length === 1 && selectedObject?.type === 'image',
+        selectedIds.length === 1 &&
+        (selectedObject?.type === 'image' || selectedObject?.type === 'icon'),
       canSplit: canSplitSelected,
       canRejoin: rejoinParts.length > 1,
       isMulti: elementCount > 1,
@@ -2562,7 +2563,9 @@ export function EditorScreen() {
                 const objects = project?.objects ?? [];
                 const patches = objects
                   .filter(
-                    (o) => o.type === 'image' && selectedIds.includes(o.id),
+                    (o) =>
+                      (o.type === 'image' || o.type === 'icon') &&
+                      selectedIds.includes(o.id),
                   )
                   .map((o) => ({ id: o.id, patch: { opacity: v / 100 } }));
                 if (patches.length > 0) {

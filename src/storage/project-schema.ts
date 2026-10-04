@@ -264,8 +264,29 @@ export interface ImageObject extends PlacedAsset {
   imageUri?: string;
 }
 
+/**
+ * An imported vector icon.
+ *
+ * The **resolved geometry travels in the document**, not a reference to the
+ * service it came from: `paths` plus `viewBox` are everything the three renderers
+ * need, so a design that names an icon opens offline and exports as real vector
+ * art. `iconKey` is kept for provenance and attribution and is never dereferenced
+ * at render time — which is why the icon survives its source set changing shape.
+ */
+export interface IconObject extends PlacedAsset {
+  id: string;
+  type: 'icon';
+  /** `prefix:name`, as stored by `theme/icon-sets.ts`. Provenance only. */
+  iconKey: string;
+  /** The icon's own coordinate space, from the API response. */
+  viewBox: { width: number; height: number };
+  color: string;
+  /** Path data in `viewBox` units, with the fill rule each one needs. */
+  paths: { d: string; fillRule: 'nonzero' | 'evenodd' }[];
+}
+
 export type DesignObject =
-  CalligraphyTextObject | GlyphObject | ShapeObject | ImageObject;
+  CalligraphyTextObject | GlyphObject | ShapeObject | ImageObject | IconObject;
 
 export interface MidadProject {
   version: typeof PROJECT_FILE_VERSION;

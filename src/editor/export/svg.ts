@@ -14,6 +14,7 @@ import {
 import type {
   CalligraphyTextObject,
   GlyphObject,
+  IconObject,
   ImageObject,
   MidadProject,
   ShapeObject,
@@ -21,6 +22,7 @@ import type {
 import { bytesForRemoteFont } from '@/storage/remote-font-cache';
 import { fontAssets } from '@/theme';
 import { IMAGE_BASE_SIZE } from '@/editor/skia/image-shape';
+import { ICON_BASE_SIZE, iconScaleFor } from '@/editor/skia/icon-shape';
 import {
   humanizeRemoteFontId,
   isRemoteFontKey,
@@ -282,6 +284,32 @@ function shapeGeometryToSvg(shape: ShapeObject, size: number): string | null {
  * the same `scale` as the path.
  */
 /**
+ * An imported icon as real vector art: one `<path>` per stored path, inside a
+ * group that maps the icon's viewBox into the object's box.
+ *
+ * This is why the object stores paths rather than a raster: the export scales
+ * without blur, and it needs no decoder and no network to produce.
+ */
+function iconToSvg(obj: IconObject): string | null {
+  if (obj.paths.length === 0) {
+    return null;
+  }
+  const size = ICON_BASE_SIZE;
+  const scale = iconScaleFor(obj.viewBox, size);
+  const paths = obj.paths
+    .map(
+      (entry) =>
+        `<path d="${escapeXml(entry.d)}" fill="${escapeXml(obj.color)}"` +
+        `${entry.fillRule === 'evenodd' ? ' fill-rule="evenodd"' : ''}/>`,
+    )
+    .join('');
+  return (
+    `<g transform="translate(${-size / 2} ${-size / 2}) scale(${scale})">` +
+    `${paths}</g>`
+  );
+}
+
+/**
  * A placed image as an `<image>` element in the object's own frame.
  *
  * The box is centred on the object origin (`-w/2 … +w/2`), matching the canvas
@@ -388,6 +416,8 @@ export function projectToSvg(
       inner = shapeToSvg(obj);
     } else if (obj.type === 'image') {
       inner = imageToSvg(obj);
+    } else if (obj.type === 'icon') {
+      inner = iconToSvg(obj);
     } else {
       inner = glyphToSvg(obj);
     }

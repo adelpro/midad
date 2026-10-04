@@ -8,12 +8,17 @@ import { PaintStyle, Skia } from '@shopify/react-native-skia';
 import { drawGlyphOnCanvas } from '@/editor/skia/glyph-shape';
 import { IMAGE_BASE_SIZE } from '@/editor/skia/image-shape';
 import {
+  ICON_BASE_SIZE,
+  iconScaleFor,
+  skiaPathsFor,
+} from '@/editor/skia/icon-shape';
+import {
   SHAPE_BASE_SIZE,
   drawShapeOnCanvas,
 } from '@/editor/skia/shape-geometry';
 import { layoutArabicText } from '@/editor/skia/text';
 import { dataUriToBase64 } from '@/storage/background-image';
-import type { MidadProject } from '@/storage/project-schema';
+import type { IconObject, MidadProject } from '@/storage/project-schema';
 
 export interface RenderedPngResult {
   base64DataUri: string;
@@ -31,6 +36,25 @@ function solidPaint(color: string): SkPaint {
   paint.setColor(Skia.Color(color));
   paint.setStyle(PaintStyle.Fill);
   return paint;
+}
+
+/**
+ * Draw an imported icon into the `0..size` box the caller has translated to.
+ *
+ * The canvas has already applied the object's transform, so this only maps the
+ * icon's own viewBox into the box and fills each path in the object's colour. A
+ * path the parser rejects is skipped — the geometry came out of a document, and a
+ * design must still export if one of its paths is malformed.
+ */
+function drawIconOnCanvas(c: SkCanvas, obj: IconObject, size: number): void {
+  const scale = iconScaleFor(obj.viewBox, size);
+  const paint = solidPaint(obj.color);
+  for (const path of skiaPathsFor(obj)) {
+    c.save();
+    c.scale(scale, scale);
+    c.drawPath(path, paint);
+    c.restore();
+  }
 }
 
 /**
@@ -195,6 +219,9 @@ export function renderProjectToPng(
       const w = IMAGE_BASE_SIZE * obj.aspect;
       c.translate(-w / 2, -IMAGE_BASE_SIZE / 2);
       drawPlacedImageOnCanvas(c, obj, w, IMAGE_BASE_SIZE);
+    } else if (obj.type === 'icon') {
+      c.translate(-ICON_BASE_SIZE / 2, -ICON_BASE_SIZE / 2);
+      drawIconOnCanvas(c, obj, ICON_BASE_SIZE);
     } else {
       c.translate(-SHAPE_BASE_SIZE / 2, -SHAPE_BASE_SIZE / 2);
       drawGlyphOnCanvas(c, obj, SHAPE_BASE_SIZE);
