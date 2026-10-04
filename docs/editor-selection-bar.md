@@ -420,10 +420,10 @@ mirrors with direction through `rowStyle`.
 
 Both readings of the sheet scroll: the body is a `ScrollView` with
 `flexShrink: 1`, because the panel is capped at 82% of the window and a full
-sheet holds up to twenty-six controls. The panel itself is capped at
-`layout.maxContent` and centred (`ui/sheet.tsx`), like every other surface's
-content — without that, a row list on a wide display would stretch to the width
-of the window and read as a ledger.
+sheet holds up to twenty-six controls. On the web the panel is capped at
+`min(720px, 92vw)` and centred (`public/midad-web.css`) — wider than the inline
+surfaces' `layout.maxContent` (480), because a sheet is its own surface rather
+than a column of content (DESIGN.md §5).
 
 ## 12. Code map
 
