@@ -85,7 +85,7 @@ export function GalleryHeader({
     >
       <View style={[styles.topRow, rowStyle(isRTL)]}>
         <View style={[styles.brand, rowStyle(isRTL)]}>
-          <BrandMark height={isWide ? 38 : 34} />
+          <BrandMark height={isWide ? 48 : 44} />
           {isWide && (
             <Text
               maxFontSizeMultiplier={1.3}
