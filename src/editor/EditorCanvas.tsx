@@ -412,10 +412,19 @@ const ObjectLayer = memo(function ObjectLayer({
         width={box.width}
       />
     ) : obj.type === 'image' ? (
-      // A placed image fills its own box, so it needs no `-box/2` translate the
-      // way the shape and glyph renderers do — `PlacedImage` draws at 0,0 and the
-      // caller's box is already the object's frame.
-      <PlacedImage uri={obj.imageUri} width={box.width} height={box.height} />
+      // Same `-box/2` shift the shape, glyph and icon branches use: the object's
+      // origin is its **centre**, so a renderer that draws into `0..box` has to
+      // be moved back by half. Without it the picture sits half a box down and to
+      // the right of its own selection frame — which reads as "not centred",
+      // because it is not.
+      <Group
+        transform={[
+          { translateX: -box.width / 2 },
+          { translateY: -box.height / 2 },
+        ]}
+      >
+        <PlacedImage uri={obj.imageUri} width={box.width} height={box.height} />
+      </Group>
     ) : obj.type === 'icon' ? (
       // Centred on the object origin the way shapes and glyphs are: the
       // renderer draws into 0..size, so the caller supplies the shift.
