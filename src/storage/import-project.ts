@@ -28,8 +28,15 @@ export interface ImportResult {
  * fresh `updatedAt` and regenerates the id when it collides with an existing
  * project, so an import never overwrites local work.
  *
- * v2 only: a legacy `.midad.json`, a corrupt archive, or a document from
- * another version is refused as `bad-file`. There is no migration path.
+ * Accepts a version-2 or version-3 document: `unpackDesign` normalizes a v2 one
+ * to v3 (see `docs/storage-format.md` §6), which is what lets an older `.midad`
+ * still open. A **v1** archive, a future version, or a corrupt file is refused as
+ * `bad-file`.
+ *
+ * Every placed image's bytes are written before the document is saved — the same
+ * order the background has always used, because `saveProject` writes the document
+ * alone. Skipping it imports the objects with references to bytes that were never
+ * written, and they render empty: silent loss of the user's own content.
  */
 export async function importProjectFile(
   bytes: Uint8Array,

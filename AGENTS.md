@@ -66,6 +66,7 @@ node scripts/check-remote-fonts.mjs # remote font keys + face status + Fontsourc
 node scripts/check-font-pins.mjs  # pin-id namespaces (family:/google:) + the pinned list's ordering
 node scripts/check-glyphs.mjs    # ornament styles (solid/outline/thin) + line weight shared across all renderers
 node scripts/check-icons.mjs     # icon identity + licence record + the SVG-body-to-paths resolver
+node scripts/check-storage.mjs   # the .midad container, the version reader, asset naming and copy paths
 node scripts/check-export-payload.mjs # export write-encoding decision
 node scripts/check-color.mjs     # colour parsing + canonical hex normalisation
 ```

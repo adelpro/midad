@@ -80,6 +80,7 @@ real specification for their tables; run the one that covers what you touched.
 | `scripts/check-font-pins.mjs`    | Pin id namespaces + list operations                                                      | [`editor-font-pins.md`](editor-font-pins.md) §5                     |
 | `scripts/check-fonts.mjs`        | Core/display split + the display-key scan + the mirror-publish and ensure-ownership pins | [`editor-font-loading.md`](editor-font-loading.md) §1, §3.1, §4.1   |
 | `scripts/check-icons.mjs`        | Icon identity, the licence record, and the SVG-body → paths resolver                     | [`editor-render-contract.md`](editor-render-contract.md) §5.1       |
+| `scripts/check-storage.mjs`      | The container, the version reader, asset naming, and the copy/save paths                 | [`storage-format.md`](storage-format.md) §3, §4, §5, §6             |
 
 Repo-wide, and cheaper than any of them: `npx tsc --noEmit` and `npx eslint src`.
 
