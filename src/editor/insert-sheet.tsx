@@ -89,10 +89,10 @@ export interface InsertSheetProps {
   onClose: () => void;
   onPickGlyph: (glyphKey: string, style: GlyphStyle) => void;
   onPickShape: (shapeKey: ShapeKey) => void;
-  /** Opens the photo library to place an image on the canvas. */
-  onPickImage: () => void;
-  /** Resolves a search hit to geometry and places it. Rejects are the caller's. */
-  onPickIcon: (hit: IconSearchHit) => void;
+  /** Opens the photo library to place an image on the canvas. Rejects if the write fails. */
+  onPickImage: () => Promise<void>;
+  /** Resolves a search hit to geometry and places it. Rejects if the fetch fails. */
+  onPickIcon: (hit: IconSearchHit) => Promise<void>;
 }
 
 /**
@@ -306,6 +306,10 @@ export function InsertSheet({
   const [iconState, setIconState] = useState<IconSearchState>('idle');
   const [iconHits, setIconHits] = useState<IconSearchHit[]>([]);
   const [iconBusyKey, setIconBusyKey] = useState<string | null>(null);
+  /** A hit whose import failed — its row turns into a retry affordance. */
+  const [iconFailedKey, setIconFailedKey] = useState<string | null>(null);
+  /** A photo pick whose store write failed — the sheet says so. */
+  const [imageFailed, setImageFailed] = useState(false);
   // The ornament paint style the next placed ornament gets; also drives the
   // tile previews, so a tile always shows exactly what it will insert.
   const [glyphStyle, setGlyphStyle] = useState<GlyphStyle>(GLYPH_DEFAULT_STYLE);
@@ -371,17 +375,42 @@ export function InsertSheet({
   }, [iconQuery]);
 
   /**
-   * Resolve a hit and hand it over. The sheet is deliberately **not** closed
-   * first here: fetching is a network round-trip with a visible wait, and closing
-   * the sheet would hide the spinner that explains it.
+   * Place a photo. Closes only once the bytes have actually been written — the
+   * pick can succeed and the store write still fail (a full disk, a permissions
+   * error), and closing first would leave the user staring at a canvas with no
+   * photo and no explanation.
    */
-  const importIcon = (hit: IconSearchHit) => {
+  const importImage = async () => {
+    setImageFailed(false);
+    try {
+      await onPickImage();
+      onClose();
+    } catch {
+      setImageFailed(true);
+    }
+  };
+
+  /**
+   * Resolve a hit and hand it over.
+   *
+   * The sheet is deliberately **not** closed first: fetching is a network
+   * round-trip with a visible wait, and closing would hide the spinner that
+   * explains it. That means this must **await** the fetch — clearing the busy key
+   * in the same tick would batch both updates and the row would never show its
+   * spinner — and it must catch, because a failed fetch is a normal outcome
+   * (offline, every host down) that needs a row-level message rather than an
+   * unhandled rejection.
+   */
+  const importIcon = async (hit: IconSearchHit) => {
     setIconBusyKey(hit.key);
-    onPickIcon(hit);
-    // The sheet stays mounted while the fetch is in flight; the parent clears
-    // the busy row by remounting on the next open, so no completion signal is
-    // needed here.
-    setIconBusyKey(null);
+    setIconFailedKey(null);
+    try {
+      await onPickIcon(hit);
+    } catch {
+      setIconFailedKey(hit.key);
+    } finally {
+      setIconBusyKey(null);
+    }
   };
 
   return (
@@ -494,10 +523,20 @@ export function InsertSheet({
                 is nothing inside the app to browse. */}
             <Button
               label={t.editor.insertImageFromGallery}
-              onPress={pick(onPickImage)}
+              onPress={importImage}
               fullWidth
               variant="secondary"
             />
+            {imageFailed && (
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: c.danger, fontFamily: fonts.ui },
+                ]}
+              >
+                {t.editor.imageInsertFailed}
+              </Text>
+            )}
 
             {/* Imported icons. The catalogue is searched by name; a hit that
                 cannot be inked (a palette set) or cannot be stored as paths is
@@ -562,6 +601,7 @@ export function InsertSheet({
                       ? t.editor.iconPaletteUnsupported
                       : null;
                   const busy = iconBusyKey === hit.key;
+                  const failed = iconFailedKey === hit.key;
                   return (
                     <AnimatedPressable
                       key={hit.key}
@@ -571,14 +611,18 @@ export function InsertSheet({
                         busy,
                       }}
                       accessibilityLabel={
-                        blocked ? `${hit.name}, ${blocked}` : hit.name
+                        blocked
+                          ? `${hit.name}, ${blocked}`
+                          : failed
+                            ? `${hit.name}, ${t.editor.iconSearchFailed}`
+                            : hit.name
                       }
                       disabled={blocked !== null || busy}
-                      onPress={() => importIcon(hit)}
+                      onPress={() => void importIcon(hit)}
                       style={[
                         styles.iconRow,
                         {
-                          borderColor: c.border,
+                          borderColor: failed ? c.danger : c.border,
                           backgroundColor: c.surface,
                           opacity: blocked ? 0.45 : 1,
                         },
@@ -599,12 +643,13 @@ export function InsertSheet({
                           style={[
                             styles.sectionTitle,
                             {
-                              color: blocked ? c.danger : c.muted,
+                              color: blocked || failed ? c.danger : c.muted,
                               fontFamily: fonts.ui,
                             },
                           ]}
                         >
-                          {blocked ?? hit.setName}
+                          {blocked ??
+                            (failed ? t.editor.iconSearchFailed : hit.setName)}
                         </Text>
                       </View>
                       {busy && (

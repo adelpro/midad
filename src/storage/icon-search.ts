@@ -128,8 +128,11 @@ export async function searchIcons(query: string): Promise<IconSearchHit[]> {
 /**
  * Fetch one icon and resolve it to paths.
  *
- * `null` means the icon cannot be represented — a palette set, or a body with
- * elements the resolver refuses. That is a property of the icon, not a failure.
+ * `null` means the icon cannot be represented as ink: a palette set, a body with
+ * elements the resolver refuses, or **a body whose paths carry their own `fill`**
+ * (a coloured icon inside an otherwise monotone set). All three would draw
+ * something other than what the user picked, so all three are refused.
+ *
  * Throws only when no host answers.
  */
 export async function fetchIcon(
@@ -147,6 +150,13 @@ export async function fetchIcon(
   };
   const body = payload.icons?.[hit.name]?.body;
   if (typeof body !== 'string') {
+    return null;
+  }
+  // A stored `iconKey` is provenance, and `paths` are what render — so a path
+  // that names its own colour would render in that colour, not the design's ink.
+  // The search response's `palette` flag is the usual guard, but it describes the
+  // *set*, and this describes the icon actually being imported.
+  if (/\s(fill|stroke)\s*[:=]/i.test(body)) {
     return null;
   }
   const paths = iconPathsFromBody(body);

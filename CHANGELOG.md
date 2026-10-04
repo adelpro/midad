@@ -40,6 +40,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and a light-logo asset serves dark mode. The gallery header's mark grows with
   them.
 
+### Added — placed assets (0.6.0)
+
+- **A photo can be placed on the canvas as an element.** Until now the only image a
+  design could hold was the canvas background, and the tool rail's image button was
+  that background's picker — so "add an image" was not hidden, it did not exist. An
+  image is now an object like a shape: place it from the Insert sheet's new **Media**
+  tab, then move, scale, rotate, flip, fade, reorder and delete it, and group it with
+  anything else. Its frame follows the picture's own aspect rather than letterboxing
+  it into a square, and its bytes are stored as a named entry in the design's
+  package, so a design can hold several.
+- **An icon can be imported from an open icon set and inked.** The same Media tab
+  searches the Iconify catalogue and places a pictogram as **vector** art: the
+  geometry is resolved when it is imported and stored in the document, so the export
+  scales without blur, the icon takes the design's ink like a glyph, and a design
+  that names an icon opens with no network at all. Only monotone sets are offered — a
+  set with baked colours cannot be inked, which is the whole point of importing a
+  pictogram here — and an icon whose shapes cannot be stored as paths is shown
+  disabled with the reason rather than approximated. Six sets are allowlisted
+  (Material Symbols, Material Design Icons, Phosphor, Tabler, Lucide, Bootstrap
+  Icons), each with its licence recorded in `THIRD-PARTY-ICONS.md` and pinned to
+  `src/theme/icon-sets.ts` by `scripts/check-icons.mjs`.
+- **An opacity slider** for a placed asset, in the selection rail.
+- **A contract for the two new kinds** (`docs/editor-render-contract.md` §5.1).
+
+### Changed — placed assets (0.6.0)
+
+- **The `.midad` container is version 3, and version 2 is still read.** A v2 document
+  has exactly one image slot and no object asset entries, so placed images are what
+  moved the version. `normalizeProjectVersion` accepts 2 or 3 and normalizes to 3,
+  and it is called by all three load paths — so a design already on a device keeps
+  working. Without that reader, bumping the version would have hidden every existing
+  design, because the gallery treats a refused document as absent. A v1 archive, a
+  future version and a corrupt file are still refused.
+- **The font-style rail action and the new opacity action share a rail slot.** They
+  can never both apply — one is text-only, the other is a placed asset — so the
+  change spends no width on a rail that truncates on a phone.
+
+### Fixed — placed assets (0.6.0)
+
+- **An image's `imageUri` can no longer leak into `design.json`.** The in-memory data
+  URI is stripped on every write for the background _and_ for every placed image; a
+  surviving one would have re-serialised each image's full base64 payload on every
+  autosave.
+
 ## [0.4.0] - 2026-10-04
 
 **0.4.0 is 0.4.0-rc.1 promoted to a stable release — no app code changed

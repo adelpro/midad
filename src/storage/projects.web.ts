@@ -11,6 +11,7 @@ import {
   normalizeProjectVersion,
   type MidadProject,
 } from '@/storage/project-schema';
+import type { SaveOptions } from '@/storage/projects';
 
 /**
  * Web design storage: one **key per file**, because `localStorage` is
@@ -122,14 +123,21 @@ export async function loadProject(id: string): Promise<MidadProject | null> {
   }
 }
 
-export async function saveProject(project: MidadProject): Promise<void> {
+export async function saveProject(
+  project: MidadProject,
+  options: SaveOptions = {},
+): Promise<void> {
   await AsyncStorage.setItem(
     designKey(project.id),
     JSON.stringify(toPersisted(project)),
   );
-  // One sweep, after the document is written: an object that a save reports as
-  // present keeps its bytes, so undoing a delete is safe by construction.
+  // The sweep runs after the document is written. `retainObjectIds` is what makes
+  // it safe for undo: a deleted object is absent from the document, so presence
+  // alone cannot tell the sweep whether the user can still bring it back.
   const live = new Set(project.objects.map((object) => object.id));
+  for (const id of options.retainObjectIds ?? []) {
+    live.add(id);
+  }
   const orphans = (await assetKeys(project.id)).filter((key) => {
     const objectId = assetObjectId(project.id, key);
     return objectId !== null && !live.has(objectId);

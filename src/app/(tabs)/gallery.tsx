@@ -56,6 +56,7 @@ import {
   saveProject,
   writeBackgroundBytes,
 } from '@/storage/projects';
+import { copyImageAssetsFromStore } from '@/storage/copy-assets';
 import { DEFAULT_CANVASES, useSettings } from '@/storage/settings';
 import { getThumb } from '@/storage/thumbs';
 import {
@@ -414,6 +415,10 @@ export default function GalleryScreen() {
       updatedAt: now,
       canvas: { ...src.canvas, background },
     };
+    // Same reason as the background above, for every placed image: `saveProject`
+    // writes the document alone, so the copy needs its own bytes or its images
+    // render empty the moment they are reopened.
+    await copyImageAssetsFromStore(copy, id);
     await saveProject(copy);
     closeMenu();
     await refresh();

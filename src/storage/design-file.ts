@@ -50,12 +50,21 @@ export function imageEntryName(mime: string): string {
 }
 
 /**
- * The entry name one placed object's image is stored under. The object id
- * namespaces it so any number of assets can live in one container; the
- * background keeps its own fixed `background.<ext>` entry.
+ * The entry name one placed object's image is stored under, **inside a `.midad`
+ * archive**. The object id namespaces it so any number of assets can live in one
+ * container; the background keeps its own fixed `background.<ext>` entry.
+ *
+ * This is an archive path, not a device path — the platform stores name their
+ * own files (`projects.native.ts` uses a flat `img_<id>.<ext>`), because a ZIP
+ * entry's `assets/` folder has no counterpart on disk.
  */
 export function assetEntryName(objectId: string, mime: string): string {
   return `assets/${objectId}.${extForMime(mime)}`;
+}
+
+/** The extension an image of this MIME is stored with, on disk and in a ZIP. */
+export function extensionForMime(mime: string): string {
+  return extForMime(mime);
 }
 
 function extForMime(mime: string): string {

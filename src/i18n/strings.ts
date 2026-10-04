@@ -176,6 +176,8 @@ export interface Translation {
     iconPaletteUnsupported: string;
     /** Row reason: the icon uses elements that cannot be stored as paths. */
     iconShapeUnsupported: string;
+    /** Shown when a picked photo could not be written to the design's store. */
+    imageInsertFailed: string;
     transparent: string;
     paper: string;
     enterText: string;
@@ -534,6 +536,7 @@ export const strings: Record<Language, Translation> = {
       iconSearchFailed: 'تعذّر الوصول إلى مكتبة الأيقونات.',
       iconPaletteUnsupported: 'أيقونة ملوّنة: لا يمكن صبغها بالحبر.',
       iconShapeUnsupported: 'شكل غير مدعوم.',
+      imageInsertFailed: 'تعذّر إدراج الصورة.',
       transparent: 'شفاف',
       paper: 'ورق',
       enterText: 'اكتب نصك هنا…',
@@ -850,6 +853,7 @@ export const strings: Record<Language, Translation> = {
       iconSearchFailed: 'Couldn’t reach the icon library.',
       iconPaletteUnsupported: 'Colour icon — cannot be inked.',
       iconShapeUnsupported: 'Unsupported shape.',
+      imageInsertFailed: 'Couldn’t add the image.',
       transparent: 'Transparent',
       paper: 'Paper',
       enterText: 'Type your text…',

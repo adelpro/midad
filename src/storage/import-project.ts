@@ -1,3 +1,4 @@
+import { copyImageAssets } from '@/storage/copy-assets';
 import { unpackDesign } from '@/storage/design-file';
 import {
   PROJECT_FILE_VERSION,
@@ -37,7 +38,7 @@ export async function importProjectFile(
   if (!unpacked) {
     return { status: 'bad-file', project: null };
   }
-  const { project: src, image } = unpacked;
+  const { project: src, image, assets } = unpacked;
   const canvasOk =
     typeof src.canvas === 'object' &&
     src.canvas !== null &&
@@ -75,6 +76,14 @@ export async function importProjectFile(
       createdAt: typeof src.createdAt === 'string' ? src.createdAt : now,
       updatedAt: now,
     };
+    // Every placed image's bytes, out of the archive and into the store, keyed by
+    // the object id the document already references. Without this the objects
+    // import with an `imageFile` pointing at bytes that were never written, and
+    // they render empty — a silent loss of the user's own content.
+    await copyImageAssets(imported, id, async (imageFile) => {
+      const asset = assets.find((a) => a.name === imageFile);
+      return asset ? { bytes: asset.bytes, mime: asset.mime } : null;
+    });
     await saveProject(imported);
     return { status: 'ok', project: imported };
   } catch {

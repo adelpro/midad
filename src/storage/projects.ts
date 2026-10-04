@@ -13,7 +13,24 @@ import type { MidadProject } from '@/storage/project-schema';
  */
 export declare function listProjects(): Promise<MidadProject[]>;
 export declare function loadProject(id: string): Promise<MidadProject | null>;
-export declare function saveProject(project: MidadProject): Promise<void>;
+export declare function saveProject(
+  project: MidadProject,
+  options?: SaveOptions,
+): Promise<void>;
+
+/**
+ * Ids a reachable undo/redo step still references, so a save does not delete
+ * their bytes.
+ *
+ * The editor passes the ids held by its history when it saves. Without this the
+ * sweep cannot tell "the user deleted this" from "the user deleted this and can
+ * still undo", and a 1-second autosave debounce makes the difference decisive:
+ * deleting an image, pausing, then undoing would restore an object whose bytes
+ * were already gone.
+ */
+export interface SaveOptions {
+  retainObjectIds?: readonly string[];
+}
 export declare function deleteProject(id: string): Promise<void>;
 
 /** Write the picked image and return its reference. Replaces any previous one. */

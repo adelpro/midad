@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 
 import { useEditorStore } from '@/editor/store';
-import { saveProject } from '@/storage/projects';
+import { saveWithHistory } from '@/editor/save-with-history';
 import { AUTO_SAVE_DEBOUNCE_MS, useSettings } from '@/storage/settings';
 
 /**
@@ -59,10 +59,7 @@ export function useAutoSave() {
       dirty.current = false;
       pending.current = false;
       try {
-        await saveProject({
-          ...latest.current,
-          updatedAt: new Date().toISOString(),
-        });
+        await saveWithHistory();
       } catch {
         dirty.current = true;
       } finally {

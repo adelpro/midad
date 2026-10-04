@@ -34,6 +34,10 @@ which is the point.
 | `glyphStyleOf` / `glyphStrokeWidth(entry, style)` | glyphs                              | Paint mode + line weight — ornaments fill (`solid`) or stroke (`outline`/`thin`) |
 | `drawShapeOnCanvas` / `ShapeRenderer`             | shapes                              | Imperative / declarative pair                                                    |
 | `drawGlyphOnCanvas` / `GlyphRenderer`             | glyphs                              | Imperative / declarative pair                                                    |
+| `IMAGE_BASE_SIZE` (`120`)                         | a placed image's box                | The box's **height**; the width is `× object.aspect`                             |
+| `ICON_BASE_SIZE` (`120`)                          | an imported icon's box              | Square, like a shape — the drawing scales from the icon's own viewBox into it    |
+| `iconScaleFor(viewBox, size)`                     | icons                               | viewBox → box, resolved once so all three agree                                  |
+| `skiaPathsFor` / `iconPathsFromBody`              | icons                               | The stored `{d, fillRule}` geometry, as Skia paths                               |
 
 `SHAPE_INSET` exists because box-filling shapes used to run flush to the edge,
 leaving a stroked circle touching its own selection rectangle (and spilling a
@@ -125,6 +129,39 @@ instead of within a rasterization tolerance.
 `null` so the object is skipped. A project referencing a retired shape or glyph
 still loads and simply renders nothing. `getGlyphEntry` returning `null` is the
 same story for glyphs.
+
+## 5.1 The placed assets (0.6.0)
+
+Two object kinds render an asset rather than drawing geometry of their own, and both
+keep the convention above: the renderer draws into `0..box`, the caller supplies
+the `-box/2` shift, and the object's transform scales it.
+
+| Kind    | Box                                            | Content                                                                      |
+| ------- | ---------------------------------------------- | ---------------------------------------------------------------------------- |
+| `image` | `IMAGE_BASE_SIZE * aspect` × `IMAGE_BASE_SIZE` | the stored bytes, decoded per renderer, drawn `contain` inside the box       |
+| `icon`  | `ICON_BASE_SIZE` square                        | one filled path per stored `{d, fillRule}`, scaled from the object's viewBox |
+
+Three consequences worth stating, because they are decided rather than inherited:
+
+- **`contain`, not `cover`, for a placed image.** A crop the user did not ask for
+  is worse than a letterbox, and because the box already carries the image's
+  aspect the fit is normally a no-op — it only shows itself when the persisted
+  `aspect` disagrees with the bytes (a hand-edited file, a future crop). The SVG
+  export's `preserveAspectRatio="xMidYMid meet"` is the same decision.
+- **An icon scales from its own viewBox**, and that scale is resolved by one
+  function (`iconScaleFor`) that all three call, so a 16-unit Bootstrap icon and a
+  24-unit Lucide one land in the box identically.
+- **A missing asset renders nothing, on all three.** An image whose bytes are gone
+  (a dropped `assets/` entry, a swept orphan) or an icon whose paths fail to parse
+  draws empty — the object stays present and selectable. That is the storage
+  contract's degradation (§4 of `docs/storage-format.md`); a placeholder or a throw
+  would turn a recoverable file into a broken export.
+
+The icon's geometry is resolved to paths at import time and stored in the
+document. Skia's SVG module was **not** used for it: that module is unavailable in
+the web build, which renders through CanvasKit, so the PNG export would have needed
+a second implementation. Paths mean every renderer uses the core Skia Path API,
+which exists on both, and the SVG export stays true vector.
 
 ## 6. Fill/stroke visibility
 

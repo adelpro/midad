@@ -76,6 +76,7 @@ const TASKS = [
   { id: 'font-pins', command: [join(here, 'check-font-pins.mjs')] },
   { id: 'glyphs', command: [join(here, 'check-glyphs.mjs')] },
   { id: 'icons', command: [join(here, 'check-icons.mjs')] },
+  { id: 'storage', command: [join(here, 'check-storage.mjs')] },
   { id: 'export-payload', command: [join(here, 'check-export-payload.mjs')] },
   { id: 'color', command: [join(here, 'check-color.mjs')] },
 ];

@@ -131,10 +131,10 @@ import { PROJECT_FILE_EXT } from '@/storage/project-schema';
 import { base64ToBytes } from '@/storage/base64';
 import { pickPlacedImage } from '@/storage/placed-image';
 import { fetchIcon, type IconSearchHit } from '@/storage/icon-search';
+import { saveWithHistory } from '@/editor/save-with-history';
 import { exportProjectFile } from '@/storage/project-io';
 import {
   loadProject as loadProjectFile,
-  saveProject,
   writeAssetBytes,
   writeBackgroundImage,
 } from '@/storage/projects';
@@ -1458,6 +1458,10 @@ export function EditorScreen() {
    * crash between the two would otherwise leave an un-renderable frame. The size
    * read at pick time becomes the object's `aspect`, which is what gives the
    * frame the picture's shape and what the SVG export uses in place of a decode.
+   *
+   * Rejects if the store write fails (a full disk, a permissions error). The
+   * caller surfaces that rather than letting it become an unhandled rejection
+   * with no object and no explanation.
    */
   const insertImage = useCallback(async () => {
     if (!project) {
@@ -1497,9 +1501,12 @@ export function EditorScreen() {
    * Import an icon: resolve it over the network, then place it.
    *
    * The geometry is resolved **before** the object exists and stored in the
-   * document, so opening the design afterwards needs no network at all. A hit
-   * that cannot be resolved (a palette set, an unrepresentable body) inserts
-   * nothing and leaves the sheet's row to report it.
+   * document, so opening the design afterwards needs no network at all.
+   *
+   * A resolved-but-unrepresentable icon (a palette set, an unrepresentable body)
+   * returns `null` from `fetchIcon` and inserts nothing — the row already says so.
+   * A **failed fetch rejects**, which the sheet's row catches and reports; wrapping
+   * it here would hide a network failure behind the same silent nothing.
    */
   const insertIcon = useCallback(
     async (hit: IconSearchHit) => {
@@ -1558,7 +1565,7 @@ export function EditorScreen() {
     if (!live) {
       return;
     }
-    await saveProject({ ...live, updatedAt: new Date().toISOString() });
+    await saveWithHistory();
     try {
       const png = renderProjectToPng(live, skiaFonts?.fonts ?? null, {
         maxWidthPx: THUMB_MAX_WIDTH_PX,
@@ -2043,10 +2050,7 @@ export function EditorScreen() {
     // Persist on the spot rather than waiting on auto-save: this Save is the
     // user's explicit commit, and auto-save may be off. `setProjectName` is
     // synchronous, so `getState()` already carries the new name.
-    const current = useEditorStore.getState().project;
-    if (current) {
-      void saveProject({ ...current, updatedAt: new Date().toISOString() });
-    }
+    void saveWithHistory();
   }, [setProjectName, titleDraft]);
 
   // Cover, then open. This sits *after* every hook, so the editor's own state

@@ -1,12 +1,13 @@
 import { Directory, File, Paths } from 'expo-file-system';
 
 import {
-  assetEntryName,
+  extensionForMime,
   imageEntryName,
   toPersisted,
   type StoredImage,
 } from '@/storage/design-file';
 import type { MidadProject } from '@/storage/project-schema';
+import type { SaveOptions } from '@/storage/projects';
 import { normalizeProjectVersion } from '@/storage/project-schema';
 
 /**
@@ -92,6 +93,22 @@ function assetObjectId(fileName: string): string | null {
   return dot === -1 ? rest : rest.slice(0, dot);
 }
 
+/**
+ * The **device** file name for one placed object's bytes.
+ *
+ * Deliberately not `assetEntryName` (the `.midad` ZIP entry, `assets/<id>.<ext>`):
+ * that is a path inside an archive, and the device store writes into a flat
+ * project directory. Passing an archive path to `File.create()` asks for a
+ * subdirectory nobody created — the write throws on Android and silently
+ * produces no file on iOS.
+ *
+ * The `img_` prefix is what `assetObjectId` and `sweepOrphans` parse, so the
+ * name and the sweep have to agree; this function is that agreement.
+ */
+function assetFileName(objectId: string, mime: string): string {
+  return `${ASSET_PREFIX}${objectId}.${extensionForMime(mime)}`;
+}
+
 /** Rebuild the in-memory data URIs from the stored bytes. */
 async function attachImageUri(
   project: MidadProject,
@@ -120,9 +137,23 @@ async function attachImageUri(
   }
 }
 
-/** Delete every `img_*` file whose object id is not in the document. */
-function sweepOrphans(dir: Directory, project: MidadProject): void {
+/**
+ * Delete every `img_*` file whose object id is neither in the document nor in
+ * `retain`.
+ *
+ * `retain` carries the ids a reachable undo/redo step still holds. Without it the
+ * sweep deletes the bytes of an object the user deleted but can still undo, and
+ * the restored object renders empty.
+ */
+function sweepOrphans(
+  dir: Directory,
+  project: MidadProject,
+  retain: readonly string[] = [],
+): void {
   const live = new Set(project.objects.map((object) => object.id));
+  for (const id of retain) {
+    live.add(id);
+  }
   for (const entry of dir.list()) {
     if (!(entry instanceof File)) {
       continue;
@@ -169,12 +200,16 @@ export async function loadProject(id: string): Promise<MidadProject | null> {
   }
 }
 
-export async function saveProject(project: MidadProject): Promise<void> {
+export async function saveProject(
+  project: MidadProject,
+  options: SaveOptions = {},
+): Promise<void> {
   const dir = ensureProjectDir(project.id);
   writeFile(new File(dir, DESIGN_FILE), JSON.stringify(toPersisted(project)));
-  // One sweep, after the document is written: an object that a save reports as
-  // present keeps its bytes, so undoing a delete is safe by construction.
-  sweepOrphans(dir, project);
+  // The sweep runs after the document is written. `retainObjectIds` is what makes
+  // it safe for undo: a deleted object is absent from the document, so presence
+  // alone cannot tell the sweep whether the user can still bring it back.
+  sweepOrphans(dir, project, options.retainObjectIds);
 }
 
 export async function deleteProject(id: string): Promise<void> {
@@ -237,7 +272,7 @@ export async function writeAssetBytes(
   mime: string,
 ): Promise<StoredImage> {
   const dir = ensureProjectDir(id);
-  const imageFile = assetEntryName(objectId, mime);
+  const imageFile = assetFileName(objectId, mime);
   // The MIME, and therefore the extension, can change, so drop the old one.
   for (const entry of dir.list()) {
     if (

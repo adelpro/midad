@@ -28,8 +28,10 @@ the file to open first. Every path below is copied from a code map in this folde
 | Change hit-testing, grab tolerance or handle shapes         | [`editor-coordinates.md`](editor-coordinates.md) §7                 | `src/editor/hit-test.ts`                                           |
 | Change fit-to-view or the viewport                          | [`editor-coordinates.md`](editor-coordinates.md) §3                 | `src/editor/EditorCanvas.tsx`                                      |
 | Make an edit undoable — or deliberately not                 | [`editor-state-and-history.md`](editor-state-and-history.md) §2     | `src/editor/store.ts`                                              |
-| Add a shape or a glyph                                      | [`editor-render-contract.md`](editor-render-contract.md) §5         | `src/editor/skia/shape-geometry.ts`                                |
-| Keep canvas, PNG and SVG agreeing                           | [`editor-render-contract.md`](editor-render-contract.md) §2         | `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts`       |
+| Add a shape, a glyph or a placed asset                      | [`editor-render-contract.md`](editor-render-contract.md) §5, §5.1   | `src/editor/skia/shape-geometry.ts`                                |
+| Import an icon, or change the icon catalogue                | [`editor-render-contract.md`](editor-render-contract.md) §5.1       | `src/theme/icon-sets.ts`, `src/editor/icons/icon-geometry.ts`      |
+| Change the `.midad` format, or what a load accepts          | [`storage-format.md`](storage-format.md) §4, §6                     | `src/storage/design-file.ts`                                       |
+| Place an image element, or change how one is stored         | [`storage-format.md`](storage-format.md) §1, §5                     | `src/storage/placed-image.ts`                                      |     | Keep canvas, PNG and SVG agreeing | [`editor-render-contract.md`](editor-render-contract.md) §2 | `src/editor/render/offscreen.ts`, `src/editor/export/svg.ts` |
 | Change Arabic shaping or text measurement                   | [`editor-text-engine.md`](editor-text-engine.md) §1                 | `src/editor/skia/text.ts`                                          |
 | Change how a word splits or rejoins                         | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §2       | `src/editor/text/clusters.ts`                                      |
 | Make several objects act as one element                     | [`editor-groups.md`](editor-groups.md) §3                           | `src/editor/groups.ts`, `src/editor/store.ts`                      |
@@ -77,14 +79,16 @@ real specification for their tables; run the one that covers what you touched.
 | `scripts/check-remote-fonts.mjs` | Remote font key format, face status, CDN URLs                                            | [`editor-remote-fonts.md`](editor-remote-fonts.md) §5               |
 | `scripts/check-font-pins.mjs`    | Pin id namespaces + list operations                                                      | [`editor-font-pins.md`](editor-font-pins.md) §5                     |
 | `scripts/check-fonts.mjs`        | Core/display split + the display-key scan + the mirror-publish and ensure-ownership pins | [`editor-font-loading.md`](editor-font-loading.md) §1, §3.1, §4.1   |
+| `scripts/check-icons.mjs`        | Icon identity, the licence record, and the SVG-body → paths resolver                     | [`editor-render-contract.md`](editor-render-contract.md) §5.1       |
 
 Repo-wide, and cheaper than any of them: `npx tsc --noEmit` and `npx eslint src`.
 
 All these scripts transpile and evaluate their target module standalone. That is
-why `shortcuts.ts`, `help/catalog.ts` and `remote-fonts.ts` may declare **only
-`import type`** (or no imports at all, for `remote-fonts.ts`), `i18n/strings.ts`
-no imports at all, and `groups.ts` only a structural interface of its own — a
-value import breaks the check silently.
+why `shortcuts.ts`, `help/catalog.ts`, `remote-fonts.ts` and `icon-sets.ts` may
+declare **only `import type`** (or no imports at all, for the last two),
+`i18n/strings.ts` and `editor/icons/icon-geometry.ts` no imports at all, and
+`groups.ts` only a structural interface of its own — a value import breaks the
+check silently.
 
 ## 5. Moves that span files
 
@@ -93,6 +97,9 @@ value import breaks the check silently.
 | A new keyboard binding       | `shortcuts.ts` + `help/catalog.ts` + `i18n/strings.ts`, then both checks       | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §6 |
 | A new selection-bar action   | `selection-actions.tsx` table entry + a `sel.<id>` catalog entry               | [`editor-selection-bar.md`](editor-selection-bar.md) §2 and §9      |
 | A new shape                  | `skia/shape-geometry.ts` builder + the SVG and PNG paths                       | [`editor-render-contract.md`](editor-render-contract.md) §5         |
+| A new object kind            | `project-schema.ts` union + canvas/PNG/SVG branches + `objectBox`              | [`editor-render-contract.md`](editor-render-contract.md) §5.1       |
+| A new icon set               | `theme/icon-sets.ts` allowlist + `THIRD-PARTY-ICONS.md`, then `check-icons`    | [`editor-render-contract.md`](editor-render-contract.md) §5.1       |
+| A new file in the `.midad`   | `design-file.ts` pack/unpack + `toPersisted` + both platform stores            | [`storage-format.md`](storage-format.md) §3, §4, §5                 |
 | A split/rejoin change        | `text/clusters.ts` + `store.ts` + `TextPartRef` in `storage/project-schema.ts` | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md) §8       |
 | A new help or tooltip string | `i18n/strings.ts` + `help/catalog.ts` — never one alone                        | [`editor-help-and-learn-mode.md`](editor-help-and-learn-mode.md) §6 |
 | A group-aware behaviour      | `groups.ts` helper + the store write that applies it + `check-groups.mjs`      | [`editor-groups.md`](editor-groups.md) §3                           |
@@ -121,6 +128,13 @@ No document in this folder names these, so nothing pins their behavior:
   (`EditorScreenHost`, `EditorCanvasHost`, `components/skia/skia-canvas-bridge`).
 - `src/editor/insert-sheet.tsx`, `src/editor/text-style-controls.tsx`,
   `src/editor/use-auto-save.ts`.
+- `src/editor/skia/image-shape.ts`, `src/editor/skia/icon-shape.tsx` and
+  `src/editor/icons/**` — the placed-asset renderers and the icon resolver. Their
+  behavior is described in `editor-render-contract.md` §5.1 and pinned by
+  `check-icons.mjs`, but neither is a contract document of its own.
+- `src/storage/placed-image.ts`, `src/storage/icon-search.ts`,
+  `src/storage/base64.ts` — described in `storage-format.md` §3–§5 and the
+  render contract §5.1, with no contract document of their own.
 - `src/hooks/`, `src/haptics.ts`, `src/i18n/` beyond `strings.ts`.
 - `src/components/ui/` beyond `icon-button.tsx` and `brand-loader.tsx`, plus
   `gallery/` and `onboarding/`.
