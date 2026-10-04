@@ -2465,11 +2465,7 @@ export function EditorScreen() {
             lives in the rail; the sheet owns the whole picker. */}
         <ColorPickerSheet
           visible={colorSheetOpen}
-          value={
-            (selectedObject && 'color' in selectedObject
-              ? selectedObject.color
-              : undefined) ?? DEFAULT_INK
-          }
+          value={selectedObject?.color ?? DEFAULT_INK}
           recentColors={recentColors}
           onChange={applyColor}
           onClose={closeColorSheet}

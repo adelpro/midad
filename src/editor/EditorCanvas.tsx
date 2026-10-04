@@ -67,10 +67,6 @@ function objectBox(
       // Local (unscaled) box. The object's transform group supplies the scale,
       // so including it here would apply it twice.
       return { width: SHAPE_BASE_SIZE, height: SHAPE_BASE_SIZE };
-    case 'image':
-      // The kind's box lands in Task B1; a zero box keeps the compiler
-      // exhaustive without inventing geometry the renderer does not draw yet.
-      return { width: 0, height: 0 };
   }
 }
 
@@ -368,7 +364,7 @@ const ObjectLayer = memo(function ObjectLayer({
         y={-box.height / 2}
         width={box.width}
       />
-    ) : obj.type === 'image' ? null : obj.type === 'shape' ? (
+    ) : obj.type === 'shape' ? (
       // Renderers draw into a 0..size box, so shift it to sit centred on
       // the object origin — which is what the overlay and hit-test assume.
       <Group
