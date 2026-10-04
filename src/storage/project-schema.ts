@@ -232,7 +232,40 @@ export interface ShapeObject extends GroupMember {
   zIndex: number;
 }
 
-export type DesignObject = CalligraphyTextObject | GlyphObject | ShapeObject;
+/**
+ * Fields shared by an object that renders a stored or resolved asset.
+ *
+ * Lives beside the kinds it covers for the same reason `ShapeKey` does: the
+ * Skia renderer, the imperative PNG path, the SVG serializer and the shape
+ * registry all discriminate on the object's `type`, and they must never
+ * disagree about the set.
+ */
+export interface PlacedAsset extends GroupMember {
+  /** Intrinsic width ÷ height, so the object's box matches the asset. */
+  aspect: number;
+  opacity: number;
+  transform: ObjectTransform;
+  zIndex: number;
+}
+
+/**
+ * A placed raster image.
+ *
+ * The bytes travel beside the document as a per-object `assets/<id>.<ext>`
+ * entry; `imageFile`/`imageMime` are persisted references and `imageUri` is the
+ * in-memory data URI the renderers consume, stripped on write exactly as the
+ * background's is.
+ */
+export interface ImageObject extends PlacedAsset {
+  id: string;
+  type: 'image';
+  imageFile: string;
+  imageMime: string;
+  imageUri?: string;
+}
+
+export type DesignObject =
+  CalligraphyTextObject | GlyphObject | ShapeObject | ImageObject;
 
 export interface MidadProject {
   version: typeof PROJECT_FILE_VERSION;

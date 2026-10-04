@@ -35,3 +35,20 @@ export declare function readBackgroundBytes(
   id: string,
   imageFile: string,
 ): Promise<Uint8Array | null>;
+
+/**
+ * Write one placed object's image bytes. The file is keyed by the object id, so
+ * a replacement overwrites and a delete leaves an orphan to be swept on save.
+ */
+export declare function writeAssetBytes(
+  id: string,
+  objectId: string,
+  bytes: Uint8Array,
+  mime: string,
+): Promise<StoredImage>;
+
+/** Read one placed object's raw bytes, for packing or rebuilding its URI. */
+export declare function readAssetBytes(
+  id: string,
+  imageFile: string,
+): Promise<Uint8Array | null>;

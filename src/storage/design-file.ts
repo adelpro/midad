@@ -44,9 +44,29 @@ const EXT_BY_MIME: Record<string, string> = {
   'image/bmp': 'bmp',
 };
 
-/** The entry name the image is stored under, derived from its MIME. */
+/** The entry name the background image is stored under, from its MIME. */
 export function imageEntryName(mime: string): string {
-  return `background.${EXT_BY_MIME[mime] ?? 'jpg'}`;
+  return `background.${extForMime(mime)}`;
+}
+
+/**
+ * The entry name one placed object's image is stored under. The object id
+ * namespaces it so any number of assets can live in one container; the
+ * background keeps its own fixed `background.<ext>` entry.
+ */
+export function assetEntryName(objectId: string, mime: string): string {
+  return `assets/${objectId}.${extForMime(mime)}`;
+}
+
+function extForMime(mime: string): string {
+  return EXT_BY_MIME[mime] ?? 'jpg';
+}
+
+/** One placed asset's bytes inside a design. */
+export interface DesignAsset {
+  name: string;
+  bytes: Uint8Array;
+  mime: string;
 }
 
 /**
@@ -71,25 +91,41 @@ export function sniffImageMime(base64: string): string {
  * The document as it is written: the in-memory `imageUri` is dropped, leaving
  * only the reference to the stored image. Every write goes through this, so the
  * data URI can never leak back into the file.
+ *
+ * The background and every placed image object follow the same rule, for the
+ * same reason: a leaked data URI would inline multi-megabyte strings into
+ * `design.json`.
  */
 export function toPersisted(project: MidadProject): MidadProject {
   const { imageUri: _imageUri, ...background } = project.canvas.background;
+  const objects = project.objects.map((object) => {
+    if (object.type !== 'image') {
+      return object;
+    }
+    const { imageUri: _objectImageUri, ...rest } = object;
+    return rest;
+  });
   return {
     ...project,
     canvas: { ...project.canvas, background },
+    objects,
   };
 }
 
-/** Pack a document and its image into one `.midad`. */
+/** Pack a document, its background image, and every placed asset into one `.midad`. */
 export function packDesign(
   project: MidadProject,
-  image: ImagePayload | null,
+  background: ImagePayload | null,
+  assets: DesignAsset[] = [],
 ): Uint8Array {
   const files: Zippable = {
     [DESIGN_ENTRY]: strToU8(JSON.stringify(toPersisted(project))),
   };
-  if (image) {
-    files[imageEntryName(image.mime)] = [image.bytes, { level: 0 }];
+  if (background) {
+    files[imageEntryName(background.mime)] = [background.bytes, { level: 0 }];
+  }
+  for (const asset of assets) {
+    files[asset.name] = [asset.bytes, { level: 0 }];
   }
   return zipSync(files);
 }
@@ -97,6 +133,7 @@ export function packDesign(
 export interface UnpackedDesign {
   project: MidadProject;
   image: ImagePayload | null;
+  assets: DesignAsset[];
 }
 
 /**
@@ -106,6 +143,9 @@ export interface UnpackedDesign {
  * `.midad.json`, a corrupt archive, or a document from another version. A v2
  * document is accepted and normalized to v3 by `normalizeProjectVersion`; there
  * is no v1 path.
+ *
+ * The background comes back as `image` and every placed object's bytes under
+ * `assets/` as `assets[]`, in the order the zip reports them.
  */
 export function unpackDesign(data: Uint8Array): UnpackedDesign | null {
   let files: Record<string, Uint8Array>;
@@ -136,5 +176,21 @@ export function unpackDesign(data: Uint8Array): UnpackedDesign | null {
       image = { bytes, mime: background.imageMime ?? 'image/jpeg' };
     }
   }
-  return { project, image };
+  const assets: DesignAsset[] = [];
+  for (const [name, bytes] of Object.entries(files)) {
+    if (!name.startsWith('assets/') || !bytes) {
+      continue;
+    }
+    const ext = name.slice(name.lastIndexOf('.') + 1);
+    assets.push({ name, bytes, mime: mimeForExt(ext) });
+  }
+  return { project, image, assets };
+}
+
+const MIME_BY_EXT: Record<string, string> = Object.fromEntries(
+  Object.entries(EXT_BY_MIME).map(([mime, ext]) => [ext, mime]),
+);
+
+function mimeForExt(ext: string): string {
+  return MIME_BY_EXT[ext] ?? 'image/jpeg';
 }

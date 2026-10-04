@@ -363,6 +363,9 @@ export function projectToSvg(
       );
     } else if (obj.type === 'shape') {
       inner = shapeToSvg(obj);
+    } else if (obj.type === 'image') {
+      // The kind's SVG branch lands in Task B1; until then it emits nothing.
+      inner = null;
     } else {
       inner = glyphToSvg(obj);
     }

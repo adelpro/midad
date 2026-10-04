@@ -151,6 +151,8 @@ export function renderProjectToPng(
       // Local units: the canvas has already been scaled by the object transform.
       c.translate(-SHAPE_BASE_SIZE / 2, -SHAPE_BASE_SIZE / 2);
       drawShapeOnCanvas(c, obj, SHAPE_BASE_SIZE);
+    } else if (obj.type === 'image') {
+      // The kind's renderer lands in Task B1; until then nothing is drawn.
     } else {
       c.translate(-SHAPE_BASE_SIZE / 2, -SHAPE_BASE_SIZE / 2);
       drawGlyphOnCanvas(c, obj, SHAPE_BASE_SIZE);
