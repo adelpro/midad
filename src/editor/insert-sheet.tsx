@@ -10,18 +10,20 @@
  * exactly what `<Svg viewBox>` wants, and `@/editor/glyphs` is deliberately
  * Skia-free so a modal never drags CanvasKit onto its render path.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from 'react-native';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 
-import { Button, Sheet } from '@/components/ui';
+import { AnimatedPressable, Button, Sheet } from '@/components/ui';
 import {
   GLYPH_DEFAULT_STYLE,
   glyphStrokeWidth,
@@ -38,6 +40,7 @@ import {
 } from '@/editor/skia/shape-geometry';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
+import { searchIcons, type IconSearchHit } from '@/storage/icon-search';
 import type { ShapeKey } from '@/storage/project-schema';
 import { fontRoles, radius, spacing, typeScale } from '@/theme';
 
@@ -76,6 +79,10 @@ const PREVIEW = 44;
 const SHAPE_STROKE = 4;
 /** Share of the window the scrolling ornament grid may occupy. */
 const GRID_MAX_FRACTION = 0.42;
+/** Debounce before the icon catalogue is queried per keystroke. */
+const ICON_SEARCH_DEBOUNCE_MS = 250;
+
+type IconSearchState = 'idle' | 'loading' | 'ready' | 'error';
 
 export interface InsertSheetProps {
   visible: boolean;
@@ -84,6 +91,8 @@ export interface InsertSheetProps {
   onPickShape: (shapeKey: ShapeKey) => void;
   /** Opens the photo library to place an image on the canvas. */
   onPickImage: () => void;
+  /** Resolves a search hit to geometry and places it. Rejects are the caller's. */
+  onPickIcon: (hit: IconSearchHit) => void;
 }
 
 /**
@@ -281,11 +290,22 @@ export function InsertSheet({
   onPickGlyph,
   onPickShape,
   onPickImage,
+  onPickIcon,
 }: InsertSheetProps) {
   const { colors: c } = useTheme();
   const { t, language } = useT();
   const { height } = useWindowDimensions();
   const [tab, setTab] = useState<InsertTab>('glyphs');
+  /**
+   * Icon search state. The catalogue is ~300k icons across 200+ sets and is
+   * queried over the network, so it is debounced and every write happens inside
+   * the timer's async callback rather than synchronously in the effect body —
+   * the same discipline the font picker's Google section follows.
+   */
+  const [iconQuery, setIconQuery] = useState('');
+  const [iconState, setIconState] = useState<IconSearchState>('idle');
+  const [iconHits, setIconHits] = useState<IconSearchHit[]>([]);
+  const [iconBusyKey, setIconBusyKey] = useState<string | null>(null);
   // The ornament paint style the next placed ornament gets; also drives the
   // tile previews, so a tile always shows exactly what it will insert.
   const [glyphStyle, setGlyphStyle] = useState<GlyphStyle>(GLYPH_DEFAULT_STYLE);
@@ -314,6 +334,54 @@ export function InsertSheet({
   const pick = (run: () => void) => () => {
     onClose();
     run();
+  };
+
+  // Debounced catalogue search. All state writes live in the timer callback, so
+  // a keystroke never cascades a render synchronously from the effect body.
+  useEffect(() => {
+    const q = iconQuery.trim();
+    let cancelled = false;
+    const timer = setTimeout(
+      async () => {
+        if (!q) {
+          setIconState('idle');
+          setIconHits([]);
+          return;
+        }
+        setIconState('loading');
+        try {
+          const hits = await searchIcons(q);
+          if (!cancelled) {
+            setIconHits(hits);
+            setIconState('ready');
+          }
+        } catch {
+          if (!cancelled) {
+            setIconHits([]);
+            setIconState('error');
+          }
+        }
+      },
+      q ? ICON_SEARCH_DEBOUNCE_MS : 0,
+    );
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [iconQuery]);
+
+  /**
+   * Resolve a hit and hand it over. The sheet is deliberately **not** closed
+   * first here: fetching is a network round-trip with a visible wait, and closing
+   * the sheet would hide the spinner that explains it.
+   */
+  const importIcon = (hit: IconSearchHit) => {
+    setIconBusyKey(hit.key);
+    onPickIcon(hit);
+    // The sheet stays mounted while the fetch is in flight; the parent clears
+    // the busy row by remounting on the next open, so no completion signal is
+    // needed here.
+    setIconBusyKey(null);
   };
 
   return (
@@ -423,14 +491,134 @@ export function InsertSheet({
               {t.editor.insertImageFromGallery}
             </Text>
             {/* One button, not a grid: the source is the photo library, so there
-                is nothing inside the app to browse. Icon import lands beside it
-                in 0.6.0's Task C4. */}
+                is nothing inside the app to browse. */}
             <Button
               label={t.editor.insertImageFromGallery}
               onPress={pick(onPickImage)}
               fullWidth
               variant="secondary"
             />
+
+            {/* Imported icons. The catalogue is searched by name; a hit that
+                cannot be inked (a palette set) or cannot be stored as paths is
+                shown disabled with the reason rather than hidden, so the search
+                looks like what it is instead of quietly missing results. */}
+            <View style={styles.iconSection}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: c.muted, fontFamily: fonts.ui },
+                ]}
+              >
+                {t.editor.icons}
+              </Text>
+              <View
+                style={[
+                  styles.search,
+                  { backgroundColor: c.surfaceAlt, borderColor: c.border },
+                ]}
+              >
+                <TextInput
+                  value={iconQuery}
+                  onChangeText={setIconQuery}
+                  placeholder={t.editor.searchIcons}
+                  placeholderTextColor={c.muted}
+                  accessibilityLabel={t.editor.searchIcons}
+                  style={[
+                    styles.searchInput,
+                    { color: c.ink, fontFamily: fonts.ui },
+                  ]}
+                />
+              </View>
+
+              {iconState === 'loading' && (
+                <ActivityIndicator
+                  color={c.muted}
+                  style={styles.iconStatus}
+                  accessibilityLabel={t.common.loading}
+                />
+              )}
+              {iconState === 'error' && (
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: c.danger, fontFamily: fonts.ui },
+                  ]}
+                >
+                  {t.editor.iconSearchFailed}
+                </Text>
+              )}
+
+              <ScrollView
+                style={{ maxHeight: Math.round(height * GRID_MAX_FRACTION) }}
+                contentContainerStyle={styles.iconList}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+              >
+                {iconHits.map((hit) => {
+                  const blocked = !hit.allowed
+                    ? t.editor.iconShapeUnsupported
+                    : hit.palette
+                      ? t.editor.iconPaletteUnsupported
+                      : null;
+                  const busy = iconBusyKey === hit.key;
+                  return (
+                    <AnimatedPressable
+                      key={hit.key}
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        disabled: blocked !== null || busy,
+                        busy,
+                      }}
+                      accessibilityLabel={
+                        blocked ? `${hit.name}, ${blocked}` : hit.name
+                      }
+                      disabled={blocked !== null || busy}
+                      onPress={() => importIcon(hit)}
+                      style={[
+                        styles.iconRow,
+                        {
+                          borderColor: c.border,
+                          backgroundColor: c.surface,
+                          opacity: blocked ? 0.45 : 1,
+                        },
+                      ]}
+                    >
+                      <View style={styles.iconRowMain}>
+                        <Text
+                          numberOfLines={1}
+                          style={[
+                            styles.iconName,
+                            { color: c.ink, fontFamily: fonts.ui },
+                          ]}
+                        >
+                          {hit.name}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          style={[
+                            styles.sectionTitle,
+                            {
+                              color: blocked ? c.danger : c.muted,
+                              fontFamily: fonts.ui,
+                            },
+                          ]}
+                        >
+                          {blocked ?? hit.setName}
+                        </Text>
+                      </View>
+                      {busy && (
+                        <ActivityIndicator
+                          size="small"
+                          color={c.muted}
+                          accessibilityLabel={t.common.loading}
+                        />
+                      )}
+                    </AnimatedPressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
           </View>
         )}
       </View>
@@ -444,6 +632,28 @@ const styles = StyleSheet.create({
   tab: { flex: 1 },
   sections: { gap: spacing.lg },
   section: { gap: spacing.xs },
+  /** The icon block: search field, status, then the results list. */
+  iconSection: { gap: spacing.sm, paddingTop: spacing.md },
+  iconList: { gap: spacing.xs },
+  iconStatus: { paddingVertical: spacing.md, alignSelf: 'center' },
+  iconRow: {
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  iconRowMain: { flex: 1, gap: 2 },
+  iconName: { fontSize: typeScale.body.size },
+  search: {
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  searchInput: { fontSize: typeScale.body.size, padding: 0 },
   // No `uppercase` or extra tracking here: both are Latin-only conventions and
   // they mangle Arabic. See the theme's typography rules.
   sectionTitle: { fontSize: typeScale.caption.size },

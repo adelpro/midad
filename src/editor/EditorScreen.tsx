@@ -130,6 +130,7 @@ import type {
 import { PROJECT_FILE_EXT } from '@/storage/project-schema';
 import { base64ToBytes } from '@/storage/base64';
 import { pickPlacedImage } from '@/storage/placed-image';
+import { fetchIcon, type IconSearchHit } from '@/storage/icon-search';
 import { exportProjectFile } from '@/storage/project-io';
 import {
   loadProject as loadProjectFile,
@@ -1492,6 +1493,48 @@ export function EditorScreen() {
     setTool('select');
   }, [project, addObject]);
 
+  /**
+   * Import an icon: resolve it over the network, then place it.
+   *
+   * The geometry is resolved **before** the object exists and stored in the
+   * document, so opening the design afterwards needs no network at all. A hit
+   * that cannot be resolved (a palette set, an unrepresentable body) inserts
+   * nothing and leaves the sheet's row to report it.
+   */
+  const insertIcon = useCallback(
+    async (hit: IconSearchHit) => {
+      if (!project) {
+        return;
+      }
+      const fetched = await fetchIcon(hit);
+      if (!fetched) {
+        return;
+      }
+      addObject({
+        id: `ic_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        type: 'icon',
+        iconKey: hit.key,
+        viewBox: fetched.viewBox,
+        paths: fetched.paths,
+        color: DEFAULT_INK,
+        aspect: fetched.viewBox.width / fetched.viewBox.height,
+        opacity: 1,
+        transform: {
+          x: project.canvas.width / 2,
+          y: project.canvas.height / 2,
+          scale: DECOR_INSERT_SCALE,
+          rotation: 0,
+          flipH: false,
+          flipV: false,
+        },
+        zIndex: (project.objects.length + 1) * 10,
+      });
+      setTool('select');
+      setInsertSheetOpen(false);
+    },
+    [project, addObject],
+  );
+
   const deleteSelected = useCallback(() => {
     if (!selectedIds.length) {
       return;
@@ -2543,6 +2586,7 @@ export function EditorScreen() {
           onPickGlyph={insertGlyph}
           onPickShape={insertShape}
           onPickImage={insertImage}
+          onPickIcon={insertIcon}
         />
 
         {/* Opacity — the selection rail's slider for a placed asset. Both new

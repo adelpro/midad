@@ -166,6 +166,16 @@ export interface Translation {
     media: string;
     /** Button that opens the photo library to place an image on the canvas. */
     insertImageFromGallery: string;
+    /** Section title over the icon search in the Media tab. */
+    icons: string;
+    /** Placeholder for the icon search field. */
+    searchIcons: string;
+    /** Shown when the icon catalogue could not be reached. */
+    iconSearchFailed: string;
+    /** Row reason: the icon set bakes its own colours and cannot be inked. */
+    iconPaletteUnsupported: string;
+    /** Row reason: the icon uses elements that cannot be stored as paths. */
+    iconShapeUnsupported: string;
     transparent: string;
     paper: string;
     enterText: string;
@@ -519,6 +529,11 @@ export const strings: Record<Language, Translation> = {
       insert: 'إدراج',
       media: 'وسائط',
       insertImageFromGallery: 'إدراج صورة من المعرض',
+      icons: 'أيقونات',
+      searchIcons: 'ابحث عن أيقونة',
+      iconSearchFailed: 'تعذّر الوصول إلى مكتبة الأيقونات.',
+      iconPaletteUnsupported: 'أيقونة ملوّنة: لا يمكن صبغها بالحبر.',
+      iconShapeUnsupported: 'شكل غير مدعوم.',
       transparent: 'شفاف',
       paper: 'ورق',
       enterText: 'اكتب نصك هنا…',
@@ -830,6 +845,11 @@ export const strings: Record<Language, Translation> = {
       insert: 'Insert',
       media: 'Media',
       insertImageFromGallery: 'Add image from gallery',
+      icons: 'Icons',
+      searchIcons: 'Search icons',
+      iconSearchFailed: 'Couldn’t reach the icon library.',
+      iconPaletteUnsupported: 'Colour icon — cannot be inked.',
+      iconShapeUnsupported: 'Unsupported shape.',
       transparent: 'Transparent',
       paper: 'Paper',
       enterText: 'Type your text…',
