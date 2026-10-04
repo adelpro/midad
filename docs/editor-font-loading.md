@@ -12,11 +12,11 @@
 
 The registry is forty-nine bundled faces in two halves.
 
-| Set                 | Count | Loaded when                                     |
-| ------------------- | ----- | ----------------------------------------------- |
-| `coreFontAssets`    | 8     | At boot, gating the splash (`use-bootstrap.ts`) |
-| `displayFontAssets` | 41    | On demand, behind the brand loader (§3)         |
-| `fontAssets`        | 49    | Never loaded directly — it is their **union**   |
+| Set                 | Count | Loaded when                                           |
+| ------------------- | ----- | ----------------------------------------------------- |
+| `coreFontAssets`    | 8     | At boot, gating the launch cover (`use-bootstrap.ts`) |
+| `displayFontAssets` | 41    | On demand, behind the brand loader (§3)               |
+| `fontAssets`        | 49    | Never loaded directly — it is their **union**         |
 
 The lazy half is twenty-nine Arabic calligraphic faces plus twenty Latin ones
 (§1.1). `fontAssets` stays the union so `FontKey`, `font-families.ts`, the picker
@@ -26,8 +26,10 @@ reads it to decide what to load.
 **Those eight are the faces the first screen actually draws**, and they are
 exactly what `fontRoles` reaches: Cairo 400/700 (the Arabic UI sans), Amiri
 400/700 (`display` and `displayBold` in both languages), Geist 400/500/600/700
-(the Latin UI sans). A face the first screen cannot show is not worth holding
-the splash for: the wait would be real and the benefit invisible.
+(the Latin UI sans). A face the first screen cannot show is not worth holding the
+**launch cover** for — the splash's own job ends at theme hydration (§5), and the
+cover is what stands between the user and a first route that would paint a wrong
+face: the wait would be real and the benefit invisible.
 
 The split is not a matter of taste. `scripts/check-fonts.mjs` pins it, and the
 assertions that would catch a careless move are:
@@ -250,12 +252,13 @@ stroke draw is web-only on `react-native-svg`. A transform-and-opacity pulse
 needs neither, so it is one implementation on web, Android and iOS. No new
 asset, and `brand-mark.tsx` is untouched.
 
-The loader is also the **launch cover** (0.5.0, superseding the D8 note below).
+The loader is also the **launch cover** (0.5.0, superseding the earlier
+"never the launch path" note).
 `useBootstrap` hides the native splash the moment the persisted settings hydrate —
 hydration is what decides the theme, so the cover can be painted in the right
 colour from that point — and `app/_layout.tsx` renders `BrandLoader` at
 `height={144}` while `hydrated && !ready && !error`, over a `Stack` that mounts on
-the same `ready` transition. The cover is at most a few frames on a warm start, it
+the same `ready || error` transition. The cover is at most a few frames on a warm start, it
 cannot strand the app (it unmounts exactly when the routes mount), and it adds no
 latency because nothing is deferred to it. The 144 dp matches the splash's visible
 logo (`imageWidth` 200 × the asset's 0.72 crop), so the mark does not change size

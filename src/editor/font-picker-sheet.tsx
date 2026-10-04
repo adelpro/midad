@@ -346,6 +346,19 @@ export function FontPickerSheet({
     [matches, t],
   );
 
+  /**
+   * Bundled families on screen, not families matched. `matches.length` counts
+   * rows the filter may be hiding, so it cannot tell an empty sheet from a full
+   * one; this can.
+   */
+  const visibleBundledCount = fontSections.reduce(
+    (n, section) =>
+      script === 'all' || section.script === script
+        ? n + section.families.length
+        : n,
+    0,
+  );
+
   return (
     <Sheet
       visible={visible}
@@ -562,7 +575,14 @@ export function FontPickerSheet({
 
             The section header hides when the search resolved to nothing: with
             every hit deduplicated away, a lone "Google Fonts" heading above an
-            empty list reads as a broken section rather than an empty result. */}
+            empty list reads as a broken section rather than an empty result.
+
+            The "no results" text below therefore lives *outside* this block: it
+            answers for the whole sheet, and gating it on this section's header
+            being present is what let a filtered-out query render nothing at
+            all. Its condition is what the eye can see — no bundled row on
+            screen, and the remote search settled with nothing either — and the
+            spinner is what covers the window before `ready`. */}
         {!!query.trim() &&
           (remoteState !== 'ready' || remoteFamilies.length > 0) && (
             <>
@@ -621,23 +641,17 @@ export function FontPickerSheet({
                     onInstall={(id, weight) => void installFace(id, weight)}
                   />
                 ))}
-
-              {/* A query that matched only deduplicated families still has bundled
-                rows above, so "no results" must require both lists to be empty —
-                which is what `matches.length === 0` already asserts. */}
-              {remoteState === 'ready' &&
-                matches.length === 0 &&
-                remoteFamilies.length === 0 && (
-                  <Text
-                    style={[
-                      styles.meta,
-                      { color: c.muted, fontFamily: uiFont },
-                    ]}
-                  >
-                    {t.editor.noFontResults}
-                  </Text>
-                )}
             </>
+          )}
+
+        {/* One answer for the whole sheet, so it can never be hidden behind a
+            section that the filter removed. */}
+        {remoteState === 'ready' &&
+          visibleBundledCount === 0 &&
+          remoteFamilies.length === 0 && (
+            <Text style={[styles.meta, { color: c.muted, fontFamily: uiFont }]}>
+              {t.editor.noFontResults}
+            </Text>
           )}
       </ScrollView>
 

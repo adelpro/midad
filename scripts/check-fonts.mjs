@@ -318,6 +318,48 @@ if (!/fontSections\.map/.test(pickerSource)) {
   );
 }
 
+// ── a filtered-out query must still say something ──────────────────────────
+// The script filter hides a section, so `matches.length` — which counts rows the
+// filter may be hiding — cannot tell an empty sheet from a full one. Filtering to
+// Latin and searching an Arabic-only family (`amiri`) left the user staring at a
+// blank list: the Latin section was empty, the Arabic one was filtered away, and
+// the Google block's header guard withheld the "no results" text with it.
+//
+// The answer has to be gated on what is *visible*, and it has to render outside
+// the Google block that can be hidden.
+if (!/visibleBundledCount/.test(pickerSource)) {
+  fail(
+    'the picker has no visible-family count, so a filtered-out query cannot detect an empty list',
+  );
+}
+if (!/visibleBundledCount\s*===\s*0/.test(pickerSource)) {
+  fail('the picker does not gate its empty state on the visible family count');
+}
+if (/matches\.length === 0/.test(pickerSource)) {
+  fail(
+    'the picker still gates "no results" on matches.length, which ignores the script filter',
+  );
+}
+// The Google block's own guard hides its header when the search resolved to
+// nothing. The empty-state text must not live inside it, or the same blank sheet
+// returns. Assert the text is not between the guard and its closing fragment.
+// The Google block's own guard hides its header when the search resolved to
+// nothing, so the empty-state text must not live inside that block. The block
+// ends at its closing fragment; assert the text renders after it.
+const noResultsAt = pickerSource.indexOf('t.editor.noFontResults');
+const googleGuardAt = pickerSource.indexOf("remoteState !== 'ready'");
+if (googleGuardAt === -1) {
+  fail('the picker lost the Google block guard this assertion reads against');
+}
+const googleBlockEnd = pickerSource.indexOf('</>', googleGuardAt);
+if (noResultsAt === -1) {
+  fail('the picker no longer renders t.editor.noFontResults');
+} else if (googleBlockEnd === -1 || noResultsAt < googleBlockEnd) {
+  fail(
+    'the "no results" text is inside the Google block, which its own guard can hide',
+  );
+}
+
 // ── paragraph direction follows the text, never the interface ──────────────
 // A Latin text object must read left-to-right even in an Arabic session. The
 // interface mirrors under forceRTL, so if direction were ever taken from the UI

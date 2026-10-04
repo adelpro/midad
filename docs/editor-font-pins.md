@@ -56,9 +56,10 @@ choice is permanent across restarts. It defaults to expanded; pinning a new fami
 while collapsed leaves it collapsed (the count still updates).
 
 The Pinned section sits **outside** the picker's All/Arabic/Latin script filter. A
-pin is cross-script by definition, and a pinned family is the only way back to a
-face whose script's section the filter is currently hiding — so filtering to Latin
-must not hide a pinned Arabic family.
+pin is cross-script by definition, and the filter's own items are what reveal a
+hidden section — a pinned family is simply the quicker way back to a face whose
+script's section is currently hidden, so filtering to Latin must not hide a pinned
+Arabic family.
 
 ## 4. Remote faces
 
