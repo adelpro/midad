@@ -186,6 +186,71 @@ if (!/\[0-9a-f\]\{3,8\}/.test(iconSearchSource)) {
   fail('the ink guard does not recognise a hex colour as a colour');
 }
 
+// ── the shipped defaults and the recents rule ──────────────────────────────
+// The empty state must be non-empty on a fresh install, and every default must
+// name a set the picker may offer — a default that cannot be drawn is a blank
+// row on the very screen this feature exists to fill.
+let library;
+try {
+  library = loadModule('src/editor/icons/icon-library.ts');
+} catch (error) {
+  fail(`cannot load src/editor/icons/icon-library.ts: ${error.message}`);
+}
+if (library) {
+  const defaults = library.DEFAULT_ICONS;
+  if (!Array.isArray(defaults) || defaults.length === 0) {
+    fail(
+      'DEFAULT_ICONS is empty, so a fresh install shows a blank Icons block',
+    );
+  }
+  for (const icon of defaults ?? []) {
+    const parsed = sets ? sets.parseIconKey(icon.key) : null;
+    if (!parsed) {
+      fail(`default icon has an unparseable key: ${icon.key}`);
+      continue;
+    }
+    if (!sets.ICON_SET_ALLOWLIST[parsed.prefix]) {
+      fail(`default icon is from a set the picker may not offer: ${icon.key}`);
+    }
+    if (!(icon.viewBox?.width > 0) || !(icon.viewBox?.height > 0)) {
+      fail(`default icon has an empty viewBox: ${icon.key}`);
+    }
+    if (!Array.isArray(icon.paths) || icon.paths.length === 0) {
+      fail(`default icon has no geometry: ${icon.key}`);
+    }
+    for (const path of icon.paths ?? []) {
+      if (typeof path.d !== 'string' || path.d.trim() === '') {
+        fail(`default icon has an empty path: ${icon.key}`);
+      }
+    }
+  }
+
+  if (!(library.ICON_RECENTS_MAX > 0)) {
+    fail('ICON_RECENTS_MAX must be positive');
+  }
+  // Newest first, de-duped, and capped — the whole of the recents rule.
+  const pushed = library.pushRecentIcon(
+    [{ key: 'x:a' }, { key: 'x:b' }],
+    { key: 'x:b' },
+    10,
+  );
+  if (
+    pushed.length !== 2 ||
+    pushed[0].key !== 'x:b' ||
+    pushed[1].key !== 'x:a'
+  ) {
+    fail('pushRecentIcon did not move the newest to the front and dedupe');
+  }
+  const capped = library.pushRecentIcon(
+    [{ key: 'x:a' }, { key: 'x:b' }],
+    { key: 'x:c' },
+    2,
+  );
+  if (capped.length !== 2 || capped[0].key !== 'x:c') {
+    fail('pushRecentIcon did not cap the list');
+  }
+}
+
 if (geometry) {
   const one = geometry.iconPathsFromBody('<path d="M0 0h24v24H0z"/>');
   if (!Array.isArray(one) || one.length !== 1) {

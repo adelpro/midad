@@ -3,6 +3,11 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import {
+  ICON_RECENTS_MAX,
+  pushRecentIcon,
+  type StoredIcon,
+} from '@/editor/icons/icon-library';
 import type { SelectionActionId } from '@/editor/selection-actions';
 import type { Language } from '@/i18n/strings';
 import { pushRecent } from '@/theme/color';
@@ -64,6 +69,16 @@ interface SettingsState {
    */
   recentColors: string[];
   /**
+   * Icons the user has inserted, most recent first — the picker's empty state, so
+   * the Icons block is never blank. The entry carries the resolved geometry, so a
+   * recent renders and re-inserts with no network.
+   *
+   * Device-local like `recentColors`, so it never enters the project document: a
+   * recent is a shortcut on *this* device, not part of the design, and the object
+   * it inserts already travels in the `.midad`.
+   */
+  recentIcons: StoredIcon[];
+  /**
    * Whether the intro has been completed (or skipped) at least once on this
    * device — `false` on a fresh install, so the first launch lands on the
    * onboarding route.
@@ -83,6 +98,12 @@ interface SettingsState {
   setSelectionBarActions: (ids: SelectionActionId[] | null) => void;
   /** Remember a custom colour, most recent first, deduped and capped. */
   pushRecentColor: (color: string) => void;
+  /** Remember an inserted icon, most recent first, deduped and capped. */
+  rememberIcon: (icon: StoredIcon) => void;
+  /** Forget one icon from the recents list. */
+  forgetIcon: (key: string) => void;
+  /** Forget every recent icon. */
+  clearRecentIcons: () => void;
   setHasCompletedOnboarding: (completed: boolean) => void;
 }
 
@@ -96,6 +117,7 @@ export const useSettings = create<SettingsState>()(
       autoSaveIntervalMs: AUTO_SAVE_INTERVAL_DEFAULT_MS,
       selectionBarActions: null,
       recentColors: [],
+      recentIcons: [],
       hasCompletedOnboarding: false,
       setLanguage: (language) => set({ language }),
       setDefaultCanvas: (defaultCanvasIndex) => set({ defaultCanvasIndex }),
@@ -112,6 +134,19 @@ export const useSettings = create<SettingsState>()(
             RECENT_COLORS_MAX,
           ),
         })),
+      rememberIcon: (icon) =>
+        set((state) => ({
+          recentIcons: pushRecentIcon(
+            state.recentIcons,
+            icon,
+            ICON_RECENTS_MAX,
+          ),
+        })),
+      forgetIcon: (key) =>
+        set((state) => ({
+          recentIcons: state.recentIcons.filter((icon) => icon.key !== key),
+        })),
+      clearRecentIcons: () => set({ recentIcons: [] }),
       setHasCompletedOnboarding: (hasCompletedOnboarding) =>
         set({ hasCompletedOnboarding }),
     }),

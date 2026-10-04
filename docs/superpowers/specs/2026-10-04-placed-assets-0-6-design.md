@@ -311,6 +311,21 @@ being recorded. The file is generated text, not a build artifact.
    with a downloading state per row (the same `downloading → installed | retry`
    shape the Google Fonts rows use, and the same `ActivityIndicator`).
 
+The Icons block is never blank. Before a query it shows this device's **recents** —
+icons the user has inserted, most recent first, geometry included, so a recent
+draws and re-inserts with no network — or, when there are none, a shipped
+`DEFAULT_ICONS` set (filled-path `material-symbols`, so every renderer draws it
+faithfully). Each recent row carries an **×** that forgets it, and the list has a
+**Clear recents** action. Recents live in the settings store (`recentIcons`, the
+same device-local shape as `recentColors`), so they persist across restarts but
+never enter the document. Searching replaces the list while the field holds text;
+clearing the field brings the recents back.
+
+The allowlist is **filled-path monotone sets only**: the three renderers and the
+preview all draw a path by filling it, so a stroke-outlined set would import as a
+solid silhouette. `tabler` and `lucide` are therefore excluded until stroke
+rendering exists.
+
 The rail's Insert button currently reads `t.editor.glyphs`, which names only one
 of its three tabs. It is relabelled `t.editor.insert`. A **seventh rail button**
 was rejected: the rail is capped at `layout.maxToolbar` (560) and already

@@ -130,7 +130,7 @@ import type {
 import { PROJECT_FILE_EXT } from '@/storage/project-schema';
 import { base64ToBytes } from '@/storage/base64';
 import { pickPlacedImage } from '@/storage/placed-image';
-import { fetchIcon, type IconSearchHit } from '@/storage/icon-search';
+import type { StoredIcon } from '@/editor/icons/icon-library';
 import { saveWithHistory } from '@/editor/save-with-history';
 import { exportProjectFile } from '@/storage/project-io';
 import {
@@ -1498,33 +1498,25 @@ export function EditorScreen() {
   }, [project, addObject]);
 
   /**
-   * Import an icon: resolve it over the network, then place it.
+   * Place an icon whose geometry is already resolved.
    *
-   * The geometry is resolved **before** the object exists and stored in the
+   * The fetch lives in the picker — it owns the network and the row's wait state
+   * — so this only turns geometry into an object. The geometry travels in the
    * document, so opening the design afterwards needs no network at all.
-   *
-   * A resolved-but-unrepresentable icon (a palette set, an unrepresentable body)
-   * returns `null` from `fetchIcon` and inserts nothing — the row already says so.
-   * A **failed fetch rejects**, which the sheet's row catches and reports; wrapping
-   * it here would hide a network failure behind the same silent nothing.
    */
   const insertIcon = useCallback(
-    async (hit: IconSearchHit) => {
+    (icon: StoredIcon) => {
       if (!project) {
-        return;
-      }
-      const fetched = await fetchIcon(hit);
-      if (!fetched) {
         return;
       }
       addObject({
         id: `ic_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         type: 'icon',
-        iconKey: hit.key,
-        viewBox: fetched.viewBox,
-        paths: fetched.paths,
+        iconKey: icon.key,
+        viewBox: icon.viewBox,
+        paths: icon.paths,
         color: DEFAULT_INK,
-        aspect: fetched.viewBox.width / fetched.viewBox.height,
+        aspect: icon.viewBox.width / icon.viewBox.height,
         opacity: 1,
         transform: {
           x: project.canvas.width / 2,
@@ -2590,7 +2582,7 @@ export function EditorScreen() {
           onPickGlyph={insertGlyph}
           onPickShape={insertShape}
           onPickImage={insertImage}
-          onPickIcon={insertIcon}
+          onInsertIcon={insertIcon}
         />
 
         {/* Opacity — the selection rail's slider for a placed asset. Both new

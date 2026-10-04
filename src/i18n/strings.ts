@@ -176,6 +176,14 @@ export interface Translation {
     iconPaletteUnsupported: string;
     /** Row reason: the icon uses elements that cannot be stored as paths. */
     iconShapeUnsupported: string;
+    /** Caption over the recents list, shown before any search. */
+    recentIcons: string;
+    /** Caption over the shipped defaults, shown when there are no recents. */
+    suggestedIcons: string;
+    /** A recent row's × — forgets that one icon. */
+    iconForget: string;
+    /** Clears the whole recents list. */
+    iconClearRecents: string;
     /** Shown when a picked photo could not be written to the design's store. */
     imageInsertFailed: string;
     transparent: string;
@@ -536,6 +544,10 @@ export const strings: Record<Language, Translation> = {
       iconSearchFailed: 'تعذّر الوصول إلى مكتبة الأيقونات.',
       iconPaletteUnsupported: 'أيقونة ملوّنة: لا يمكن صبغها بالحبر.',
       iconShapeUnsupported: 'شكل غير مدعوم.',
+      recentIcons: 'المستخدمة حديثًا',
+      suggestedIcons: 'مقترحة',
+      iconForget: 'إزالة من الأخيرة',
+      iconClearRecents: 'مسح الأخيرة',
       imageInsertFailed: 'تعذّر إدراج الصورة.',
       transparent: 'شفاف',
       paper: 'ورق',
@@ -853,6 +865,10 @@ export const strings: Record<Language, Translation> = {
       iconSearchFailed: 'Couldn’t reach the icon library.',
       iconPaletteUnsupported: 'Colour icon — cannot be inked.',
       iconShapeUnsupported: 'Unsupported shape.',
+      recentIcons: 'Recent',
+      suggestedIcons: 'Suggested',
+      iconForget: 'Forget',
+      iconClearRecents: 'Clear recents',
       imageInsertFailed: 'Couldn’t add the image.',
       transparent: 'Transparent',
       paper: 'Paper',

@@ -23,7 +23,13 @@ import {
 } from 'react-native';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 
-import { AnimatedPressable, Button, Reveal, Sheet } from '@/components/ui';
+import {
+  AnimatedPressable,
+  Button,
+  Icon,
+  Reveal,
+  Sheet,
+} from '@/components/ui';
 import {
   GLYPH_DEFAULT_STYLE,
   glyphStrokeWidth,
@@ -33,6 +39,8 @@ import {
   type GlyphGroup,
   type GlyphStyle,
 } from '@/editor/glyphs';
+import type { IconPath } from '@/editor/icons/icon-geometry';
+import { DEFAULT_ICONS, type StoredIcon } from '@/editor/icons/icon-library';
 import {
   SHAPE_BASE_SIZE,
   SHAPE_INSET,
@@ -41,11 +49,13 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import {
+  fetchIcon,
   fetchIconPreviews,
   searchIcons,
   type IconPreview,
   type IconSearchHit,
 } from '@/storage/icon-search';
+import { useSettings } from '@/storage/settings';
 import { useRowWaitMotion } from '@/editor/use-row-wait-motion';
 import type { ShapeKey } from '@/storage/project-schema';
 import { fontRoles, radius, spacing, typeScale } from '@/theme';
@@ -97,8 +107,8 @@ export interface InsertSheetProps {
   onPickShape: (shapeKey: ShapeKey) => void;
   /** Opens the photo library to place an image on the canvas. Rejects if the write fails. */
   onPickImage: () => Promise<void>;
-  /** Resolves a search hit to geometry and places it. Rejects if the fetch fails. */
-  onPickIcon: (hit: IconSearchHit) => Promise<void>;
+  /** Places an icon whose geometry is already resolved — from a search, a recent or the defaults. */
+  onInsertIcon: (icon: StoredIcon) => void;
 }
 
 /**
@@ -296,7 +306,7 @@ export function InsertSheet({
   onPickGlyph,
   onPickShape,
   onPickImage,
-  onPickIcon,
+  onInsertIcon,
 }: InsertSheetProps) {
   const { colors: c } = useTheme();
   const { t, language } = useT();
@@ -318,6 +328,24 @@ export function InsertSheet({
   const [iconBusyKey, setIconBusyKey] = useState<string | null>(null);
   /** A hit whose import failed — its row turns into a retry affordance. */
   const [iconFailedKey, setIconFailedKey] = useState<string | null>(null);
+  /**
+   * The recents list and its mutators come from the settings store rather than
+   * local state: it is persisted (the empty state must survive a restart) and it
+   * is shared with anything else that inserts an icon.
+   */
+  const recentIcons = useSettings((state) => state.recentIcons);
+  const rememberIcon = useSettings((state) => state.rememberIcon);
+  const forgetIcon = useSettings((state) => state.forgetIcon);
+  const clearRecentIcons = useSettings((state) => state.clearRecentIcons);
+  /**
+   * Whether the field holds a query. When it does, live search results replace
+   * the empty state; when it does not, the recents (or the defaults) are shown, so
+   * the block is never blank.
+   */
+  const searching = iconQuery.trim().length > 0;
+  /** What the empty state lists: this device's recents, or the shipped defaults. */
+  const emptyState: readonly StoredIcon[] =
+    recentIcons.length > 0 ? recentIcons : DEFAULT_ICONS;
   /** A photo pick whose store write failed — the sheet says so. */
   const [imageFailed, setImageFailed] = useState(false);
   // The ornament paint style the next placed ornament gets; also drives the
@@ -410,26 +438,46 @@ export function InsertSheet({
   };
 
   /**
-   * Resolve a hit and hand it over.
+   * Resolve a search hit and place it.
    *
-   * The sheet is deliberately **not** closed first: fetching is a network
-   * round-trip with a visible wait, and closing would hide the spinner that
-   * explains it. That means this must **await** the fetch — clearing the busy key
-   * in the same tick would batch both updates and the row would never show its
-   * spinner — and it must catch, because a failed fetch is a normal outcome
-   * (offline, every host down) that needs a row-level message rather than an
-   * unhandled rejection.
+   * The fetch lives here rather than in the caller because it is what produces
+   * the geometry the canvas needs *and* the entry the recents list keeps. The
+   * sheet is deliberately **not** closed first: fetching is a network round-trip
+   * with a visible wait, and closing would hide the spinner that explains it.
+   * A failed fetch is a row-level outcome (offline, every host down) that needs a
+   * retry affordance rather than an unhandled rejection; a refused icon
+   * (`fetchIcon` returns `null`) cannot normally be reached, because its row is
+   * disabled, but it is handled the same way.
    */
   const importIcon = async (hit: IconSearchHit) => {
     setIconBusyKey(hit.key);
     setIconFailedKey(null);
     try {
-      await onPickIcon(hit);
+      const fetched = await fetchIcon(hit);
+      if (!fetched) {
+        setIconFailedKey(hit.key);
+        return;
+      }
+      const icon: StoredIcon = {
+        key: hit.key,
+        name: hit.name,
+        setName: hit.setName,
+        viewBox: fetched.viewBox,
+        paths: fetched.paths,
+      };
+      onInsertIcon(icon);
+      rememberIcon(icon);
     } catch {
       setIconFailedKey(hit.key);
     } finally {
       setIconBusyKey(null);
     }
+  };
+
+  /** Place an icon whose geometry is already resolved, then remember it. */
+  const insertResolved = (icon: StoredIcon) => {
+    onInsertIcon(icon);
+    rememberIcon(icon);
   };
 
   return (
@@ -607,22 +655,94 @@ export function InsertSheet({
                 </Text>
               )}
 
+              {!searching && (
+                <View style={styles.iconListHeader}>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: c.muted, fontFamily: fonts.uiBold },
+                    ]}
+                  >
+                    {recentIcons.length > 0
+                      ? t.editor.recentIcons
+                      : t.editor.suggestedIcons}
+                  </Text>
+                  {recentIcons.length > 0 && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.editor.iconClearRecents}
+                      onPress={clearRecentIcons}
+                      hitSlop={8}
+                    >
+                      <Text
+                        style={[
+                          styles.sectionTitle,
+                          { color: c.muted, fontFamily: fonts.ui },
+                        ]}
+                      >
+                        {t.editor.iconClearRecents}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+
               <ScrollView
                 style={{ maxHeight: Math.round(height * GRID_MAX_FRACTION) }}
                 contentContainerStyle={styles.iconList}
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled
               >
-                {iconHits.map((hit) => (
-                  <IconHitRow
-                    key={hit.key}
-                    hit={hit}
-                    preview={iconPreviews.get(hit.key)}
-                    busy={iconBusyKey === hit.key}
-                    failed={iconFailedKey === hit.key}
-                    onPress={() => void importIcon(hit)}
-                  />
-                ))}
+                {searching
+                  ? iconHits.map((hit) => {
+                      const preview = iconPreviews.get(hit.key);
+                      // Read from the resolved geometry where there is one, not
+                      // only the set's `palette` flag: a set can be monotone
+                      // overall while one icon paints its own colours. A row
+                      // whose preview has not arrived is not blocked — it is
+                      // merely un-previewed, and the tap resolves it for real.
+                      const blocked = !hit.allowed
+                        ? t.editor.iconShapeUnsupported
+                        : hit.palette || preview?.paths === null
+                          ? t.editor.iconPaletteUnsupported
+                          : null;
+                      const failed = iconFailedKey === hit.key;
+                      return (
+                        <IconRow
+                          key={hit.key}
+                          name={hit.name}
+                          detail={
+                            blocked ??
+                            (failed ? t.editor.iconSearchFailed : hit.setName)
+                          }
+                          blocked={blocked}
+                          paths={preview?.paths ?? null}
+                          viewBox={preview?.viewBox}
+                          busy={iconBusyKey === hit.key}
+                          failed={failed}
+                          onPress={() => void importIcon(hit)}
+                        />
+                      );
+                    })
+                  : emptyState.map((icon) => (
+                      <IconRow
+                        key={icon.key}
+                        name={icon.name}
+                        detail={icon.setName}
+                        blocked={null}
+                        paths={icon.paths}
+                        viewBox={icon.viewBox}
+                        busy={false}
+                        failed={false}
+                        onPress={() => insertResolved(icon)}
+                        onForget={
+                          recentIcons.length > 0
+                            ? () => forgetIcon(icon.key)
+                            : undefined
+                        }
+                        forgetLabel={t.editor.iconForget}
+                      />
+                    ))}
               </ScrollView>
             </View>
           </Reveal>
@@ -633,61 +753,56 @@ export function InsertSheet({
 }
 
 /**
- * One search hit.
+ * One icon row — a search hit, a recent, or a default.
  *
  * Its own component rather than an inline `map` body for two reasons: the wait
  * motion is a hook, and a hook cannot live inside a callback; and the row's
- * disabled/blocked/busy/failed states are five-way, which reads better named than
- * nested.
+ * blocked/busy/failed/forgettable states read better named than nested.
  *
  * The disabled look is applied as a **static** opacity from the style array while
  * the wait motion drives an animated one — deliberately not both at once. A row
  * that is blocked was never tapped, so it has no wait to express, and the two
  * would multiply into a double-faded row.
+ *
+ * `onForget` is passed only for a recent: the × forgets it. A default has no
+ * origin to forget, and a search hit is not remembered until it is inserted.
  */
-function IconHitRow({
-  hit,
-  preview,
+function IconRow({
+  name,
+  detail,
+  blocked,
+  paths,
+  viewBox,
   busy,
   failed,
   onPress,
+  onForget,
+  forgetLabel,
 }: {
-  hit: IconSearchHit;
-  preview: IconPreview | undefined;
+  name: string;
+  detail: string;
+  /** Why the row cannot be imported, or `null` when it can. */
+  blocked: string | null;
+  /** Resolved geometry, or `null` before a preview has arrived. */
+  paths: IconPath[] | null;
+  viewBox: { width: number; height: number } | undefined;
   busy: boolean;
   failed: boolean;
   onPress: () => void;
+  onForget?: () => void;
+  forgetLabel?: string;
 }) {
   const { colors: c } = useTheme();
   const { t, language } = useT();
   const fonts = fontRoles[language];
   const waitStyle = useRowWaitMotion(busy);
 
-  /**
-   * Why this row cannot be imported, or `null` when it can.
-   *
-   * Read from the **resolved geometry** where there is one, not only the set's
-   * `palette` flag: a set can be monotone overall while one icon paints its own
-   * colours. A row whose preview has not arrived is not blocked — it is merely
-   * un-previewed, and the tap resolves it for real.
-   */
-  const blocked = !hit.allowed
-    ? t.editor.iconShapeUnsupported
-    : hit.palette || preview?.paths === null
-      ? t.editor.iconPaletteUnsupported
-      : null;
-  const detail = blocked ?? (failed ? t.editor.iconSearchFailed : hit.setName);
-
   return (
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ disabled: blocked !== null || busy, busy }}
       accessibilityLabel={
-        blocked
-          ? `${hit.name}, ${blocked}`
-          : failed
-            ? `${hit.name}, ${detail}`
-            : hit.name
+        blocked ? `${name}, ${blocked}` : failed ? `${name}, ${detail}` : name
       }
       disabled={blocked !== null || busy}
       onPress={onPress}
@@ -702,9 +817,9 @@ function IconHitRow({
       ]}
     >
       <View style={[styles.iconPreview, { borderColor: c.border }]}>
-        {preview?.paths ? (
-          <Svg width={PREVIEW} height={PREVIEW} viewBox={viewBoxFor(preview)}>
-            {preview.paths.map((entry, index) => (
+        {paths && viewBox ? (
+          <Svg width={PREVIEW} height={PREVIEW} viewBox={viewBoxFor(viewBox)}>
+            {paths.map((entry, index) => (
               <Path
                 key={index}
                 d={entry.d}
@@ -723,7 +838,7 @@ function IconHitRow({
           numberOfLines={1}
           style={[styles.iconName, { color: c.ink, fontFamily: fonts.ui }]}
         >
-          {hit.name}
+          {name}
         </Text>
         <Text
           numberOfLines={1}
@@ -745,13 +860,24 @@ function IconHitRow({
           accessibilityLabel={t.common.loading}
         />
       )}
+      {onForget && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={forgetLabel ? `${name}, ${forgetLabel}` : name}
+          onPress={onForget}
+          hitSlop={10}
+          style={styles.iconForget}
+        >
+          <Icon name="close" size={18} color={c.muted} />
+        </Pressable>
+      )}
     </AnimatedPressable>
   );
 }
 
 /** A `viewBox` string for one preview, from the icon set's own box. */
-function viewBoxFor(preview: IconPreview): string {
-  return `0 0 ${preview.viewBox.width} ${preview.viewBox.height}`;
+function viewBoxFor(viewBox: { width: number; height: number }): string {
+  return `0 0 ${viewBox.width} ${viewBox.height}`;
 }
 
 const styles = StyleSheet.create({
@@ -763,6 +889,12 @@ const styles = StyleSheet.create({
   /** The icon block: search field, status, then the results list. */
   iconSection: { gap: spacing.sm, paddingTop: spacing.md },
   iconList: { gap: spacing.xs },
+  /** The empty state's caption row: what the list is, and how to clear it. */
+  iconListHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   iconStatus: { paddingVertical: spacing.md, alignSelf: 'center' },
   iconRow: {
     borderWidth: 1,
@@ -787,6 +919,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconRowMain: { flex: 1, gap: 2 },
+  /** The × that forgets a recent — padded into its own touch target. */
+  iconForget: {
+    padding: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   iconName: { fontSize: typeScale.body.size },
   search: {
     borderWidth: 1,
