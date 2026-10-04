@@ -59,7 +59,7 @@ function useSettingsHydrated(): boolean {
  *
  * The gate is the **core** set — Cairo, Amiri and Geist — and nothing else.
  * Those are the only faces the first screen needs, so they are the only faces
- * whose absence is visible before the user can act. The twenty-nine calligraphic
+ * whose absence is visible before the user can act. The forty-one calligraphic
  * display faces are loaded on demand instead, when a design that names them is
  * opened, behind the brand loader (see `docs/editor-font-loading.md`); making
  * the splash wait for faces no screen is showing would trade a real wait for an

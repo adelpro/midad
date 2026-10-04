@@ -21,6 +21,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A contract for when a bundled face loads** (`docs/editor-font-loading.md`),
   covering the core/display split, the loaded-set registry, the cover-then-open
   policy, and the two costs the design knowingly keeps.
+- **Ten Latin calligraphic faces, bundled.** Latin was reachable only as the two
+  UI sans faces that ship for the interface, and through a Google Fonts
+  download. Ten OFL families now ship with the app — Pinyon Script, Great Vibes,
+  Allura, Tangerine, Parisienne, Yellowtail, Sacramento, Dancing Script, Pacifico
+  and EB Garamond — spanning formal copperplate through to old-style serif, so
+  picking a Latin face means choosing a hand the way it does in Arabic. They are
+  display-only like the Arabic calligraphic set, so they cost nothing at cold
+  boot, and the eight-face core is unchanged.
+- **The font picker sections itself by script** and shows each face in a specimen
+  written for the script it covers — `Affection` for the Latin faces, chosen for
+  its `ff` ligature and tall `f` ascender rather than `Lorem ipsum`. The picker
+  previously rendered one Arabic phrase for every family, which was invisible
+  while every bundled face was Arabic and useless the moment one was not.
 
 ### Changed
 
@@ -58,6 +71,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Splitting a word in a Latin face silently mangled it.** This was reachable
+  before any Latin face shipped — type Latin in Cairo and split it today — but
+  the bundled set was all-Arabic, so nothing in the picker led anyone to it. The
+  split contract justifies separating a word by the shape of its letters, and
+  that argument only holds for a _connected run_; the document said so nowhere,
+  and the executable spec asserted the Latin behaviour as correct. A Latin
+  cluster is not a connected run, so per-letter splitting severs the kerning and,
+  in a script face, the connections that _are_ the typeface — producing parts
+  that are placed correctly and shaped wrongly. Splitting a Latin face is now
+  refused up front, and the control stays pressable and explains itself rather
+  than silently doing nothing or vanishing from the bar. The contract now states
+  the precondition it had been assuming. Splitting **per word** would satisfy the
+  same precondition and is worth doing as its own feature; keeping ligatures
+  together needs shaped glyph runs from the RN Skia binding, which is unverified.
 - **The font picker listed the same family twice.** Searching for a family that
   ships with the app _and_ exists on Google Fonts — Amiri, Reem Kufi, Gulzar —
   showed one row under the bundled list and another under "Google Fonts", with

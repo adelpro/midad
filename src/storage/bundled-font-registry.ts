@@ -1,8 +1,8 @@
 /**
  * Bundled display-face registration — the session's "loaded bundled set".
  *
- * The eager core loads with the app (`use-bootstrap.ts`); the twenty-nine
- * calligraphic faces in `displayFontAssets` load here, on demand. This module
+ * The eager core loads with the app (`use-bootstrap.ts`); the forty-one lazy
+ * faces in `displayFontAssets` load here, on demand. This module
  * is the only place that loads them, and it mirrors `remote-font-registry.ts`:
  * the snapshot is what expo-font actually holds, it is replaced only when its
  * content changes, and `useLoadedBundledFontKeys` re-renders its consumers

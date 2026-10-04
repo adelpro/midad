@@ -10,17 +10,18 @@
 
 ## 1. The split, and why those eight
 
-The registry is thirty-seven bundled faces in two halves.
+The registry is forty-nine bundled faces in two halves.
 
 | Set                 | Count | Loaded when                                     |
 | ------------------- | ----- | ----------------------------------------------- |
 | `coreFontAssets`    | 8     | At boot, gating the splash (`use-bootstrap.ts`) |
-| `displayFontAssets` | 29    | On demand, behind the brand loader (§3)         |
-| `fontAssets`        | 37    | Never loaded directly — it is their **union**   |
+| `displayFontAssets` | 41    | On demand, behind the brand loader (§3)         |
+| `fontAssets`        | 49    | Never loaded directly — it is their **union**   |
 
-`fontAssets` stays the union so `FontKey`, `font-families.ts`, the picker and
-the SVG exporter keep their current shape. Nothing outside this contract reads
-it to decide what to load.
+The lazy half is twenty-nine Arabic calligraphic faces plus twenty Latin ones
+(§1.1). `fontAssets` stays the union so `FontKey`, `font-families.ts`, the picker
+and the SVG exporter keep their current shape. Nothing outside this contract
+reads it to decide what to load.
 
 **Those eight are the faces the first screen actually draws**, and they are
 exactly what `fontRoles` reaches: Cairo 400/700 (the Arabic UI sans), Amiri
@@ -29,7 +30,7 @@ exactly what `fontRoles` reaches: Cairo 400/700 (the Arabic UI sans), Amiri
 the splash for: the wait would be real and the benefit invisible.
 
 The split is not a matter of taste. `scripts/check-fonts.mjs` pins it, and the
-four assertions that would catch a careless move are:
+assertions that would catch a careless move are:
 
 - the two sets are **disjoint** — a face is eager or lazy, never both;
 - `coreFontAssets` contains every `fontRoles` value that is not `monospace`;
@@ -38,6 +39,40 @@ four assertions that would catch a careless move are:
   matters most: a calligraphic face in a UI role would put a lazy face back on
   the boot path, and the failure is invisible until a cold start renders chrome
   in a face that has not loaded.
+- `coreFontAssets` has **exactly eight** entries. The four above are necessary
+  but not sufficient — nothing else would notice a face _added_ to the core,
+  which is a boot-cost regression that is invisible on a warm start. Pinning the
+  count is what makes adding one require a deliberate argument.
+- every family tagged `script: 'latin'` has all its variants in
+  `displayFontAssets` and **none** in `coreFontAssets`.
+
+### 1.1 The Latin faces
+
+Ten OFL families, twelve files, from the Fontsource CDN — the same source the
+Arabic display faces came from (`github.com/google/fonts`). They span a mood
+range rather than a slice of one: Pinyon Script, Great Vibes, Allura, Tangerine,
+Parisienne, Yellowtail, Sacramento, Dancing Script (400/700), Pacifico and
+EB Garamond (400/700). 632 KB total, 35–91 KB per file.
+
+They are **display-only**, and that is the whole reason this feature costs nothing
+at cold boot. Nothing on the first screen draws a Latin face, so all twelve load
+on demand exactly like their Arabic counterparts.
+
+`FontFamily.script` (`'arabic' | 'latin'`, **required**) is what makes them
+script-aware rather than merely present. One tag drives three behaviours, which
+is the point of deriving them from a single fact:
+
+- the picker shows a **Latin specimen** (`Affection`) and groups the list into
+  Arabic and Latin sections;
+- `familySupportsSplit` **refuses** to split a word in one of them, because a
+  Latin cluster is not a connected run — see `docs/editor-split-and-rejoin.md` §2;
+- the split refusal surfaces through the existing `splitNotice`, with the
+  control left pressable so it can explain itself.
+
+The tag is required rather than optional on purpose. An absent tag would fall
+back to the Arabic specimen, which is the silent-wrong-face class this whole
+contract exists to prevent, and a compile error is the only cheap way to catch
+it.
 
 ## 2. The loaded-set registry
 
@@ -281,6 +316,64 @@ naming rather than discovering:
 
 None of the three was measured on a release build or on a device; the numbers
 above are web dev, which is the only platform reachable here (see §9).
+
+### 7.1 The picker's warm-up, with the Latin set
+
+`warmDisplayFonts()` loads **every** display face on each picker open, so its
+specimen can render in the real face. The Latin set grew that from 29 files to
+41, which works against the goal of §1, and the right response was to measure it
+rather than to guess — see the design's decision D7, which deliberately left
+this open.
+
+| Candidate                | Cost                                                              |
+| ------------------------ | ----------------------------------------------------------------- |
+| **(a) warm all 41**      | every specimen correct; picker open pays for faces below the fold |
+| **(b) warm per section** | Arabic immediate; Latin only when its header scrolls into view    |
+
+(b) is the more attractive shape on paper — the Latin section sits below 22
+Arabic rows, and most sessions never reach it — but it costs real complexity in
+the one path that decides what a document may draw, and complexity in the
+loading path is exactly what §3 exists to prevent. So the decision rule was
+fixed in advance rather than chosen after seeing a number: under ~300 ms of
+added warm time, keep warming everything and change no code. The measurement
+and the outcome are recorded in §7.2.
+
+### 7.2 The measurement, and why it did not decide it
+
+Measured on an Android 16 x86_64 emulator (Pixel 9 Pro AVD, **software** GPU),
+debug build against Metro. Each sample cleared the app's data first, so
+`loadAsync` read every file off the APK with no on-disk font cache to serve it —
+without that, the same 29 faces resolved in 2 ms. Metro's own bundling was warmed
+beforehand and no bundle was built during a sample.
+
+| Sample | 29 Arabic | all 41  | added   |
+| ------ | --------- | ------- | ------- |
+| 1      | 7544 ms   | 8211 ms | 667 ms  |
+| 2      | 6384 ms   | 9699 ms | 3315 ms |
+| 3      | 7690 ms   | 7918 ms | 228 ms  |
+
+Medians give **667 ms** added, comfortably over the line. The per-pair spread of
+228–3315 ms is the real result, and it says the number is not measurable here:
+the same code on the same machine produced a 5× spread in the derived
+difference.
+
+It is also the wrong scale. 7.5 s to load 29 faces is not a phone; it is a
+debug build on a software rasteriser, inflated by a factor nobody has measured.
+Scaling 667 ms down by whatever that factor turns out to be could put the answer
+under 300 ms or leave it above — **the data cannot adjudicate the threshold in
+either direction**, and reporting either verdict as the measurement would be
+inventing it.
+
+**So (a) stands and no code changes.** Not because 667 ms is acceptable — it was
+never shown to be — but because the pre-fixed rule asks for a measurement this
+environment cannot make, and §3's whole argument is against adding machinery to
+the loading path without evidence. Refusing to split would be acting on noise.
+The status quo is also the only option here that is _reversible by doing
+nothing_, which is the right bias when the evidence is absent.
+
+Outstanding: the same three-sample run on a physical device with a release
+build. If it lands over 300 ms, (b) becomes the answer and this section is the
+record of the number that changed the mind.
 
 ## 8. Deferred levers
 
