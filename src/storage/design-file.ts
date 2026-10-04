@@ -1,7 +1,7 @@
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
 
 import {
-  PROJECT_FILE_VERSION,
+  normalizeProjectVersion,
   type MidadProject,
 } from '@/storage/project-schema';
 
@@ -102,10 +102,10 @@ export interface UnpackedDesign {
 /**
  * Read a `.midad` container.
  *
- * Returns `null` for anything that is not a current-version container — a
- * legacy `.midad.json`, a corrupt archive, or a document from another version.
- * There is deliberately no fallback: v2 is the format, and an unreadable file
- * is reported rather than guessed at.
+ * Returns `null` for anything that is not a readable container — a legacy
+ * `.midad.json`, a corrupt archive, or a document from another version. A v2
+ * document is accepted and normalized to v3 by `normalizeProjectVersion`; there
+ * is no v1 path.
  */
 export function unpackDesign(data: Uint8Array): UnpackedDesign | null {
   let files: Record<string, Uint8Array>;
@@ -118,16 +118,14 @@ export function unpackDesign(data: Uint8Array): UnpackedDesign | null {
   if (!design) {
     return null;
   }
-  let project: MidadProject;
+  let rawProject: unknown;
   try {
-    project = JSON.parse(strFromU8(design)) as MidadProject;
+    rawProject = JSON.parse(strFromU8(design));
   } catch {
     return null;
   }
-  if (
-    project?.version !== PROJECT_FILE_VERSION ||
-    !project.canvas?.background
-  ) {
+  const project = normalizeProjectVersion(rawProject);
+  if (!project) {
     return null;
   }
   const background = project.canvas.background;

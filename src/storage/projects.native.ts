@@ -6,6 +6,7 @@ import {
   type StoredImage,
 } from '@/storage/design-file';
 import type { MidadProject } from '@/storage/project-schema';
+import { normalizeProjectVersion } from '@/storage/project-schema';
 
 /**
  * Native design storage: one **folder per design**.
@@ -116,7 +117,12 @@ export async function loadProject(id: string): Promise<MidadProject | null> {
     if (!file.exists) {
       return null;
     }
-    const project = JSON.parse(file.textSync()) as MidadProject;
+    const project = normalizeProjectVersion(
+      JSON.parse(file.textSync()) as unknown,
+    );
+    if (!project) {
+      return null;
+    }
     await attachImageUri(project, dir);
     return project;
   } catch {

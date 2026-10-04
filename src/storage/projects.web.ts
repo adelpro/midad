@@ -6,7 +6,7 @@ import {
   type StoredImage,
 } from '@/storage/design-file';
 import {
-  PROJECT_FILE_VERSION,
+  normalizeProjectVersion,
   type MidadProject,
 } from '@/storage/project-schema';
 
@@ -73,11 +73,8 @@ export async function loadProject(id: string): Promise<MidadProject | null> {
     if (!raw) {
       return null;
     }
-    const project = JSON.parse(raw) as MidadProject;
-    if (
-      project?.version !== PROJECT_FILE_VERSION ||
-      !project.canvas?.background
-    ) {
+    const project = normalizeProjectVersion(JSON.parse(raw) as unknown);
+    if (!project) {
       return null;
     }
     const bg = project.canvas.background;

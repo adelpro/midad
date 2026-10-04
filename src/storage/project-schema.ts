@@ -4,12 +4,39 @@
  * A design is a `.midad` container: a ZIP holding `design.json` plus the raw
  * background image bytes. The document itself is this JSON; the image travels
  * beside it rather than inside it, so a photo does not bloat the document or
- * the autosave. The schema is versioned, and v2 is the only version this code
- * reads — there is no v1 path.
+ * the autosave. The schema is versioned; v3 is the current version and v2 is
+ * read by `normalizeProjectVersion`, which normalizes it to v3 in memory.
  */
 
 export const PROJECT_FILE_EXT = 'midad';
-export const PROJECT_FILE_VERSION = 2;
+export const PROJECT_FILE_VERSION = 3;
+
+/**
+ * The only place the accepted-version rule lives.
+ *
+ * Returns `null` for a document that is not a v2 or v3 document — anything that
+ * is not an object, whose `version` is neither 2 nor 3, or that has no canvas
+ * background. Otherwise it returns the document with `version` normalized to 3.
+ *
+ * A v2 document cannot contain the new object kinds, so nothing else is
+ * rewritten — the three lines above are the whole reader.
+ */
+export function normalizeProjectVersion(project: unknown): MidadProject | null {
+  if (typeof project !== 'object' || project === null) {
+    return null;
+  }
+  const candidate = project as {
+    version?: unknown;
+    canvas?: { background?: unknown };
+  };
+  if (candidate.version !== 2 && candidate.version !== 3) {
+    return null;
+  }
+  if (!candidate.canvas?.background) {
+    return null;
+  }
+  return { ...(project as MidadProject), version: PROJECT_FILE_VERSION };
+}
 
 /** Transform of an object on the canvas (design units). */
 export interface ObjectTransform {
