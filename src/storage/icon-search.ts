@@ -113,8 +113,7 @@ export async function searchIcons(query: string): Promise<IconSearchHit[]> {
         key,
         prefix: parsed.prefix,
         name: parsed.name,
-        setName: collection?.name ?? parsed.prefix,
-        // An absent `collections` entry means the response drifted from the
+        setName: collection?.name ?? parsed.prefix, // An absent `collections` entry means the response drifted from the
         // documented shape; treating it as palette-bearing is the safe default,
         // because that only ever disables a row rather than letting an
         // un-inkable icon through.
@@ -123,6 +122,119 @@ export async function searchIcons(query: string): Promise<IconSearchHit[]> {
       };
     })
     .filter((hit): hit is IconSearchHit => hit !== null);
+}
+
+/** What one hit's preview needs: the geometry, or why there is none. */
+export interface IconPreview {
+  /** Drawable paths, in viewBox units, or `null` when the icon is refused. */
+  paths: IconPath[] | null;
+  viewBox: { width: number; height: number };
+}
+
+/**
+ * Resolve the **geometry** for a batch of hits — one request per icon set.
+ *
+ * The search response carries names only, so a list of hits has nothing to draw
+ * from; resolving each one individually would be a request per row on every
+ * keystroke. The data endpoint takes a comma-separated list, so a page of hits
+ * costs one request per *set* it spans (usually one or two).
+ *
+ * This is also what answers "can this be imported?" honestly. The set-level
+ * `palette` flag is a hint; the body is the truth, so a row's availability and
+ * its preview are the same computation.
+ *
+ * A hit that is not allowed, or whose set fails to answer, is simply absent from
+ * the map — the caller renders it as unavailable rather than as a failed load.
+ */
+export async function fetchIconPreviews(
+  hits: readonly IconSearchHit[],
+): Promise<Map<string, IconPreview>> {
+  const previews = new Map<string, IconPreview>();
+  const wanted = hits.filter((hit) => hit.allowed && !hit.palette);
+  if (wanted.length === 0) {
+    return previews;
+  }
+
+  // Group by set: the endpoint is per-set, and asking twice for one set is how a
+  // page of hits would turn back into many requests.
+  const byPrefix = new Map<string, IconSearchHit[]>();
+  for (const hit of wanted) {
+    const list = byPrefix.get(hit.prefix);
+    if (list) {
+      list.push(hit);
+    } else {
+      byPrefix.set(hit.prefix, [hit]);
+    }
+  }
+
+  await Promise.all(
+    [...byPrefix].map(async ([prefix, prefixHits]) => {
+      const response = await fetchFirstHost(
+        (host) =>
+          `${host}/${encodeURIComponent(prefix)}.json` +
+          `?icons=${prefixHits.map((h) => encodeURIComponent(h.name)).join(',')}`,
+      );
+      const payload = (await response.json()) as {
+        width?: number;
+        height?: number;
+        icons?: Record<string, { body?: string } | undefined>;
+      };
+      const width = payload.width ?? 24;
+      const height = payload.height ?? 24;
+      const viewBox = {
+        width: width > 0 ? width : 24,
+        height: height > 0 ? height : 24,
+      };
+      for (const hit of prefixHits) {
+        const body = payload.icons?.[hit.name]?.body;
+        if (typeof body !== 'string') {
+          continue;
+        }
+        previews.set(hit.key, {
+          paths: namesItsOwnColour(body) ? null : iconPathsFromBody(body),
+          viewBox,
+        });
+      }
+    }),
+  ).catch(() => {
+    // A set that cannot be reached leaves its hits un-previewed; the rows still
+    // render, and the tap still resolves the icon for real.
+  });
+
+  return previews;
+}
+
+/**
+ * Whether a body paints any of its paths in a colour of its own.
+ *
+ * The check is on the **value**, not on the presence of the attribute: a
+ * `fill="currentColor"` (or `stroke="none"`, or no paint attribute at all) takes
+ * the design's ink and is exactly what this feature wants. Only a literal colour
+ * — a hex, an `rgb()`, or a named CSS colour — makes the icon un-inkable.
+ *
+ * Getting this wrong in either direction is costly: too loose and a coloured
+ * emoji renders monochrome, too strict and whole monotone sets become impossible
+ * to import.
+ */
+function namesItsOwnColour(body: string): boolean {
+  const values = body.matchAll(
+    /\b(?:fill|stroke)\s*[:=]\s*["']?([^"'\s/>;]+)/gi,
+  );
+  for (const [, value] of values) {
+    const v = value.toLowerCase();
+    if (v === 'currentcolor' || v === 'none' || v === 'inherit' || v === '') {
+      continue;
+    }
+    // A hex, an rgb()/hsl() function, or a bare colour word.
+    if (
+      /^#[0-9a-f]{3,8}$/.test(v) ||
+      /^(rgb|hsl)a?\(/.test(v) ||
+      /^[a-z]+$/.test(v)
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -152,11 +264,17 @@ export async function fetchIcon(
   if (typeof body !== 'string') {
     return null;
   }
-  // A stored `iconKey` is provenance, and `paths` are what render — so a path
-  // that names its own colour would render in that colour, not the design's ink.
-  // The search response's `palette` flag is the usual guard, but it describes the
-  // *set*, and this describes the icon actually being imported.
-  if (/\s(fill|stroke)\s*[:=]/i.test(body)) {
+  // A path that names its **own colour** would render in that colour, not the
+  // design's ink — so it is refused. The search response's `palette` flag is the
+  // usual guard, but it describes the *set*, and this describes the icon being
+  // imported.
+  //
+  // `currentColor` and `none` are not colours: they are the two tokens that mean
+  // "the ink you were given" and "no paint", and they are how nearly every
+  // monotone set marks its paths (`fill="currentColor"`, and Tabler's
+  // `fill="none" stroke="currentColor"`). Refusing those rejects whole sets of
+  // perfectly inked icons, which is what an over-broad version of this test did.
+  if (namesItsOwnColour(body)) {
     return null;
   }
   const paths = iconPathsFromBody(body);

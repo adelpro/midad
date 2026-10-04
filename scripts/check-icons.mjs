@@ -154,10 +154,38 @@ if (sets) {
   }
 }
 
-// ── the geometry resolver ──────────────────────────────────────────────────
-// Icons are stored as paths, so anything this cannot reduce to `<path>` elements
-// must be refused rather than approximated — a silently dropped `<circle>` is a
-// wrong drawing, which is worse than a disabled row.
+// ── the ink guard ──────────────────────────────────────────────────────────
+// This shipped wrong once: the first version refused *any* `fill`/`stroke`
+// attribute, on the theory that an icon naming a colour would render in that
+// colour rather than the design's ink. But `fill="currentColor"` is not a colour —
+// it is "the ink you were given", and it is how MDI, Tabler and Material Symbols
+// mark every monotone path. The guard made half the allowlist impossible to
+// import while the picker still listed those rows as available, and tapping one
+// did nothing at all.
+const iconSearchSource = readFileSync(
+  join(root, 'src/storage/icon-search.ts'),
+  'utf8',
+);
+if (!iconSearchSource.includes('namesItsOwnColour')) {
+  fail(
+    'icon-search.ts has no ink guard, so a coloured icon could import monochrome',
+  );
+}
+if (/\(fill\|stroke\)\\s\*\[:=\]/.test(iconSearchSource)) {
+  fail(
+    'icon-search.ts refuses any fill/stroke attribute, which rejects currentColor and breaks every monotone set',
+  );
+}
+for (const token of ['currentcolor', 'none']) {
+  if (!iconSearchSource.includes(`'${token}'`)) {
+    fail(`the ink guard does not exempt "${token}"`);
+  }
+}
+// The guard is a **value** test, so a literal colour must still be refused.
+if (!/\[0-9a-f\]\{3,8\}/.test(iconSearchSource)) {
+  fail('the ink guard does not recognise a hex colour as a colour');
+}
+
 if (geometry) {
   const one = geometry.iconPathsFromBody('<path d="M0 0h24v24H0z"/>');
   if (!Array.isArray(one) || one.length !== 1) {

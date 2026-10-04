@@ -40,7 +40,12 @@ import {
 } from '@/editor/skia/shape-geometry';
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
-import { searchIcons, type IconSearchHit } from '@/storage/icon-search';
+import {
+  fetchIconPreviews,
+  searchIcons,
+  type IconPreview,
+  type IconSearchHit,
+} from '@/storage/icon-search';
 import { useRowWaitMotion } from '@/editor/use-row-wait-motion';
 import type { ShapeKey } from '@/storage/project-schema';
 import { fontRoles, radius, spacing, typeScale } from '@/theme';
@@ -306,6 +311,10 @@ export function InsertSheet({
   const [iconQuery, setIconQuery] = useState('');
   const [iconState, setIconState] = useState<IconSearchState>('idle');
   const [iconHits, setIconHits] = useState<IconSearchHit[]>([]);
+  /** Geometry for the visible hits, keyed by `prefix:name`. */
+  const [iconPreviews, setIconPreviews] = useState<Map<string, IconPreview>>(
+    new Map(),
+  );
   const [iconBusyKey, setIconBusyKey] = useState<string | null>(null);
   /** A hit whose import failed — its row turns into a retry affordance. */
   const [iconFailedKey, setIconFailedKey] = useState<string | null>(null);
@@ -356,9 +365,18 @@ export function InsertSheet({
         setIconState('loading');
         try {
           const hits = await searchIcons(q);
+          if (cancelled) {
+            return;
+          }
+          setIconHits(hits);
+          setIconState('ready');
+          // Previews resolve after the list is on screen: the names are what the
+          // search returns, and the geometry is a second, batched request. The
+          // rows render (and are tappable) in between, so a slow preview never
+          // delays the search.
+          const previews = await fetchIconPreviews(hits);
           if (!cancelled) {
-            setIconHits(hits);
-            setIconState('ready');
+            setIconPreviews(previews);
           }
         } catch {
           if (!cancelled) {
@@ -599,6 +617,7 @@ export function InsertSheet({
                   <IconHitRow
                     key={hit.key}
                     hit={hit}
+                    preview={iconPreviews.get(hit.key)}
                     busy={iconBusyKey === hit.key}
                     failed={iconFailedKey === hit.key}
                     onPress={() => void importIcon(hit)}
@@ -628,11 +647,13 @@ export function InsertSheet({
  */
 function IconHitRow({
   hit,
+  preview,
   busy,
   failed,
   onPress,
 }: {
   hit: IconSearchHit;
+  preview: IconPreview | undefined;
   busy: boolean;
   failed: boolean;
   onPress: () => void;
@@ -642,9 +663,17 @@ function IconHitRow({
   const fonts = fontRoles[language];
   const waitStyle = useRowWaitMotion(busy);
 
+  /**
+   * Why this row cannot be imported, or `null` when it can.
+   *
+   * Read from the **resolved geometry** where there is one, not only the set's
+   * `palette` flag: a set can be monotone overall while one icon paints its own
+   * colours. A row whose preview has not arrived is not blocked — it is merely
+   * un-previewed, and the tap resolves it for real.
+   */
   const blocked = !hit.allowed
     ? t.editor.iconShapeUnsupported
-    : hit.palette
+    : hit.palette || preview?.paths === null
       ? t.editor.iconPaletteUnsupported
       : null;
   const detail = blocked ?? (failed ? t.editor.iconSearchFailed : hit.setName);
@@ -672,6 +701,23 @@ function IconHitRow({
         waitStyle,
       ]}
     >
+      <View style={[styles.iconPreview, { borderColor: c.border }]}>
+        {preview?.paths ? (
+          <Svg width={PREVIEW} height={PREVIEW} viewBox={viewBoxFor(preview)}>
+            {preview.paths.map((entry, index) => (
+              <Path
+                key={index}
+                d={entry.d}
+                fill={c.ink}
+                fillRule={entry.fillRule === 'evenodd' ? 'evenodd' : 'nonzero'}
+              />
+            ))}
+          </Svg>
+        ) : busy ? (
+          <ActivityIndicator size="small" color={c.muted} />
+        ) : null}
+      </View>
+
       <View style={styles.iconRowMain}>
         <Text
           numberOfLines={1}
@@ -703,6 +749,11 @@ function IconHitRow({
   );
 }
 
+/** A `viewBox` string for one preview, from the icon set's own box. */
+function viewBoxFor(preview: IconPreview): string {
+  return `0 0 ${preview.viewBox.width} ${preview.viewBox.height}`;
+}
+
 const styles = StyleSheet.create({
   body: { gap: spacing.md },
   tabs: { flexDirection: 'row', gap: spacing.xs },
@@ -721,6 +772,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  /**
+   * The preview tile. A fixed box whether or not geometry has arrived, so the
+   * list never reflows as previews stream in — a list that shifts under the
+   * finger is how the wrong row gets tapped.
+   */
+  iconPreview: {
+    width: PREVIEW,
+    height: PREVIEW,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   iconRowMain: { flex: 1, gap: 2 },
   iconName: { fontSize: typeScale.body.size },
