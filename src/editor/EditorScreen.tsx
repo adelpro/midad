@@ -24,7 +24,14 @@ import {
 } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Icon, IconButton, Reveal, Sheet } from '@/components/ui';
+import {
+  Button,
+  Icon,
+  IconButton,
+  Reveal,
+  Sheet,
+  Slider,
+} from '@/components/ui';
 import { EditorCanvasHost } from '@/editor/EditorCanvasHost';
 import { FontField } from '@/editor/font-picker';
 import { FontPickerSheet } from '@/editor/font-picker-sheet';
@@ -433,6 +440,8 @@ export function EditorScreen() {
   const [exporting, setExporting] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [styleSheetOpen, setStyleSheetOpen] = useState(false);
+  /** The selection rail's opacity slider for a placed asset. */
+  const [opacitySheetOpen, setOpacitySheetOpen] = useState(false);
   /** The Colors tool's picker sheet. */
   const [colorSheetOpen, setColorSheetOpen] = useState(false);
   /** The selection bar's `⋯` overflow sheet. */
@@ -1751,6 +1760,8 @@ export function EditorScreen() {
     () => ({
       isText: !!selectedText,
       isGlyph: selectedIds.length === 1 && selectedObject?.type === 'glyph',
+      isPlacedAsset:
+        selectedIds.length === 1 && selectedObject?.type === 'image',
       canSplit: canSplitSelected,
       canRejoin: rejoinParts.length > 1,
       isMulti: elementCount > 1,
@@ -1784,6 +1795,7 @@ export function EditorScreen() {
   const run = useMemo<Record<SelectionCommandId, () => void>>(
     () => ({
       styleOpen: () => setStyleSheetOpen(true),
+      opacityOpen: () => setOpacitySheetOpen(true),
       stylePrev: () => cyclePresentation(-1),
       styleNext: () => cyclePresentation(1),
       scaleUp: () => scaleSelection(1.1),
@@ -2532,7 +2544,41 @@ export function EditorScreen() {
           onPickImage={insertImage}
         />
 
-        {/* Style sheet — presentation and typography for the selected object */}
+        {/* Opacity — the selection rail's slider for a placed asset. Both new
+            kinds carry `opacity` and all three renderers already apply it, so
+            this is the whole feature: no renderer change, one mutator. */}
+        <Sheet
+          visible={opacitySheetOpen}
+          onClose={() => setOpacitySheetOpen(false)}
+          title={t.editor.opacity}
+        >
+          <View style={styles.sheetBody}>
+            <Slider
+              value={Math.round((selectedObject?.opacity ?? 1) * 100)}
+              min={0}
+              max={100}
+              step={1}
+              onChange={(v) => {
+                const objects = project?.objects ?? [];
+                const patches = objects
+                  .filter(
+                    (o) => o.type === 'image' && selectedIds.includes(o.id),
+                  )
+                  .map((o) => ({ id: o.id, patch: { opacity: v / 100 } }));
+                if (patches.length > 0) {
+                  useEditorStore.getState().updateObjects(patches);
+                }
+              }}
+            />
+            <Button
+              label={t.common.done}
+              onPress={() => setOpacitySheetOpen(false)}
+              fullWidth
+            />
+          </View>
+        </Sheet>
+
+        {/* Style sheet - presentation and typography for the selected object */}
         <Sheet
           visible={styleSheetOpen}
           onClose={() => setStyleSheetOpen(false)}

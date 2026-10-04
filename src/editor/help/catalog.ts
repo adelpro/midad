@@ -438,6 +438,14 @@ export const HELP_ENTRIES = [
     icon: 'sparkle',
   },
   {
+    key: 'sel.opacityOpen',
+    group: 'selection',
+    label: { editor: 'opacity' },
+    roleAr: 'اضبط شفافية العنصر المحدَّد.',
+    roleEn: 'Open the opacity slider for the selected element.',
+    icon: 'palette',
+  },
+  {
     key: 'sel.glyphStyle',
     group: 'selection',
     label: { hint: 'glyphStyle' },

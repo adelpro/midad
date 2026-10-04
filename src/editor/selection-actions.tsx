@@ -60,6 +60,7 @@ import { fontRoles, radius, spacing, typeScale } from '@/theme';
 /** Every action the selection bar can carry. `sel.<id>` is its help key. */
 export type SelectionActionId =
   | 'styleOpen'
+  | 'opacityOpen'
   | 'stylePrev'
   | 'styleNext'
   | 'scaleUp'
@@ -109,6 +110,11 @@ export interface SelectionShape {
   readonly isGlyph: boolean;
   /** The text can be broken into parts. */
   readonly canSplit: boolean;
+  /**
+   * A placed asset is selected — an image or an imported icon — so the opacity
+   * action applies. Both kinds carry `opacity`; text and shapes do not expose it.
+   */
+  readonly isPlacedAsset: boolean;
   /** The selection is one part of an already-split word. */
   readonly canRejoin: boolean;
   /** More than one element is selected, so the align group applies. */
@@ -142,7 +148,7 @@ export interface SelectionShape {
  * a full preset navigator (arrows + name) used to take out of the same row.
  */
 const RAIL_SLOTS: readonly (readonly SelectionActionId[])[] = [
-  ['styleOpen'],
+  ['styleOpen', 'opacityOpen'],
   ['scaleUp'],
   ['scaleDown'],
   ['fitText'],
@@ -245,6 +251,8 @@ function isAvailable(id: SelectionActionId, shape: SelectionShape): boolean {
       return shape.canUngroup;
     case 'glyphStyle':
       return shape.isGlyph;
+    case 'opacityOpen':
+      return shape.isPlacedAsset;
     case 'alignLeft':
     case 'alignCenterH':
     case 'alignRight':
