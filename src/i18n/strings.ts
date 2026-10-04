@@ -192,6 +192,8 @@ export interface Translation {
     splitLatinScript: string;
     arabicFonts: string;
     latinFonts: string;
+    /** Label of the picker's "show every script" filter item. */
+    allFonts: string;
     // Style navigator and per-object style sheet.
     style: string;
     fontSize: string;
@@ -533,6 +535,7 @@ export const strings: Record<Language, Translation> = {
         'لا يمكن التقسيم: هذا خط لاتيني، وحروفه مرتبطة بخطوط الاتصال.',
       arabicFonts: 'الخطوط العربية',
       latinFonts: 'الخطوط اللاتينية',
+      allFonts: 'كل الخطوط',
       style: 'النمط',
       fontSize: 'حجم الخط',
       fontFamily: 'الخط',
@@ -840,6 +843,7 @@ export const strings: Record<Language, Translation> = {
         'Can’t split: this is a Latin face, and its letters are joined by connecting strokes.',
       arabicFonts: 'Arabic fonts',
       latinFonts: 'Latin fonts',
+      allFonts: 'All fonts',
       style: 'Style',
       fontSize: 'Font size',
       fontFamily: 'Font',

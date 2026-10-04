@@ -55,6 +55,11 @@ a chevron, and tapping it collapses or expands the rows. The collapsed state is
 choice is permanent across restarts. It defaults to expanded; pinning a new family
 while collapsed leaves it collapsed (the count still updates).
 
+The Pinned section sits **outside** the picker's All/Arabic/Latin script filter. A
+pin is cross-script by definition, and a pinned family is the only way back to a
+face whose script's section the filter is currently hiding — so filtering to Latin
+must not hide a pinned Arabic family.
+
 ## 4. Remote faces
 
 A pinned remote row never needs the catalogue for its **name**

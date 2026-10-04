@@ -127,6 +127,19 @@ export function FontPickerSheet({
   const { t, language, isRTL } = useT();
   const uiFont = fontRoles[language].ui;
   const [query, setQuery] = useState('');
+  /**
+   * The script filter over the bundled sections. `null` means "not chosen yet",
+   * and the filter then follows the active family's script — so a Latin design
+   * opens on the Latin list instead of below twenty-two Arabic rows. Choosing an
+   * item pins it for the rest of the open; closing clears it, which is what
+   * makes the default per-open rather than per-session. Not persisted: the pin
+   * store is device state, this is a view over one list.
+   */
+  const [scriptChoice, setScriptChoice] = useState<FontScript | 'all' | null>(
+    null,
+  );
+  const script: FontScript | 'all' =
+    scriptChoice ?? familyForVariant(value)?.script ?? 'arabic';
   const activeKey = familyForVariant(value)?.key;
   /** Remote faces registered this session — drives the chips' installed state. */
   const installedRemote = useInstalledRemoteFontKeys();
@@ -299,6 +312,9 @@ export function FontPickerSheet({
   // search term (the sheet stays mounted while hidden).
   const closeSheet = () => {
     setQuery('');
+    // Clearing the choice, not the derived value: reopening re-defaults to the
+    // active family's script.
+    setScriptChoice(null);
     setOpenRemoteId(null);
     onClose();
   };
@@ -337,6 +353,35 @@ export function FontPickerSheet({
       title={t.editor.fontFamily}
       closeButton
     >
+      {/* Script filter. The bundled list is long enough that both scripts
+          stacked put Latin below twenty-two Arabic rows, so the filter is what
+          makes the other script reachable. The pinned section and the Google
+          section are deliberately outside it: a pin is cross-script, and the
+          Google section is search-driven (see docs/editor-font-pins.md §3). */}
+      <View style={styles.filterRow}>
+        <Button
+          label={t.editor.allFonts}
+          variant={script === 'all' ? 'primary' : 'secondary'}
+          selected={script === 'all'}
+          onPress={() => setScriptChoice('all')}
+          style={styles.filterItem}
+        />
+        <Button
+          label={t.editor.arabicFonts}
+          variant={script === 'arabic' ? 'primary' : 'secondary'}
+          selected={script === 'arabic'}
+          onPress={() => setScriptChoice('arabic')}
+          style={styles.filterItem}
+        />
+        <Button
+          label={t.editor.latinFonts}
+          variant={script === 'latin' ? 'primary' : 'secondary'}
+          selected={script === 'latin'}
+          onPress={() => setScriptChoice('latin')}
+          style={styles.filterItem}
+        />
+      </View>
+
       <View
         style={[
           styles.search,
@@ -470,7 +515,8 @@ export function FontPickerSheet({
             header at all, for the same reason the Google Fonts header hides on
             an empty result: a heading above nothing reads as a broken section. */}
         {fontSections.map((section) =>
-          section.families.length === 0 ? null : (
+          section.families.length === 0 ||
+          (script !== 'all' && section.script !== script) ? null : (
             <View key={section.script}>
               <View style={styles.sectionHead}>
                 <Text
@@ -884,6 +930,12 @@ function RemoteFamilyRow({
 }
 
 const styles = StyleSheet.create({
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  filterItem: { flex: 1 },
   search: {
     borderWidth: 1,
     borderRadius: radius.lg,
