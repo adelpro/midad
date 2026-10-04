@@ -2188,7 +2188,11 @@ export function EditorScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.contextScroll}
-              contentContainerStyle={[styles.contextTrack, rowStyle(isRTL)]}
+              contentContainerStyle={[
+                styles.contextTrack,
+                tool === 'background' && styles.contextTrackCentered,
+                rowStyle(isRTL),
+              ]}
               onContentSizeChange={(w) => setContextWidth(w)}
             >
               {/*
@@ -2892,6 +2896,17 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.md,
   },
+  /**
+   * The background tool owns the whole row — its controls replaced the selection
+   * rail (`tool !== 'background'` above) — so they are centred rather than
+   * start-aligned. The rail's height is fixed at 56 dp, so the padding has to fit
+   * inside it: a 34 dp swatch plus 2 × 8 = 50 dp.
+   */
+  contextTrackCentered: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+  },
   toolRail: {
     paddingVertical: spacing.sm,
     borderTopWidth: 1,
@@ -2920,10 +2935,14 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   colorSwatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 1 },
-  /** The background toolbox sits at the start of the scrollable context zone. */
+  /**
+   * The background toolbox. It is the only child of the centred track above, so
+   * the track's `justifyContent` is what places it.
+   */
   bgToolWrap: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
   },
   /** Circle image button, sized to sit flush with the paper swatches. */
   bgImageBtn: {
