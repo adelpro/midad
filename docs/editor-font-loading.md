@@ -131,6 +131,10 @@ loads. The policy is therefore _cover first, then open_:
    **every** required key. `buildParagraph`'s Amiri fallback is the safety net,
    not the normal path.
 
+The same cover is the **launch** cover (§5): the root layout renders it while the
+core faces are still loading, so the wait before the first route is the same mark
+breathing rather than the native splash's still frame.
+
 The gate reads `families.has(key)` off the provider's own family set, so it
 cannot lift while a face is still absent. It is keyed on the **content** of the
 document's font keys (`projectFontKeySignature`), not the project object — a
@@ -246,12 +250,26 @@ stroke draw is web-only on `react-native-svg`. A transform-and-opacity pulse
 needs neither, so it is one implementation on web, Android and iOS. No new
 asset, and `brand-mark.tsx` is untouched.
 
+The loader is also the **launch cover** (0.5.0, superseding the D8 note below).
+`useBootstrap` hides the native splash the moment the persisted settings hydrate —
+hydration is what decides the theme, so the cover can be painted in the right
+colour from that point — and `app/_layout.tsx` renders `BrandLoader` at
+`height={144}` while `hydrated && !ready && !error`, over a `Stack` that mounts on
+the same `ready` transition. The cover is at most a few frames on a warm start, it
+cannot strand the app (it unmounts exactly when the routes mount), and it adds no
+latency because nothing is deferred to it. The 144 dp matches the splash's visible
+logo (`imageWidth` 200 × the asset's 0.72 crop), so the mark does not change size
+at the handoff.
+
 The native splash is a different thing and stays separate: the pulse is an
-in-app cover, never the splash (spec D8). The splash only _fades_ into the first
-route, and only on iOS — `fade` is annotated `@platform ios` in
-expo-splash-screen's own types, and Android hides the splash with its own window
-animation, so `setOptions` is gated on `Platform.OS === 'ios'` rather than
-implying an arrival only one platform gets.
+in-app cover, never the splash. Its own job now ends at theme hydration rather
+than at font load, so the pulse is the thing holding the longer wait. The splash
+still only _fades_ into the first route, and only on iOS — `fade` is annotated
+`@platform ios` in expo-splash-screen's own types, and Android hides the splash
+with its own window animation, so `setOptions` is gated on `Platform.OS === 'ios'`
+rather than implying an arrival only one platform gets. The dark splash gets its
+own light mark (`assets/images/splash-icon-dark.png`, `dark.image`), because the
+brand mark's `#05060A` is invisible on the `#111111` dark background.
 
 ## 6. What SDK 57 allows, and the one place we diverge
 

@@ -64,21 +64,31 @@ function useSettingsHydrated(): boolean {
  * opened, behind the brand loader (see `docs/editor-font-loading.md`); making
  * the splash wait for faces no screen is showing would trade a real wait for an
  * invisible one.
+ *
+ * The native splash is hidden as soon as the persisted settings have hydrated,
+ * **not** when the fonts have loaded. Hydration is what decides the theme, so
+ * from that moment the app can paint a cover in the right colour; the fonts are
+ * the remaining wait, and `_layout.tsx` covers it with `BrandLoader` so the
+ * arrival reads as one continuous mark rather than a still frame replaced by a
+ * route. Hiding at `ready` instead would leave that cover behind the native
+ * splash for the whole font load — which is the same as having no cover.
  */
 export function useBootstrap() {
   const [fontsLoaded, fontError] = useFonts(coreFontAssets);
   const settingsHydrated = useSettingsHydrated();
 
   useEffect(() => {
-    if ((fontsLoaded || fontError) && settingsHydrated) {
+    if (settingsHydrated) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError, settingsHydrated]);
+  }, [settingsHydrated]);
 
   return {
     ready: !!fontsLoaded && !fontError && settingsHydrated,
     // Withheld until hydration, so a font error cannot let the root layout
     // render past the gate on defaults.
     error: settingsHydrated ? (fontError ?? null) : null,
+    /** Whether the theme and persisted settings are known. Gates the launch cover. */
+    hydrated: settingsHydrated,
   };
 }
