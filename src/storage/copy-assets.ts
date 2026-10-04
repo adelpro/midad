@@ -73,12 +73,3 @@ export async function copyImageAssetsFromStore(
     return bytes ? { bytes, mime: object.imageMime } : null;
   });
 }
-
-/**
- * The MIME for a stored file name.
- *
- * The document's `imageMime` is the authority for rendering and is what the
- * object already carries; this exists only because `writeAssetBytes` needs a MIME
- * to choose the extension, and the extension it is given here is the one the file
- * already has.
- */
