@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 
-import { AnimatedPressable, Button, Sheet } from '@/components/ui';
+import { AnimatedPressable, Button, Reveal, Sheet } from '@/components/ui';
 import {
   GLYPH_DEFAULT_STYLE,
   glyphStrokeWidth,
@@ -41,6 +41,7 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { searchIcons, type IconSearchHit } from '@/storage/icon-search';
+import { useRowWaitMotion } from '@/editor/use-row-wait-motion';
 import type { ShapeKey } from '@/storage/project-schema';
 import { fontRoles, radius, spacing, typeScale } from '@/theme';
 
@@ -499,7 +500,7 @@ export function InsertSheet({
             </ScrollView>
           </>
         ) : tab === 'shapes' ? (
-          <View style={styles.grid}>
+          <Reveal style={styles.grid}>
             {SHAPE_KEYS.map((key) => (
               <ShapeTile
                 key={key}
@@ -508,9 +509,9 @@ export function InsertSheet({
                 onPress={pick(() => onPickShape(key))}
               />
             ))}
-          </View>
+          </Reveal>
         ) : (
-          <View style={styles.section}>
+          <Reveal style={styles.section}>
             <Text
               style={[
                 styles.sectionTitle,
@@ -594,80 +595,111 @@ export function InsertSheet({
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled
               >
-                {iconHits.map((hit) => {
-                  const blocked = !hit.allowed
-                    ? t.editor.iconShapeUnsupported
-                    : hit.palette
-                      ? t.editor.iconPaletteUnsupported
-                      : null;
-                  const busy = iconBusyKey === hit.key;
-                  const failed = iconFailedKey === hit.key;
-                  return (
-                    <AnimatedPressable
-                      key={hit.key}
-                      accessibilityRole="button"
-                      accessibilityState={{
-                        disabled: blocked !== null || busy,
-                        busy,
-                      }}
-                      accessibilityLabel={
-                        blocked
-                          ? `${hit.name}, ${blocked}`
-                          : failed
-                            ? `${hit.name}, ${t.editor.iconSearchFailed}`
-                            : hit.name
-                      }
-                      disabled={blocked !== null || busy}
-                      onPress={() => void importIcon(hit)}
-                      style={[
-                        styles.iconRow,
-                        {
-                          borderColor: failed ? c.danger : c.border,
-                          backgroundColor: c.surface,
-                          opacity: blocked ? 0.45 : 1,
-                        },
-                      ]}
-                    >
-                      <View style={styles.iconRowMain}>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.iconName,
-                            { color: c.ink, fontFamily: fonts.ui },
-                          ]}
-                        >
-                          {hit.name}
-                        </Text>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.sectionTitle,
-                            {
-                              color: blocked || failed ? c.danger : c.muted,
-                              fontFamily: fonts.ui,
-                            },
-                          ]}
-                        >
-                          {blocked ??
-                            (failed ? t.editor.iconSearchFailed : hit.setName)}
-                        </Text>
-                      </View>
-                      {busy && (
-                        <ActivityIndicator
-                          size="small"
-                          color={c.muted}
-                          accessibilityLabel={t.common.loading}
-                        />
-                      )}
-                    </AnimatedPressable>
-                  );
-                })}
+                {iconHits.map((hit) => (
+                  <IconHitRow
+                    key={hit.key}
+                    hit={hit}
+                    busy={iconBusyKey === hit.key}
+                    failed={iconFailedKey === hit.key}
+                    onPress={() => void importIcon(hit)}
+                  />
+                ))}
               </ScrollView>
             </View>
-          </View>
+          </Reveal>
         )}
       </View>
     </Sheet>
+  );
+}
+
+/**
+ * One search hit.
+ *
+ * Its own component rather than an inline `map` body for two reasons: the wait
+ * motion is a hook, and a hook cannot live inside a callback; and the row's
+ * disabled/blocked/busy/failed states are five-way, which reads better named than
+ * nested.
+ *
+ * The disabled look is applied as a **static** opacity from the style array while
+ * the wait motion drives an animated one — deliberately not both at once. A row
+ * that is blocked was never tapped, so it has no wait to express, and the two
+ * would multiply into a double-faded row.
+ */
+function IconHitRow({
+  hit,
+  busy,
+  failed,
+  onPress,
+}: {
+  hit: IconSearchHit;
+  busy: boolean;
+  failed: boolean;
+  onPress: () => void;
+}) {
+  const { colors: c } = useTheme();
+  const { t, language } = useT();
+  const fonts = fontRoles[language];
+  const waitStyle = useRowWaitMotion(busy);
+
+  const blocked = !hit.allowed
+    ? t.editor.iconShapeUnsupported
+    : hit.palette
+      ? t.editor.iconPaletteUnsupported
+      : null;
+  const detail = blocked ?? (failed ? t.editor.iconSearchFailed : hit.setName);
+
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: blocked !== null || busy, busy }}
+      accessibilityLabel={
+        blocked
+          ? `${hit.name}, ${blocked}`
+          : failed
+            ? `${hit.name}, ${detail}`
+            : hit.name
+      }
+      disabled={blocked !== null || busy}
+      onPress={onPress}
+      style={[
+        styles.iconRow,
+        {
+          borderColor: failed ? c.danger : c.border,
+          backgroundColor: c.surface,
+        },
+        blocked !== null && { opacity: 0.45 },
+        waitStyle,
+      ]}
+    >
+      <View style={styles.iconRowMain}>
+        <Text
+          numberOfLines={1}
+          style={[styles.iconName, { color: c.ink, fontFamily: fonts.ui }]}
+        >
+          {hit.name}
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.sectionTitle,
+            {
+              color: blocked || failed ? c.danger : c.muted,
+              fontFamily: fonts.ui,
+            },
+          ]}
+        >
+          {detail}
+        </Text>
+      </View>
+      {busy && (
+        <ActivityIndicator
+          size="small"
+          color={c.muted}
+          accessibilityLabel={t.common.loading}
+        />
+      )}
+    </AnimatedPressable>
   );
 }
 
