@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The font picker filters by script.** Its bundled list had grown to
+  thirty-two families across two scripts, and the two sections were stacked:
+  reaching a Latin face meant scrolling past twenty-two Arabic rows. A three-way
+  **All / Arabic / Latin** control now sits above the search field and opens on
+  the script of the family already in use, so the list a design needs is the one
+  on screen. The filter covers the bundled sections only — the pinned rows stay
+  visible because a pin is cross-script and is the way back to a hidden face, and
+  the Google Fonts section stays because it is driven by the search box.
+- **The picker's rows are one list instead of a stack of cards.** The bundled
+  rows lose their borders and their 26 px specimens and sit behind hairline
+  separators, so thirty-two families read as a list rather than thirty-two
+  panels. The Google rows keep their card: they carry a download state machine
+  and an Arabic-support badge, and that difference is worth the border.
+- **The background tool's controls are centred in the context rail.** The rail
+  is a fixed 56 dp because resizing it re-runs the canvas fit-to-view, so the
+  centring and the padding live inside that height rather than by growing it.
+- **The launch is one continuous brand mark.** The splash hid only once the core
+  faces had loaded, so the arrival was a still frame replaced by a route. It now
+  hides as soon as the persisted settings hydrate — which is what decides the
+  theme, so the cover can be painted in the right colour — and the loader that
+  already covers a design's font wait covers the launch's as well. It unmounts on
+  the same transition that mounts the routes, so nothing is deferred and no wait
+  is added. This supersedes the lazy-fonts decision that kept the pulse off the
+  launch path; `docs/editor-font-loading.md` §3 and §5 record the change.
+- **The splash and launcher marks are bigger, and the splash has a dark
+  variant.** The visible logo was about 67 dp and the dark splash drew the brand's
+  `#05060A` on `#111111`, which is to say it drew nothing. The splash asset is
+  cropped tighter (0.72 of its frame, from 0.56), `imageWidth` is 200 (from 120),
+  and a light-logo asset serves dark mode. The gallery header's mark grows with
+  them.
+
 ## [0.4.0] - 2026-10-04
 
 **0.4.0 is 0.4.0-rc.1 promoted to a stable release — no app code changed
