@@ -2,8 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 import { Skia } from '@shopify/react-native-skia';
 
-import { dataUriToBase64 } from '@/storage/background-image';
-import { sniffImageMime } from '@/storage/design-file';
+import { dataUriToBase64, sniffImageMime } from '@/storage/design-file';
 
 /**
  * Picking an image to *place* on the canvas.

@@ -67,6 +67,21 @@ export function extensionForMime(mime: string): string {
   return extForMime(mime);
 }
 
+/**
+ * Strip the `data:<mime>;base64,` prefix from a data URI, returning the raw
+ * base64 payload.
+ *
+ * Pure string logic, and it lives here rather than beside the picker because
+ * **three unrelated things need it** — the background, a placed image, and every
+ * renderer that decodes a `data:` URI. Putting it next to the picker made
+ * `placed-image.ts` and `background-image.ts` import each other, which Metro
+ * reports as a require cycle and which can surface as an uninitialized value.
+ */
+export function dataUriToBase64(dataUri: string): string {
+  const comma = dataUri.indexOf(',');
+  return comma === -1 ? dataUri : dataUri.slice(comma + 1);
+}
+
 function extForMime(mime: string): string {
   return EXT_BY_MIME[mime] ?? 'jpg';
 }
