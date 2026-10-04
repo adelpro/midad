@@ -41,7 +41,7 @@ import { useT } from '@/i18n';
 import type { ShapeKey } from '@/storage/project-schema';
 import { fontRoles, radius, spacing, typeScale } from '@/theme';
 
-export type InsertTab = 'glyphs' | 'shapes';
+export type InsertTab = 'glyphs' | 'shapes' | 'media';
 
 /** Re-exported so callers can name a shape without reaching into the schema. */
 export type { ShapeKey };
@@ -82,6 +82,8 @@ export interface InsertSheetProps {
   onClose: () => void;
   onPickGlyph: (glyphKey: string, style: GlyphStyle) => void;
   onPickShape: (shapeKey: ShapeKey) => void;
+  /** Opens the photo library to place an image on the canvas. */
+  onPickImage: () => void;
 }
 
 /**
@@ -278,6 +280,7 @@ export function InsertSheet({
   onClose,
   onPickGlyph,
   onPickShape,
+  onPickImage,
 }: InsertSheetProps) {
   const { colors: c } = useTheme();
   const { t, language } = useT();
@@ -336,6 +339,13 @@ export function InsertSheet({
             onPress={() => setTab('shapes')}
             style={styles.tab}
           />
+          <Button
+            label={t.editor.media}
+            variant={tab === 'media' ? 'primary' : 'secondary'}
+            selected={tab === 'media'}
+            onPress={() => setTab('media')}
+            style={styles.tab}
+          />
         </View>
 
         {tab === 'glyphs' ? (
@@ -391,7 +401,7 @@ export function InsertSheet({
               ))}
             </ScrollView>
           </>
-        ) : (
+        ) : tab === 'shapes' ? (
           <View style={styles.grid}>
             {SHAPE_KEYS.map((key) => (
               <ShapeTile
@@ -401,6 +411,26 @@ export function InsertSheet({
                 onPress={pick(() => onPickShape(key))}
               />
             ))}
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: c.muted, fontFamily: fonts.ui },
+              ]}
+            >
+              {t.editor.insertImageFromGallery}
+            </Text>
+            {/* One button, not a grid: the source is the photo library, so there
+                is nothing inside the app to browse. Icon import lands beside it
+                in 0.6.0's Task C4. */}
+            <Button
+              label={t.editor.insertImageFromGallery}
+              onPress={pick(onPickImage)}
+              fullWidth
+              variant="secondary"
+            />
           </View>
         )}
       </View>

@@ -160,6 +160,12 @@ export interface Translation {
     backgroundImage: string;
     bgImagePick: string;
     bgImageClear: string;
+    /** Rail label for the Insert tool, whose sheet now holds three tabs. */
+    insert: string;
+    /** Tab label for the sheet's placed-asset section. */
+    media: string;
+    /** Button that opens the photo library to place an image on the canvas. */
+    insertImageFromGallery: string;
     transparent: string;
     paper: string;
     enterText: string;
@@ -510,6 +516,9 @@ export const strings: Record<Language, Translation> = {
       backgroundImage: 'صورة خلفية',
       bgImagePick: 'اختيار صورة',
       bgImageClear: 'إزالة الصورة',
+      insert: 'إدراج',
+      media: 'وسائط',
+      insertImageFromGallery: 'إدراج صورة من المعرض',
       transparent: 'شفاف',
       paper: 'ورق',
       enterText: 'اكتب نصك هنا…',
@@ -818,6 +827,9 @@ export const strings: Record<Language, Translation> = {
       backgroundImage: 'Background image',
       bgImagePick: 'Pick image',
       bgImageClear: 'Remove image',
+      insert: 'Insert',
+      media: 'Media',
+      insertImageFromGallery: 'Add image from gallery',
       transparent: 'Transparent',
       paper: 'Paper',
       enterText: 'Type your text…',

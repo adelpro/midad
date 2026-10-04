@@ -121,10 +121,13 @@ import type {
   TextAlign,
 } from '@/storage/project-schema';
 import { PROJECT_FILE_EXT } from '@/storage/project-schema';
+import { base64ToBytes } from '@/storage/base64';
+import { pickPlacedImage } from '@/storage/placed-image';
 import { exportProjectFile } from '@/storage/project-io';
 import {
   loadProject as loadProjectFile,
   saveProject,
+  writeAssetBytes,
   writeBackgroundImage,
 } from '@/storage/projects';
 import { useSettings } from '@/storage/settings';
@@ -1437,6 +1440,49 @@ export function EditorScreen() {
     [project, addObject],
   );
 
+  /**
+   * Place a photo from the library on the canvas.
+   *
+   * The bytes are written to the design's own asset entry *before* the object
+   * exists, so an object can never reference bytes that were not stored — a
+   * crash between the two would otherwise leave an un-renderable frame. The size
+   * read at pick time becomes the object's `aspect`, which is what gives the
+   * frame the picture's shape and what the SVG export uses in place of a decode.
+   */
+  const insertImage = useCallback(async () => {
+    if (!project) {
+      return;
+    }
+    const picked = await pickPlacedImage();
+    if (!picked) {
+      return;
+    }
+    const id = `i_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const stored = await writeAssetBytes(
+      project.id,
+      id,
+      base64ToBytes(picked.base64),
+      picked.mime,
+    );
+    addObject({
+      id,
+      type: 'image',
+      ...stored,
+      aspect: picked.width / picked.height,
+      opacity: 1,
+      transform: {
+        x: project.canvas.width / 2,
+        y: project.canvas.height / 2,
+        scale: DECOR_INSERT_SCALE,
+        rotation: 0,
+        flipH: false,
+        flipV: false,
+      },
+      zIndex: (project.objects.length + 1) * 10,
+    });
+    setTool('select');
+  }, [project, addObject]);
+
   const deleteSelected = useCallback(() => {
     if (!selectedIds.length) {
       return;
@@ -2313,7 +2359,7 @@ export function EditorScreen() {
               icon="type"
             />
             <ToolBtn
-              label={t.editor.glyphs}
+              label={t.editor.insert}
               active={tool === 'insert'}
               onPress={pressInsertTool}
               icon="shapes"
@@ -2483,6 +2529,7 @@ export function EditorScreen() {
           onClose={() => setInsertSheetOpen(false)}
           onPickGlyph={insertGlyph}
           onPickShape={insertShape}
+          onPickImage={insertImage}
         />
 
         {/* Style sheet — presentation and typography for the selected object */}

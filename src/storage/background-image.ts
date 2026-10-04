@@ -1,15 +1,17 @@
-import * as ImagePicker from 'expo-image-picker';
-import { Platform } from 'react-native';
-
-import { sniffImageMime } from '@/storage/design-file';
+import { pickPlacedImage } from '@/storage/placed-image';
 
 /**
- * Background image helpers.
+ * Background-image helpers.
  *
  * A design's background image is stored as raw bytes beside the document (see
  * `design-file.ts`), never as a base64 string inside it. The picker hands back
  * base64, so that is the currency here; the storage layer decodes it once, on
  * write, and rebuilds the in-memory `data:` URI on load.
+ *
+ * The picker itself is shared with placed images — see `placed-image.ts`, which
+ * owns the platform permission handling, the `quality` budget and the
+ * byte-sniffed MIME. This module keeps the background's own currency
+ * (`base64` + `mime`) and the pure data-URI helper every renderer needs.
  */
 
 /** The picked image, encoded, with the MIME read from its own bytes. */
@@ -28,39 +30,10 @@ export function dataUriToBase64(dataUri: string): string {
 }
 
 /**
- * Launch the system image picker and return the chosen image as base64 plus its
- * real MIME, or `null` if the user cancels, permission is denied, or the picker
- * fails.
- *
- * `quality: 0.8` keeps JPEGs a reasonable size for embedding in the project
- * file; PNGs pass through at full size (a known, acceptable trade-off).
+ * Pick a background image: the shared picker, narrowed to the two fields a
+ * background stores. `null` on cancel, denied permission or a failed pick.
  */
 export async function pickBackgroundImage(): Promise<PickedImage | null> {
-  try {
-    // Web has no permission gate — the browser owns the picker.
-    // Android's system photo picker grants access to the selected image and
-    // does not require broad photo-library read permission. iOS still needs
-    // its photo-library authorization before opening the picker.
-    if (Platform.OS === 'ios') {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        return null;
-      }
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-      base64: true,
-    });
-    if (result.canceled) {
-      return null;
-    }
-    const asset = result.assets[0];
-    if (!asset?.base64) {
-      return null;
-    }
-    return { base64: asset.base64, mime: sniffImageMime(asset.base64) };
-  } catch {
-    return null;
-  }
+  const picked = await pickPlacedImage();
+  return picked ? { base64: picked.base64, mime: picked.mime } : null;
 }
