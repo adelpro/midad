@@ -6,6 +6,7 @@ import type {
 import { PaintStyle, Skia } from '@shopify/react-native-skia';
 
 import { drawGlyphOnCanvas } from '@/editor/skia/glyph-shape';
+import { IMAGE_BASE_SIZE } from '@/editor/skia/image-shape';
 import {
   SHAPE_BASE_SIZE,
   drawShapeOnCanvas,
@@ -30,6 +31,42 @@ function solidPaint(color: string): SkPaint {
   paint.setColor(Skia.Color(color));
   paint.setStyle(PaintStyle.Fill);
   return paint;
+}
+
+/**
+ * Draw a placed image into the `0..w, 0..h` box the caller has already
+ * translated to. Mirrors `EditorCanvas`'s `PlacedImage` and the SVG path's
+ * `<image>`: contain-fit, and nothing at all when the bytes cannot be decoded.
+ *
+ * A failed decode is not an error here — the storage contract lets a design open
+ * with an asset entry missing, and the object then simply draws nothing.
+ */
+function drawPlacedImageOnCanvas(
+  c: SkCanvas,
+  obj: { imageUri?: string },
+  w: number,
+  h: number,
+): void {
+  if (!obj.imageUri) {
+    return;
+  }
+  const data = Skia.Data.fromBase64(dataUriToBase64(obj.imageUri));
+  const img = Skia.Image.MakeImageFromEncoded(data);
+  if (!img) {
+    return;
+  }
+  const iw = img.width();
+  const ih = img.height();
+  // Contain: scale by the smaller ratio so the whole picture fits the box.
+  const scale = Math.min(w / iw, h / ih);
+  const dw = iw * scale;
+  const dh = ih * scale;
+  c.drawImageRect(
+    img,
+    Skia.XYWHRect(0, 0, iw, ih),
+    Skia.XYWHRect((w - dw) / 2, (h - dh) / 2, dw, dh),
+    Skia.Paint(),
+  );
 }
 
 /**
@@ -151,6 +188,13 @@ export function renderProjectToPng(
       // Local units: the canvas has already been scaled by the object transform.
       c.translate(-SHAPE_BASE_SIZE / 2, -SHAPE_BASE_SIZE / 2);
       drawShapeOnCanvas(c, obj, SHAPE_BASE_SIZE);
+    } else if (obj.type === 'image') {
+      // The object's own box, not the square base: a placed image is as wide as
+      // its aspect says. Same `-box/2` shift the shape and glyph paths use, so
+      // the box stays centred on the object origin.
+      const w = IMAGE_BASE_SIZE * obj.aspect;
+      c.translate(-w / 2, -IMAGE_BASE_SIZE / 2);
+      drawPlacedImageOnCanvas(c, obj, w, IMAGE_BASE_SIZE);
     } else {
       c.translate(-SHAPE_BASE_SIZE / 2, -SHAPE_BASE_SIZE / 2);
       drawGlyphOnCanvas(c, obj, SHAPE_BASE_SIZE);

@@ -14,11 +14,13 @@ import {
 import type {
   CalligraphyTextObject,
   GlyphObject,
+  ImageObject,
   MidadProject,
   ShapeObject,
 } from '@/storage/project-schema';
 import { bytesForRemoteFont } from '@/storage/remote-font-cache';
 import { fontAssets } from '@/theme';
+import { IMAGE_BASE_SIZE } from '@/editor/skia/image-shape';
 import {
   humanizeRemoteFontId,
   isRemoteFontKey,
@@ -279,6 +281,27 @@ function shapeGeometryToSvg(shape: ShapeObject, size: number): string | null {
  * `glyphStrokeWidth` for the style, which is in font units and therefore rides
  * the same `scale` as the path.
  */
+/**
+ * A placed image as an `<image>` element in the object's own frame.
+ *
+ * The box is centred on the object origin (`-w/2 … +w/2`), matching the canvas
+ * and PNG paths, and `preserveAspectRatio="xMidYMid meet"` mirrors their
+ * contain-fit. Returns `null` for an object with no URI, so the caller skips it
+ * and a design whose asset entry is gone still exports.
+ */
+function imageToSvg(obj: ImageObject): string | null {
+  if (!obj.imageUri) {
+    return null;
+  }
+  const w = IMAGE_BASE_SIZE * obj.aspect;
+  const h = IMAGE_BASE_SIZE;
+  return (
+    `<image href="${escapeXml(obj.imageUri)}" ` +
+    `x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" ` +
+    `preserveAspectRatio="xMidYMid meet"/>`
+  );
+}
+
 function glyphToSvg(glyph: GlyphObject): string | null {
   const entry = getGlyphEntry(glyph.glyphKey);
   if (!entry) {
@@ -363,6 +386,8 @@ export function projectToSvg(
       );
     } else if (obj.type === 'shape') {
       inner = shapeToSvg(obj);
+    } else if (obj.type === 'image') {
+      inner = imageToSvg(obj);
     } else {
       inner = glyphToSvg(obj);
     }

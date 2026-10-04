@@ -2465,7 +2465,13 @@ export function EditorScreen() {
             lives in the rail; the sheet owns the whole picker. */}
         <ColorPickerSheet
           visible={colorSheetOpen}
-          value={selectedObject?.color ?? DEFAULT_INK}
+          // A placed image has no colour — its pixels are the colour — so it
+          // opens on the default ink rather than pretending to have one.
+          value={
+            (selectedObject && 'color' in selectedObject
+              ? selectedObject.color
+              : undefined) ?? DEFAULT_INK
+          }
           recentColors={recentColors}
           onChange={applyColor}
           onClose={closeColorSheet}

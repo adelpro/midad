@@ -34,6 +34,7 @@ import {
   type SizedObject,
 } from '@/editor/hit-test';
 import { GlyphRenderer } from '@/editor/skia/glyph-shape';
+import { IMAGE_BASE_SIZE } from '@/editor/skia/image-shape';
 import { SHAPE_BASE_SIZE } from '@/editor/skia/shape-geometry';
 import { ShapeRenderer } from '@/editor/skia/shapes';
 import {
@@ -62,6 +63,10 @@ function objectBox(
       const layout = layouts[obj.id];
       return textObjectSize(layout, obj.fontSize, obj.wrapWidth);
     }
+    case 'image':
+      // A placed image's box follows its own aspect, so the frame hugs the
+      // picture instead of letterboxing it inside a square.
+      return { width: IMAGE_BASE_SIZE * obj.aspect, height: IMAGE_BASE_SIZE };
     case 'shape':
     case 'glyph':
       // Local (unscaled) box. The object's transform group supplies the scale,
@@ -118,6 +123,43 @@ function BackgroundImage({
       width={width}
       height={height}
       fit="cover"
+    />
+  );
+}
+
+/**
+ * A placed image, drawn into its own box.
+ *
+ * `fit="contain"` against a box that already carries the image's aspect ratio is
+ * a no-op mapping — it is there so a decoded image whose real dimensions disagree
+ * with the persisted `aspect` (a hand-edited file, a future crop) is letterboxed
+ * inside the frame rather than silently stretched.
+ *
+ * A missing or undecodable URI draws nothing. That is the storage contract's
+ * graceful degradation: an exported design whose asset entry was dropped still
+ * opens, with the object present and empty, instead of throwing.
+ */
+function PlacedImage({
+  uri,
+  width,
+  height,
+}: {
+  uri?: string;
+  width: number;
+  height: number;
+}) {
+  const image = useBackgroundImage(uri ?? '');
+  if (!image) {
+    return null;
+  }
+  return (
+    <SkiaImage
+      image={image}
+      x={0}
+      y={0}
+      width={width}
+      height={height}
+      fit="contain"
     />
   );
 }
@@ -364,6 +406,11 @@ const ObjectLayer = memo(function ObjectLayer({
         y={-box.height / 2}
         width={box.width}
       />
+    ) : obj.type === 'image' ? (
+      // A placed image fills its own box, so it needs no `-box/2` translate the
+      // way the shape and glyph renderers do — `PlacedImage` draws at 0,0 and the
+      // caller's box is already the object's frame.
+      <PlacedImage uri={obj.imageUri} width={box.width} height={box.height} />
     ) : obj.type === 'shape' ? (
       // Renderers draw into a 0..size box, so shift it to sit centred on
       // the object origin — which is what the overlay and hit-test assume.
