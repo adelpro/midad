@@ -48,6 +48,9 @@ builds/
 .eslintcache
 .prettiercache
 
+# Playwright MCP browser artifacts (page snapshots, screenshots, console logs)
+.playwright-mcp/
+
 # inline plan-execution scratch (ledger, briefs, review packages)
 .superpowers/
 docs/superpowers/*
