@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-04
+
+**0.4.0 is 0.4.0-rc.1 promoted to a stable release — no app code changed
+between the two.** The release candidate carried the ten bundled Latin faces,
+the core/display font split with the cover-then-open loader, the picker's
+per-script specimens and sections, and the universal sheet with its web width
+cap; its section below is the record of all of it. This entry exists so the
+release reads as a stable version in the log, and nothing moved in the
+repository around it.
+
 ## [0.4.0-rc.1] - 2026-10-04
 
 ### Added
