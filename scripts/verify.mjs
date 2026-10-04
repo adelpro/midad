@@ -75,6 +75,7 @@ const TASKS = [
   { id: 'remote-fonts', command: [join(here, 'check-remote-fonts.mjs')] },
   { id: 'font-pins', command: [join(here, 'check-font-pins.mjs')] },
   { id: 'glyphs', command: [join(here, 'check-glyphs.mjs')] },
+  { id: 'icons', command: [join(here, 'check-icons.mjs')] },
   { id: 'export-payload', command: [join(here, 'check-export-payload.mjs')] },
   { id: 'color', command: [join(here, 'check-color.mjs')] },
 ];

@@ -18,6 +18,16 @@ export type { FontKey, FontRoles } from './fonts';
 export { familyForVariant, fontFamilies, variantFor } from './font-families';
 export type { FontFamily, FontScript, FontVariant } from './font-families';
 export {
+  ICONIFY_HOSTS,
+  ICON_SEARCH_LIMIT,
+  ICON_SET_ALLOWLIST,
+  iconDataUrl,
+  iconKey,
+  iconSearchUrl,
+  isAllowedPrefix,
+  parseIconKey,
+} from './icon-sets';
+export {
   boldSiblingForKey,
   DEFAULT_LEADING_RATIO,
   presentationByKey,
