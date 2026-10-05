@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The About page no longer prints its mission paragraph twice.** The card rendered
+  one string as both its heading and its body, so the sentence appeared twice in
+  every language. The card now has a label of its own — `رسالتنا` / `Our mission` —
+  and the paragraph appears once.
+- **A horizontal drag on a gallery row works again.** `rubberband` and
+  `clampSettleVelocity` took their module constants as _default parameter values_, and
+  the worklets Babel plugin rewrites a reference in a worklet's body into a read off
+  `this.__closure` while leaving a parameter default a bare identifier — so the first
+  drag on the UI thread threw `Property 'ACTION_W' doesn't exist`. The defaults are
+  applied in the bodies now, where the rewrite does happen, and `check-swipe.mjs`
+  fails if one returns to a parameter list.
+- **The editor can no longer strand on the brand cover.** A provider build fetches
+  every face through `Skia.Data.fromURI`, and a failed fetch leaves that promise
+  pending **forever** — react-native-skia's Android loader returns `null` from
+  `getJniStreamFromSource` and its C++ thread early-returns without calling the
+  resolve callback — so there was no rejection to catch and nothing to retry, and the
+  cover gate reads a missing provider as _keep covering_. The build is now bounded in
+  time, retried, and then reported as failed, on which the gate stands down exactly as
+  it does for a refused `ensureBundledFonts`; a design whose faces cannot load opens
+  with its text falling back rather than behind a loader with no way out.
+
 ## [0.6.0-rc.1] - 2026-10-05
 
 **0.6.0-rc.1 also carries the 0.5.0 development milestone, which was transitional
