@@ -57,7 +57,7 @@ export default function AboutScreen() {
               { fontFamily: fonts.uiBold, color: c.ink },
             ]}
           >
-            {t.aboutPage.mission}
+            {t.aboutPage.missionTitle}
           </Text>
           <Text style={[styles.body, { fontFamily: fonts.ui, color: c.muted }]}>
             {t.aboutPage.mission}

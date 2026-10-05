@@ -106,6 +106,7 @@ export interface Translation {
   aboutPage: {
     title: string;
     body: string;
+    missionTitle: string;
     mission: string;
     versionLabel: string;
     developedBy: string;
@@ -438,6 +439,7 @@ export const strings: Record<Language, Translation> = {
     aboutPage: {
       title: 'حول مداد',
       body: 'مداد هو استوديو عربي للتصميم والخط العربي. يساعدك على تجربة الأحجام، الألوان، الطباعة، والنسخ بأسلوب شخصي وسهل.',
+      missionTitle: 'رسالتنا',
       mission:
         'نهدف إلى جعل الفن العربي أكثر قربًا من كل مستخدم، مع أدوات بسيطة تركز على الإبداع لا على التعقيد.',
       versionLabel: 'الإصدار الحالي',
@@ -760,6 +762,7 @@ export const strings: Record<Language, Translation> = {
     aboutPage: {
       title: 'About midad',
       body: 'midad is an Arabic calligraphy studio designed for exploring layouts, lettering, color, and composition in a mindful, approachable way.',
+      missionTitle: 'Our mission',
       mission:
         'Our goal is to make Arabic art more accessible to everyone by focusing on creativity, clarity, and a smooth creative flow.',
       versionLabel: 'Current version',
