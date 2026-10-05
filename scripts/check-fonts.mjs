@@ -553,6 +553,58 @@ if (!/setEnsureFailed\(false\)/.test(editorScreen)) {
   );
 }
 
+// ── the provider build's own failure path ─────────────────────────────────────
+// The same failure class as the pin above, on the *other* loader.
+// `loadParagraphFonts` fetches every face through `Skia.Data.fromURI` — in dev an
+// HTTP read from the dev server — so one aborted read rejects the whole
+// `Promise.all`. The hook used to swallow that rejection and leave no provider,
+// and the cover gate reads a null provider as "keep covering": the loader sat
+// over the whole editor, back button included, until the route was re-entered.
+// Pin all three halves — retry the transient case, record the failure, and stand
+// the gate down on it.
+const paragraphFontsHook = skiaText.slice(
+  skiaText.indexOf('export function useParagraphFonts'),
+  skiaText.indexOf('export interface TextLayoutSpec'),
+);
+if (!/catch\s*\{/.test(paragraphFontsHook)) {
+  fail(
+    'useParagraphFonts must catch a failed build rather than discard it silently',
+  );
+}
+if (!/PARAGRAPH_FONT_BUILD_ATTEMPTS/.test(paragraphFontsHook)) {
+  fail(
+    'useParagraphFonts must retry a failed build: its usual cause is transient',
+  );
+}
+// The one that matters most. The failure this guards cannot be caught, because
+// it never rejects: `Skia.Data.fromURI` leaves its promise *pending* for good when
+// the fetch fails (react-native-skia's Android loader returns null from Java and
+// its C++ thread early-returns without ever calling the resolve callback). A
+// pending build looks exactly like a slow one, so the only way to recover is to
+// bound it in time.
+if (!/withTimeout\s*\(/.test(paragraphFontsHook)) {
+  fail(
+    'useParagraphFonts must bound a build in time: a failed face fetch leaves ' +
+      'Skia.Data.fromURI pending forever and can never be caught',
+  );
+}
+if (!/failed:\s*true/.test(paragraphFontsHook)) {
+  fail(
+    'useParagraphFonts must record a failed build, or the cover gate waits on a ' +
+      'provider that is never coming',
+  );
+}
+const fontsReadyExpr = editorScreen.slice(
+  editorScreen.indexOf('const fontsReady'),
+  editorScreen.indexOf('const coverVisible'),
+);
+if (!/fontsFailed/.test(fontsReadyExpr)) {
+  fail(
+    'the cover gate must stand down on a failed provider build instead of ' +
+      'pinning the loader over the editor',
+  );
+}
+
 if (failures > 0) {
   console.error(`\ncheck-fonts: ${failures} failure(s)`);
   process.exit(1);

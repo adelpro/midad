@@ -549,7 +549,7 @@ export function EditorScreen() {
   );
 
   // Loaded once for offscreen rendering (thumbnails, exports).
-  const skiaFonts = useParagraphFonts();
+  const { set: skiaFonts, failed: fontsFailed } = useParagraphFonts();
 
   // ── missing remote fonts ────────────────────────────────────────────────────
   // The never-silent half of the remote-font contract: on open, any text face
@@ -586,8 +586,15 @@ export function EditorScreen() {
       ),
     [projectFontKeySignature],
   );
+  // Three ways to be ready, and the last two are one stand-down on each of the
+  // two loaders: the ensure (`ensureFailed`) and the provider build
+  // (`fontsFailed`). A failed provider build leaves `skiaFonts` null and nothing
+  // re-runs that effect — the snapshots it keys on do not move — so without the
+  // second flag the gate waits on a provider that is never coming and pins the
+  // loader over the whole editor, back button included.
   const fontsReady =
     ensureFailed ||
+    fontsFailed ||
     (skiaFonts != null &&
       requiredDisplayKeys.every((key) => skiaFonts.families.has(key)));
   // Only on a real design route: the editor is also reachable without an `id`

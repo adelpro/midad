@@ -163,6 +163,33 @@ ensuring, so one unrecoverable face does not stand the gate down for every face
 the rest of the session names, and each new design retries. It is set on
 rejection, and stands the gate down rather than stranding.
 
+**The provider build needs the same stand-down, and did not have one.** That is
+the defect this section also records. `loadParagraphFonts` fetches every face
+through `Skia.Data.fromURI` — on a device in dev, an HTTP read from the dev server
+— and when one of those reads fails, the promise it returns **never settles**:
+react-native-skia's Android loader has Java return `null` from
+`getJniStreamFromSource` and its C++ thread early-return without calling the
+resolve callback (`JniPlatformContext.cpp`, `performStreamOperation`), so there is
+no rejection to catch and nothing to retry. The build stayed pending, `skiaFonts`
+stayed null, and a null provider reads as **keep covering** — so a momentary blip
+between emulator and host (observed: `SocketException: Software caused connection
+abort` across several `PlatformContext.getStreamAsBytes` reads, with the
+dev-server reachability check failing in the same instant) pinned the loader over
+the whole editor, back button included, until the route was re-entered. The
+effect's triggers are the two snapshots, so a failed build moved neither and
+nothing ever re-ran it.
+
+The lesson is the shape of the guard, not just its existence: **a hung build cannot
+be caught, so it has to be bounded.** A rejected build is retried; a build that
+passes `PARAGRAPH_FONT_BUILD_TIMEOUT_MS` (6 s — several times what a healthy build
+takes here) is abandoned and retried; and once the attempts are spent
+(`PARAGRAPH_FONT_BUILD_ATTEMPTS`) the hook reports `failed`, on which `fontsReady`
+stands down exactly as it does on `ensureFailed`. A failed attempt publishes
+nothing, so the mirror keeps describing the provider already on screen and a later
+build can still replace it. This is **not** dev-only: any build that hangs strands
+the same way in a release build. `scripts/check-fonts.mjs` pins all five halves —
+the catch, the retry, the timeout, the recorded failure, and the gate's use of it.
+
 Four consequences that are easy to get wrong:
 
 - **A face missing from the registry falls back to Amiri.** That is the designed

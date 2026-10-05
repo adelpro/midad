@@ -63,7 +63,7 @@ export function useTextLayouts(
   objects: CalligraphyTextObject[],
   canvasWidth: number,
 ): TextLayouts {
-  const paragraphFonts = useParagraphFonts();
+  const { set: paragraphFonts } = useParagraphFonts();
 
   const signature = useMemo(
     () => layoutSignature(objects, canvasWidth),

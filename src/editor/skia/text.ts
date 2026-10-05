@@ -184,6 +184,86 @@ export function publishParagraphFonts(set: ParagraphFontSet): void {
 }
 
 /**
+ * The provider state the editor renders with: the latest accepted build, and
+ * whether the last build gave up.
+ *
+ * `failed` exists because a build can fail, and a missing provider is read as
+ * "not loaded yet" by the canvas — but as *keep covering* by the cover gate. One
+ * boolean separates the two readings, the same way `ensureFailed` does on the
+ * `ensureBundledFonts` path in `EditorScreen`.
+ */
+export interface ParagraphFontsState {
+  /** The latest accepted build, or `null` before the first one lands. */
+  set: ParagraphFontSet | null;
+  /**
+   * Every attempt at the current build failed or timed out. The gate stands down
+   * on this rather than waiting for a provider that is not coming; text then
+   * renders as nothing rather than pinning the whole editor behind the loader.
+   */
+  failed: boolean;
+}
+
+/**
+ * How long one build attempt may run before it is abandoned.
+ *
+ * A build fetches every face through `Skia.Data.fromURI`, which on a device in
+ * dev is an HTTP read from the dev server. When such a fetch fails it does **not**
+ * reject: react-native-skia's Android loader returns `null` from
+ * `getJniStreamFromSource`, and its C++ thread then early-returns without ever
+ * calling the resolve callback — so the promise stays pending for good. A pending
+ * build is indistinguishable from a slow one, so there is nothing to catch and
+ * nothing to retry; the only way out is to bound it in time. Generous against the
+ * ~1 s a healthy build takes here, because standing the gate down early costs the
+ * canvas its text.
+ */
+const PARAGRAPH_FONT_BUILD_TIMEOUT_MS = 6000;
+
+/**
+ * Build attempts before the cover gate is stood down.
+ *
+ * The usual cause — a momentary blip between emulator and host — is transient, so
+ * retry it. A build that keeps hanging stands the gate down rather than leaving
+ * the loader over the whole editor, back button included, with no way out.
+ */
+const PARAGRAPH_FONT_BUILD_ATTEMPTS = 3;
+
+/** Backoff before the next build attempt, multiplied by the attempt number. */
+const PARAGRAPH_FONT_BUILD_RETRY_MS = 300;
+
+/** Wait `ms`, so a retry does not hammer a dev server that is still coming up. */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+/**
+ * Reject if `work` has not settled within `ms`.
+ *
+ * Not a general-purpose helper: it exists because the failure it guards against
+ * can never be caught — see `PARAGRAPH_FONT_BUILD_TIMEOUT_MS`. The timer is always
+ * cleared, and a `work` that settles later is simply ignored.
+ */
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error('paragraph font build timed out')),
+      ms,
+    );
+    work.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/**
  * The editor's live provider hook.
  *
  * Rebuilds whenever the installed remote-face snapshot changes (a face was
@@ -194,32 +274,64 @@ export function publishParagraphFonts(set: ParagraphFontSet): void {
  * Skia provider from the same reconciled snapshot, so the two registrations can
  * never drift: the RN `<Text>` paths and the Skia canvas always agree on what
  * is installed.
+ *
+ * A build that rejects, or that hangs past `PARAGRAPH_FONT_BUILD_TIMEOUT_MS`, is
+ * retried and then reported as `failed` — never swallowed, and never left
+ * pending. See `ParagraphFontsState` for why the gate cannot be left to infer it.
  */
-export function useParagraphFonts(): ParagraphFontSet | null {
+export function useParagraphFonts(): ParagraphFontsState {
   const remoteFonts = useInstalledRemoteFontKeys();
   const loadedBundled = useLoadedBundledFontKeys();
-  const [paragraphFonts, setParagraphFonts] = useState<ParagraphFontSet | null>(
-    null,
-  );
+  const [state, setState] = useState<ParagraphFontsState>({
+    set: null,
+    failed: false,
+  });
   useEffect(() => {
     let active = true;
-    (async () => {
-      await refreshInstalledRemoteFonts();
-      if (!active) {
-        return;
+    void (async () => {
+      for (let attempt = 1; ; attempt += 1) {
+        try {
+          // The reconcile is inside the retried block on purpose: a rejected
+          // refresh would otherwise reject the effect with no state update, which
+          // is the same stranding this loop exists to prevent.
+          await refreshInstalledRemoteFonts();
+          if (!active) {
+            return;
+          }
+          const next = await withTimeout(
+            loadParagraphFonts(),
+            PARAGRAPH_FONT_BUILD_TIMEOUT_MS,
+          );
+          if (!active) {
+            return;
+          }
+          // Mirror and state together, under the one guard that decides this
+          // build is kept. Splitting them is what let a superseded build win the
+          // mirror.
+          publishParagraphFonts(next);
+          setState({ set: next, failed: false });
+          return;
+        } catch {
+          // A hang arrives here too: `withTimeout` rejects it. Nothing else can
+          // catch one — see `PARAGRAPH_FONT_BUILD_TIMEOUT_MS`.
+          if (!active) {
+            return;
+          }
+          if (attempt >= PARAGRAPH_FONT_BUILD_ATTEMPTS) {
+            // Give up, and say so. Nothing is published here: the previous set
+            // stays the mirror, so the provider on screen keeps its families and
+            // a later build can still replace it. Without this the gate waits
+            // forever on a provider that is not coming.
+            setState((prev) => ({ set: prev.set, failed: true }));
+            return;
+          }
+          await delay(PARAGRAPH_FONT_BUILD_RETRY_MS * attempt);
+          if (!active) {
+            return;
+          }
+        }
       }
-      const next = await loadParagraphFonts();
-      if (!active) {
-        return;
-      }
-      // Mirror and state together, under the one guard that decides this build is
-      // kept. Splitting them is what let a superseded build win the mirror.
-      publishParagraphFonts(next);
-      setParagraphFonts(next);
-    })().catch(() => {
-      // A failed load leaves text unrendered rather than crashing the screen;
-      // callers already treat a missing provider as "fonts not loaded yet".
-    });
+    })();
     return () => {
       active = false;
     };
@@ -228,7 +340,7 @@ export function useParagraphFonts(): ParagraphFontSet | null {
     // via `getLoadedBundledFontKeys`, so each snapshot's *identity* is the only
     // thing that must change to re-run this effect.
   }, [remoteFonts, loadedBundled]);
-  return paragraphFonts;
+  return state;
 }
 
 export interface TextLayoutSpec {
