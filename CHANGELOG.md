@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0-rc.2] - 2026-10-05
+
+**A fix-only follow-up to the first candidate: three defects the rc.1 build shipped
+with, all three found by using it rather than by the suite.** Two of them are pinned
+now — the swipe worklet's parameter defaults and the font provider build's time bound
+— so the same regression fails a `check-*.mjs` script instead of reaching a device.
+
 ### Fixed
 
 - **The About page no longer prints its mission paragraph twice.** The card rendered
