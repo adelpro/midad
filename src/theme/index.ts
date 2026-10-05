@@ -33,7 +33,6 @@ export {
   presentationByKey,
   presentations,
   presetPatch,
-  regularSiblingForKey,
 } from './presentations';
 export type { PresentationPatch, PresentationPreset } from './presentations';
 export {
@@ -48,7 +47,6 @@ export {
   spacing,
   springDampingRatios,
   springs,
-  tagType,
   typeScale,
   withAlpha,
 } from './tokens';

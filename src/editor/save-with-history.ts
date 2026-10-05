@@ -18,7 +18,7 @@ import { useEditorStore } from '@/editor/store';
 import { saveProject } from '@/storage/projects';
 
 /** Every object id any reachable history step still references. */
-export function retainableObjectIds(): string[] {
+function retainableObjectIds(): string[] {
   const { past, future } = useEditorStore.getState();
   return [
     ...new Set(

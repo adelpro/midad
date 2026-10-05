@@ -16,7 +16,7 @@
  */
 
 /** Prefix that marks a runtime-downloaded Google Font face. */
-export const REMOTE_PREFIX = 'remote:';
+const REMOTE_PREFIX = 'remote:';
 
 /**
  * `remote:<id>:<weight>` where `<id>` is a lowercase hyphenated slug and
@@ -24,7 +24,7 @@ export const REMOTE_PREFIX = 'remote:';
  * every key the app creates is normalised through `remoteFontKey`, so a key
  * with an uppercase slug is malformed, never a real face.
  */
-export const REMOTE_FONT_KEY_PATTERN = /^remote:[a-z0-9-]+:[1-9]\d{2}$/;
+const REMOTE_FONT_KEY_PATTERN = /^remote:[a-z0-9-]+:[1-9]\d{2}$/;
 
 /** A remote font key, e.g. `'remote:markazi-text:400'`. */
 export type RemoteFontKey = string;

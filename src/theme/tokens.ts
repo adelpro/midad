@@ -334,11 +334,3 @@ export const typeScale = {
 } as const;
 
 export type TypeVariant = keyof typeof typeScale;
-
-// Tag micro-typography — uppercase, wide tracking (per minimalist-ui).
-export const tagType = {
-  fontSize: 10,
-  lineHeight: 12,
-  letterSpacing: 0.05,
-  textTransform: 'uppercase' as const,
-};

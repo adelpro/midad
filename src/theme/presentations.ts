@@ -59,15 +59,6 @@ export function boldSiblingForKey(fontKey: string): string | null {
   return Object.hasOwn(fontAssets, bold) ? bold : null;
 }
 
-/** The regular sibling of a bold font key, or null when it is already regular. */
-export function regularSiblingForKey(fontKey: string): string | null {
-  if (!fontKey.endsWith(BOLD_SUFFIX)) {
-    return null;
-  }
-  const base = fontKey.slice(0, -BOLD_SUFFIX.length);
-  return Object.hasOwn(fontAssets, base) ? base : null;
-}
-
 export const presentations: readonly PresentationPreset[] = [
   {
     key: 'classic',

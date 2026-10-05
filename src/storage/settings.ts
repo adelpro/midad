@@ -19,13 +19,13 @@ export const AUTO_SAVE_INTERVALS_MS = [
   10_000, 30_000, 60_000, 300_000,
 ] as const;
 
-export const AUTO_SAVE_INTERVAL_DEFAULT_MS = 30_000;
+const AUTO_SAVE_INTERVAL_DEFAULT_MS = 30_000;
 
 /** Quiet period after the last edit before an auto-save is written. */
 export const AUTO_SAVE_DEBOUNCE_MS = 1_000;
 
 /** How many custom colours the picker remembers before dropping the oldest. */
-export const RECENT_COLORS_MAX = 8;
+const RECENT_COLORS_MAX = 8;
 
 export interface CanvasSize {
   labelAr: string;

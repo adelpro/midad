@@ -85,7 +85,7 @@ export const GLYPH_THIN_STROKE_RATIO = 0.02;
  * absent — a caller asking for a solid width gets 0, and the paint sites decide
  * fill vs stroke from the style itself.
  */
-export const GLYPH_STYLE_RATIO: Readonly<
+const GLYPH_STYLE_RATIO: Readonly<
   Record<Exclude<GlyphStyle, 'solid'>, number>
 > = {
   outline: GLYPH_STROKE_RATIO,

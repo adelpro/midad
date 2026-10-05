@@ -248,7 +248,7 @@ function keyLabel(key: string): string {
 }
 
 /** The key half of a chord, without modifiers. */
-export function bindingKeyLabel(binding: ShortcutBinding): string {
+function bindingKeyLabel(binding: ShortcutBinding): string {
   if (binding.code !== undefined) {
     return codeLabel(binding.code);
   }

@@ -19,7 +19,7 @@ import {
  */
 
 /** The document entry. The only entry a reader needs by name. */
-export const DESIGN_ENTRY = 'design.json';
+const DESIGN_ENTRY = 'design.json';
 
 export interface ImagePayload {
   bytes: Uint8Array;

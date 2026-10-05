@@ -11,7 +11,7 @@ import { springs } from '@/theme';
  * Press feedback scale (DESIGN.md §4). Subtle enough to read as material
  * flexing rather than the control shrinking.
  */
-export const PRESS_SCALE = 0.97;
+const PRESS_SCALE = 0.97;
 
 export interface PressFeedback {
   /** 1 while the pointer is down, 0 otherwise. Drives colour/opacity changes. */

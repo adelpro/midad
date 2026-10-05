@@ -13,7 +13,7 @@ import { motion } from '@/theme';
 const PULSE_OPACITY = 0.55;
 
 /** Themed placeholder block with a quiet UI-thread pulse (static under Reduce Motion). */
-export function SkeletonBlock({
+function SkeletonBlock({
   width,
   height,
   radius = 3,

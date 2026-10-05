@@ -22,7 +22,7 @@ import type { GlyphObject } from '@/storage/project-schema';
 const pathCache = new Map<string, SkPath | null>();
 
 /** Parsed `SkPath` for a catalog key, or null when the key is unknown. */
-export function glyphPath(key: string): SkPath | null {
+function glyphPath(key: string): SkPath | null {
   const cached = pathCache.get(key);
   if (cached !== undefined) {
     return cached;

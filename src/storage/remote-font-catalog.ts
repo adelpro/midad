@@ -14,7 +14,7 @@ import {
   type RemoteFontFamily,
 } from '@/theme/remote-fonts';
 
-export const FONTSOURCE_CATALOG_URL = 'https://api.fontsource.org/v1/fonts';
+const FONTSOURCE_CATALOG_URL = 'https://api.fontsource.org/v1/fonts';
 
 const CATALOG_KEY = 'midad:remote-font-catalog:v1';
 /** Refresh the catalog at most once a week. */

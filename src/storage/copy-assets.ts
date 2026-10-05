@@ -19,9 +19,7 @@ import type { DesignObject, MidadProject } from '@/storage/project-schema';
 export type ImageAssetObject = Extract<DesignObject, { type: 'image' }>;
 
 /** The placed-image objects in a document, in order. */
-export function imageObjects(
-  objects: readonly DesignObject[],
-): ImageAssetObject[] {
+function imageObjects(objects: readonly DesignObject[]): ImageAssetObject[] {
   return objects.filter((o): o is ImageAssetObject => o.type === 'image');
 }
 

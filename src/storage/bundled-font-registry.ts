@@ -56,10 +56,6 @@ export function subscribeLoadedBundledFonts(listener: Listener): () => void {
   };
 }
 
-export function isBundledFontLoaded(key: string): boolean {
-  return loadedKeys.has(key);
-}
-
 /**
  * Load the given display faces that are not loaded yet, then publish.
  *

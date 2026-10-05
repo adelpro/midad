@@ -264,7 +264,7 @@ export function CollectionBarHost({
  * the design) and its presses and scrolls never race the canvas pan. Its layer
  * is `box-none`, so the canvas keeps every touch that is not on the bar itself.
  */
-export function CollectionBar({
+function CollectionBar({
   frame,
   text,
   accessibilityLabel,

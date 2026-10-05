@@ -8,8 +8,6 @@ import {
 } from 'react';
 import { I18nManager, Platform } from 'react-native';
 
-import * as Localization from 'expo-localization';
-
 import { strings, type Language, type Translation } from '@/i18n/strings';
 import { useSettings } from '@/storage/settings';
 
@@ -21,18 +19,6 @@ interface I18nContextValue {
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null);
-
-/** Detect a preferred language from device locale (Arabic-first). */
-export function detectLanguage(): Language {
-  const locales = Localization.getLocales();
-  for (const loc of locales) {
-    const tag = loc.languageTag.toLowerCase();
-    if (tag.startsWith('ar')) {
-      return 'ar';
-    }
-  }
-  return 'en';
-}
 
 export function I18nProvider({ children }: PropsWithChildren) {
   const { language, setLanguage } = useSettings();

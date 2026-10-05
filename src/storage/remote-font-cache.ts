@@ -225,24 +225,6 @@ export async function listInstalledRemoteFonts(): Promise<string[]> {
   return keys;
 }
 
-/** Delete a face from disk and the index. */
-export async function removeRemoteFont(fontKey: string): Promise<void> {
-  const index = await readIndex();
-  const entry = index[fontKey];
-  if (entry?.source === 'file') {
-    try {
-      const { File } = await import('expo-file-system');
-      if (new File(entry.uri).exists) {
-        new File(entry.uri).delete();
-      }
-    } catch {
-      // Already gone — fine.
-    }
-  }
-  delete index[fontKey];
-  await writeIndex(index);
-}
-
 async function fetchFontBytes(url: string): Promise<Uint8Array> {
   const res = await fetch(url);
   if (!res.ok) {
