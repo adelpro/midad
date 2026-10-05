@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0-rc.1] - 2026-10-05
 
+**0.6.0-rc.1 also carries the 0.5.0 development milestone, which was transitional
+and was never published.** The script-filtered font picker, the flattened picker
+rows, the centred background rail and the continuous launch brand mark were built
+under 0.5.0 on `develop` and folded into this release rather than cut as a version
+of their own, so they are listed below and no `v0.5.0` tag exists.
+
 ### Added
 
 - **A photo can be placed on the canvas as an element.** Until now the only image a
@@ -39,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Every recent carries an × that forgets it, the list has a **Clear recents** action,
   and the recents are device-local, so they never enter the document.
 - **An opacity slider** for a placed asset, in the selection rail.
+- **The Insert sheet's wait states and its tab swap are animated.** A search in
+  flight and a gallery load animate in place rather than leaving the sheet mute,
+  and switching between its tabs is a transition rather than an instant swap.
 - **A contract for the two new kinds** (`docs/editor-render-contract.md` §5.1).
 
 ### Changed
@@ -100,6 +109,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and so rejected whole monotone sets while still listing their rows as available. It
   now tests the paint **value**: a literal colour is refused, the design's ink is
   taken.
+- **The About page shows the developer's email instead of the Android package id.**
+  It named `com.adelpro.midad` where a person looks for a way to reach the author; it
+  now gives the email, in both languages.
+- **A script filter that hides every bundled match now says so.** Filtering to Latin
+  and typing a query that only matches Arabic families left a silently blank list; the
+  picker shows the empty state instead.
+- **The stroke-outlined icon sets are no longer offered.** All three renderers and
+  the row preview draw a path by filling it, so a Tabler or Lucide icon imported as a
+  solid silhouette rather than the outline it showed. Both are removed from the
+  allowlist and the licence record until stroke rendering exists — an icon is refused
+  rather than drawn wrong.
 
 ## [0.4.0] - 2026-10-04
 
