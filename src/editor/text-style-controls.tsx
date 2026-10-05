@@ -347,6 +347,18 @@ export function TextPreview({
             fontFamily: fontKey,
             fontSize: previewFontSize,
             lineHeight: lineBox,
+            /**
+             * Carry the reserved headroom on the element itself.
+             *
+             * `numberOfLines` clips the element at its padding box, and the line
+             * box is the design's leading — smaller than the face's ink. Without
+             * this padding the clip sits exactly on the line box, so every
+             * descender and haraka that reaches past it is sliced off (the م
+             * tail was the reported case); the box reserves `headroom` above and
+             * below for exactly that ink, but the element has to be told to let
+             * it through. Vertical only, so the tail ellipsis still bites.
+             */
+            paddingVertical: headroom,
             color: blank ? c.faint : c.ink,
             textAlign: 'center',
             writingDirection: isRTL ? 'rtl' : 'ltr',
