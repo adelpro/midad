@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0-rc.1] - 2026-10-05
+
+### Added
+
+- **A photo can be placed on the canvas as an element.** Until now the only image a
+  design could hold was the canvas background, and the tool rail's image button was
+  that background's picker — so "add an image" was not hidden, it did not exist. An
+  image is now an object like a shape: place it from the Insert sheet's new **Media**
+  tab, then move, scale, rotate, flip, fade, reorder and delete it, and group it with
+  anything else. Its frame follows the picture's own aspect rather than letterboxing
+  it into a square, and its bytes are stored as a named entry in the design's
+  package, so a design can hold several.
+- **An icon can be imported from an open icon set and inked.** The same Media tab
+  searches the Iconify catalogue and places a pictogram as **vector** art: the
+  geometry is resolved when it is imported and stored in the document, so the export
+  scales without blur, the icon takes the design's ink like a glyph, and a design
+  that names an icon opens with no network at all. Only monotone sets whose icons are
+  **filled paths** are offered — a set with baked colours cannot be inked, and a
+  stroke-outlined set would import as a solid silhouette, which is why Tabler and
+  Lucide wait for stroke rendering. A set the picker will not offer, or an icon whose
+  shapes cannot be stored as paths, is shown disabled with the reason rather than
+  approximated. Four sets are allowlisted (Material Symbols, Material Design Icons,
+  Phosphor, Bootstrap Icons), each with its licence recorded in `THIRD-PARTY-ICONS.md`
+  and pinned to `src/theme/icon-sets.ts` by `scripts/check-icons.mjs`.
+- **The icon picker remembers what you place, and never opens blank.** Before a
+  search the Icons block shows the icons this device has inserted — geometry included,
+  so each draws and re-inserts with no network — under a **Recent** heading, or a
+  shipped **Suggested** set on a fresh install. Searching streams each row's resolved
+  geometry into a fixed preview tile, so a hit can be judged before it is placed.
+  Every recent carries an × that forgets it, the list has a **Clear recents** action,
+  and the recents are device-local, so they never enter the document.
+- **An opacity slider** for a placed asset, in the selection rail.
+- **A contract for the two new kinds** (`docs/editor-render-contract.md` §5.1).
+
 ### Changed
 
 - **The font picker filters by script.** Its bundled list had grown to
@@ -39,33 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cropped tighter (0.72 of its frame, from 0.56), `imageWidth` is 200 (from 120),
   and a light-logo asset serves dark mode. The gallery header's mark grows with
   them.
-
-### Added — placed assets (0.6.0)
-
-- **A photo can be placed on the canvas as an element.** Until now the only image a
-  design could hold was the canvas background, and the tool rail's image button was
-  that background's picker — so "add an image" was not hidden, it did not exist. An
-  image is now an object like a shape: place it from the Insert sheet's new **Media**
-  tab, then move, scale, rotate, flip, fade, reorder and delete it, and group it with
-  anything else. Its frame follows the picture's own aspect rather than letterboxing
-  it into a square, and its bytes are stored as a named entry in the design's
-  package, so a design can hold several.
-- **An icon can be imported from an open icon set and inked.** The same Media tab
-  searches the Iconify catalogue and places a pictogram as **vector** art: the
-  geometry is resolved when it is imported and stored in the document, so the export
-  scales without blur, the icon takes the design's ink like a glyph, and a design
-  that names an icon opens with no network at all. Only monotone sets are offered — a
-  set with baked colours cannot be inked, which is the whole point of importing a
-  pictogram here — and an icon whose shapes cannot be stored as paths is shown
-  disabled with the reason rather than approximated. Six sets are allowlisted
-  (Material Symbols, Material Design Icons, Phosphor, Tabler, Lucide, Bootstrap
-  Icons), each with its licence recorded in `THIRD-PARTY-ICONS.md` and pinned to
-  `src/theme/icon-sets.ts` by `scripts/check-icons.mjs`.
-- **An opacity slider** for a placed asset, in the selection rail.
-- **A contract for the two new kinds** (`docs/editor-render-contract.md` §5.1).
-
-### Changed — placed assets (0.6.0)
-
 - **The `.midad` container is version 3, and version 2 is still read.** A v2 document
   has exactly one image slot and no object asset entries, so placed images are what
   moved the version. `normalizeProjectVersion` accepts 2 or 3 and normalizes to 3,
@@ -77,12 +84,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   can never both apply — one is text-only, the other is a placed asset — so the
   change spends no width on a rail that truncates on a phone.
 
-### Fixed — placed assets (0.6.0)
+### Fixed
 
 - **An image's `imageUri` can no longer leak into `design.json`.** The in-memory data
   URI is stripped on every write for the background _and_ for every placed image; a
   surviving one would have re-serialised each image's full base64 payload on every
   autosave.
+- **A placed image sits centred in its own frame.** The canvas renderer was the one
+  site that drew the picture from the object's corner instead of its centre, so it sat
+  half a box down and to the right of its own selection border; the PNG and SVG paths
+  already applied the `-box/2` shift, and the canvas now agrees with them.
+- **A monotone icon whose paths spell `fill="currentColor"` imports again.** The ink
+  guard tested for the mere presence of a `fill`/`stroke` attribute, which refused
+  `currentColor` and `none` — the tokens that mean "the design's ink" and "no paint" —
+  and so rejected whole monotone sets while still listing their rows as available. It
+  now tests the paint **value**: a literal colour is refused, the design's ink is
+  taken.
 
 ## [0.4.0] - 2026-10-04
 
