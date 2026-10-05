@@ -441,7 +441,7 @@ export const strings: Record<Language, Translation> = {
       mission:
         'نهدف إلى جعل الفن العربي أكثر قربًا من كل مستخدم، مع أدوات بسيطة تركز على الإبداع لا على التعقيد.',
       versionLabel: 'الإصدار الحالي',
-      developedBy: 'طُوِّر تطبيق مداد بواسطة adelpro (com.adelpro.midad).',
+      developedBy: 'طُوِّر تطبيق مداد بواسطة adelpro (adelpro@gmail.com).',
     },
     privacyPage: {
       title: 'سياسة الخصوصية',
@@ -763,7 +763,7 @@ export const strings: Record<Language, Translation> = {
       mission:
         'Our goal is to make Arabic art more accessible to everyone by focusing on creativity, clarity, and a smooth creative flow.',
       versionLabel: 'Current version',
-      developedBy: 'The Midad app is developed by adelpro (com.adelpro.midad).',
+      developedBy: 'The Midad app is developed by adelpro (adelpro@gmail.com).',
     },
     privacyPage: {
       title: 'Privacy policy',
