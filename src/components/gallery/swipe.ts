@@ -11,6 +11,14 @@
  * `clampSettleVelocity` carry a `'worklet'` directive: `project-row.tsx` calls
  * them from inside gesture callbacks, which are worklets. Remove a directive and
  * the gesture throws on the UI thread the first time it runs.
+ *
+ * A helper must also keep its defaults **out of the parameter list** and apply
+ * them in the body. The worklets Babel plugin rewrites a body reference into a
+ * read off `this.__closure`, but leaves a parameter default a bare identifier —
+ * so `actionWidth = ACTION_W` compiled to UI-thread code that looked `ACTION_W`
+ * up with no closure entry to find, and every horizontal drag on a gallery row
+ * died with `Property 'ACTION_W' doesn't exist`. `check-swipe.mjs` pins both the
+ * directives and the absence of parameter defaults.
  */
 
 /** Which action a row has revealed, if any. */
@@ -81,13 +89,18 @@ export function settleTarget(side: SwipeSide, dir: number): number {
  */
 export function rubberband(
   next: number,
-  actionWidth = ACTION_W,
-  give = ELASTIC_TRAVEL,
+  actionWidth?: number,
+  give?: number,
 ): number {
   'worklet';
-  const over = Math.abs(next) - actionWidth;
+  // Applied in the body, not as parameter defaults: the worklets plugin rewrites
+  // a body reference into a `this.__closure` read, but leaves a parameter default
+  // a bare identifier, which throws on the UI thread. See the header.
+  const reveal = actionWidth ?? ACTION_W;
+  const slack = give ?? ELASTIC_TRAVEL;
+  const over = Math.abs(next) - reveal;
   if (over <= 0) return next;
-  return Math.sign(next) * (actionWidth + (give * over) / (over + give));
+  return Math.sign(next) * (reveal + (slack * over) / (over + slack));
 }
 
 /** Where the card would come to rest if released now. */
@@ -128,10 +141,8 @@ export function resolveSwipeSide(args: {
 }
 
 /** Clamp a release velocity into the range the panel can absorb. */
-export function clampSettleVelocity(
-  velocityX: number,
-  max = MAX_SETTLE_VELOCITY,
-): number {
+export function clampSettleVelocity(velocityX: number, max?: number): number {
   'worklet';
-  return Math.min(max, Math.max(-max, velocityX));
+  const ceiling = max ?? MAX_SETTLE_VELOCITY;
+  return Math.min(ceiling, Math.max(-ceiling, velocityX));
 }

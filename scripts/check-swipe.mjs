@@ -354,6 +354,24 @@ for (const name of WORKLET_HELPERS) {
   );
 }
 
+// Default parameter values are the trap the directive guard above cannot see.
+// The worklets Babel plugin rewrites a reference in a worklet's *body* into a
+// read off `this.__closure`, but it leaves a parameter default a bare
+// identifier — so `actionWidth = ACTION_W` compiles to UI-thread code that looks
+// `ACTION_W` up with no closure entry to find and throws
+// "Property 'ACTION_W' doesn't exist" the first time the gesture runs. A default
+// has to be applied inside the body, where the rewrite does happen. No device
+// test can catch this, so the source is pinned here.
+for (const name of WORKLET_HELPERS) {
+  const params = new RegExp(
+    `function ${name}\\s*\\(([^]*?)\\)\\s*(?::[^{]+)?\\{`,
+  ).exec(codeOnly)?.[1];
+  ok(
+    `${name} takes no default parameter value`,
+    params !== undefined && !params.includes('='),
+  );
+}
+
 console.log(
   failures === 0
     ? '\nAll swipe checks passed.'
