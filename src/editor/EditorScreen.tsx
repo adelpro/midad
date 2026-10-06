@@ -2401,7 +2401,7 @@ export function EditorScreen() {
               icon="pen"
             />
             <ToolBtn
-              label={t.editor.multiSelect}
+              label={t.editor.multiSelectShort}
               accessibilityLabel={t.editor.hints.multiSelect}
               hint={shortcuts.hint(
                 t.editor.hints.multiSelect,

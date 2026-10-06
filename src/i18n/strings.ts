@@ -127,6 +127,12 @@ export interface Translation {
     background: string;
     select: string;
     multiSelect: string;
+    /**
+     * The tool rail's visible caption for multi-select. Shorter than
+     * `multiSelect` so it fits a phone-width tile; the full phrase stays in the
+     * accessibility label and the tooltip.
+     */
+    multiSelectShort: string;
     text: string;
     glyphs: string;
     shapes: string;
@@ -508,6 +514,7 @@ export const strings: Record<Language, Translation> = {
       background: 'الخلفية',
       select: 'تحديد',
       multiSelect: 'تحديد متعدد',
+      multiSelectShort: 'متعدد',
       text: 'نص',
       glyphs: 'زخارف',
       shapes: 'أشكال',
@@ -830,6 +837,7 @@ export const strings: Record<Language, Translation> = {
       background: 'Background',
       select: 'Select',
       multiSelect: 'Multi-select',
+      multiSelectShort: 'Multi',
       text: 'Text',
       glyphs: 'Ornaments',
       shapes: 'Shapes',
