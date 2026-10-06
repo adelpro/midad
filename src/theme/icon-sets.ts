@@ -147,3 +147,23 @@ export function parseIconKey(
 export function isAllowedPrefix(prefix: string): boolean {
   return Object.prototype.hasOwnProperty.call(ICON_SET_ALLOWLIST, prefix);
 }
+
+/** The set-level facts a search hit carries about its importability. */
+export interface IconOfferability {
+  /** Whether the set is on `ICON_SET_ALLOWLIST`. */
+  allowed: boolean;
+  /** Whether the set bakes its own colours (emoji, logos, flags). */
+  palette: boolean;
+}
+
+/**
+ * Whether the search may surface this hit at all.
+ *
+ * Two refusals, both knowable from the search response without fetching a body:
+ * a set outside the allowlist, and a palette set whose colours cannot be inked.
+ * A body-level refusal (a monotone set whose single icon paints its own colour)
+ * is only knowable after the body arrives, so the preview stage handles that.
+ */
+export function isImportableIcon(hit: IconOfferability): boolean {
+  return hit.allowed && !hit.palette;
+}
