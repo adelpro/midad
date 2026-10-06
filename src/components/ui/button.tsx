@@ -4,6 +4,8 @@ import {
   StyleSheet,
   Text,
   View,
+  type StyleProp,
+  type TextStyle,
   type ViewStyle,
 } from 'react-native';
 import { useAnimatedStyle } from 'react-native-reanimated';
@@ -13,6 +15,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useT } from '@/i18n';
 import { fontRoles, radius, spacing, type MidadPalette } from '@/theme';
 
+import { FittedLabel } from './fitted-label';
 import { AnimatedPressable } from './pressable';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -33,6 +36,11 @@ export interface ButtonProps {
   accessibilityHint?: string;
   /** Marks the button as a chosen option in the accessibility tree. */
   selected?: boolean;
+  /**
+   * Shrink the label to fit rather than wrap or ellipsize. For fixed-width
+   * buttons whose label is longer than a phone-width share of the row.
+   */
+  labelFit?: boolean;
 }
 
 function variantColors(variant: ButtonVariant, c: MidadPalette) {
@@ -72,6 +80,7 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
     accessibilityLabel,
     accessibilityHint,
     selected,
+    labelFit,
   },
   ref,
 ) {
@@ -81,6 +90,15 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
   const vc = variantColors(variant, c);
   const dimmed = disabled || loading;
   const press = usePressFeedback();
+  const labelStyle: StyleProp<TextStyle> = [
+    styles.label,
+    {
+      color: vc.text,
+      fontFamily: fonts.uiBold,
+      // Tracking breaks Arabic cursive joining — Latin-only.
+      letterSpacing: language === 'ar' ? 0 : 0.01,
+    },
+  ];
 
   const restBg = vc.bg;
   const activeBg = vc.pressed ?? vc.bg;
@@ -123,20 +141,10 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
     >
       {loading ? (
         <ActivityIndicator color={vc.text} />
+      ) : labelFit ? (
+        <FittedLabel label={label} style={labelStyle} />
       ) : (
-        <Text
-          style={[
-            styles.label,
-            {
-              color: vc.text,
-              fontFamily: fonts.uiBold,
-              // Tracking breaks Arabic cursive joining — Latin-only.
-              letterSpacing: language === 'ar' ? 0 : 0.01,
-            },
-          ]}
-        >
-          {label}
-        </Text>
+        <Text style={labelStyle}>{label}</Text>
       )}
     </AnimatedPressable>
   );
