@@ -10,7 +10,7 @@
  * exactly what `<Svg viewBox>` wants, and `@/editor/glyphs` is deliberately
  * Skia-free so a modal never drags CanvasKit onto its render path.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -346,6 +346,16 @@ export function InsertSheet({
   /** What the empty state lists: this device's recents, or the shipped defaults. */
   const emptyState: readonly StoredIcon[] =
     recentIcons.length > 0 ? recentIcons : DEFAULT_ICONS;
+  /**
+   * The hits the list may render. A preview that resolved to `null` cannot be
+   * imported, so it is dropped. A hit whose preview is still in flight
+   * (`undefined`) stays: it is merely un-previewed, and the tap resolves it for
+   * real. Set-level refusals never reach here — `searchIcons` filters them.
+   */
+  const visibleHits = useMemo(
+    () => iconHits.filter((hit) => iconPreviews.get(hit.key)?.paths !== null),
+    [iconHits, iconPreviews],
+  );
   /** A photo pick whose store write failed — the sheet says so. */
   const [imageFailed, setImageFailed] = useState(false);
   // The ornament paint style the next placed ornament gets; also drives the
@@ -605,10 +615,11 @@ export function InsertSheet({
               </Text>
             )}
 
-            {/* Imported icons. The catalogue is searched by name; a hit that
-                cannot be inked (a palette set) or cannot be stored as paths is
-                shown disabled with the reason rather than hidden, so the search
-                looks like what it is instead of quietly missing results. */}
+            {/* Imported icons. The catalogue is searched by name, and the
+                search hides every hit the picker cannot import — a set outside
+                the allowlist, a palette set, or a body that resolves to no
+                paths. An unimportable icon is not a result we can honour, so it
+                is not a row. */}
             <View style={styles.iconSection}>
               <Text
                 style={[
@@ -654,6 +665,20 @@ export function InsertSheet({
                   {t.editor.iconSearchFailed}
                 </Text>
               )}
+              {/* A query whose every hit was unimportable would otherwise leave
+                  an empty list with no explanation. */}
+              {searching &&
+                iconState === 'ready' &&
+                visibleHits.length === 0 && (
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: c.muted, fontFamily: fonts.ui },
+                    ]}
+                  >
+                    {t.editor.noIconResults}
+                  </Text>
+                )}
 
               {!searching && (
                 <View style={styles.iconListHeader}>
@@ -694,28 +719,16 @@ export function InsertSheet({
                 nestedScrollEnabled
               >
                 {searching
-                  ? iconHits.map((hit) => {
+                  ? visibleHits.map((hit) => {
                       const preview = iconPreviews.get(hit.key);
-                      // Read from the resolved geometry where there is one, not
-                      // only the set's `palette` flag: a set can be monotone
-                      // overall while one icon paints its own colours. A row
-                      // whose preview has not arrived is not blocked — it is
-                      // merely un-previewed, and the tap resolves it for real.
-                      const blocked = !hit.allowed
-                        ? t.editor.iconShapeUnsupported
-                        : hit.palette || preview?.paths === null
-                          ? t.editor.iconPaletteUnsupported
-                          : null;
                       const failed = iconFailedKey === hit.key;
                       return (
                         <IconRow
                           key={hit.key}
                           name={hit.name}
                           detail={
-                            blocked ??
-                            (failed ? t.editor.iconSearchFailed : hit.setName)
+                            failed ? t.editor.iconSearchFailed : hit.setName
                           }
-                          blocked={blocked}
                           paths={preview?.paths ?? null}
                           viewBox={preview?.viewBox}
                           busy={iconBusyKey === hit.key}
@@ -729,7 +742,6 @@ export function InsertSheet({
                         key={icon.key}
                         name={icon.name}
                         detail={icon.setName}
-                        blocked={null}
                         paths={icon.paths}
                         viewBox={icon.viewBox}
                         busy={false}
@@ -757,12 +769,11 @@ export function InsertSheet({
  *
  * Its own component rather than an inline `map` body for two reasons: the wait
  * motion is a hook, and a hook cannot live inside a callback; and the row's
- * blocked/busy/failed/forgettable states read better named than nested.
+ * busy/failed/forgettable states read better named than nested.
  *
  * The disabled look is applied as a **static** opacity from the style array while
- * the wait motion drives an animated one — deliberately not both at once. A row
- * that is blocked was never tapped, so it has no wait to express, and the two
- * would multiply into a double-faded row.
+ * the wait motion drives an animated one — deliberately not both at once, or the
+ * two would multiply into a double-faded row.
  *
  * `onForget` is passed only for a recent: the × forgets it. A default has no
  * origin to forget, and a search hit is not remembered until it is inserted.
@@ -770,7 +781,6 @@ export function InsertSheet({
 function IconRow({
   name,
   detail,
-  blocked,
   paths,
   viewBox,
   busy,
@@ -781,8 +791,6 @@ function IconRow({
 }: {
   name: string;
   detail: string;
-  /** Why the row cannot be imported, or `null` when it can. */
-  blocked: string | null;
   /** Resolved geometry, or `null` before a preview has arrived. */
   paths: IconPath[] | null;
   viewBox: { width: number; height: number } | undefined;
@@ -800,11 +808,9 @@ function IconRow({
   return (
     <AnimatedPressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: blocked !== null || busy, busy }}
-      accessibilityLabel={
-        blocked ? `${name}, ${blocked}` : failed ? `${name}, ${detail}` : name
-      }
-      disabled={blocked !== null || busy}
+      accessibilityState={{ disabled: busy, busy }}
+      accessibilityLabel={failed ? `${name}, ${detail}` : name}
+      disabled={busy}
       onPress={onPress}
       style={[
         styles.iconRow,
@@ -812,7 +818,6 @@ function IconRow({
           borderColor: failed ? c.danger : c.border,
           backgroundColor: c.surface,
         },
-        blocked !== null && { opacity: 0.45 },
         waitStyle,
       ]}
     >
@@ -845,7 +850,7 @@ function IconRow({
           style={[
             styles.sectionTitle,
             {
-              color: blocked || failed ? c.danger : c.muted,
+              color: failed ? c.danger : c.muted,
               fontFamily: fonts.ui,
             },
           ]}
