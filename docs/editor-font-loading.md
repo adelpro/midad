@@ -324,6 +324,15 @@ second call adding faces. Relatedly, `useFonts` does not reload when its map
 changes, so lazy loading must go through imperative `loadAsync` — never by
 growing the static boot map.
 
+The batch is settled **per face**, not as one unit. `ensureBundledFonts` loads
+each missing key on its own and publishes every key that resolves before it
+rethrows the first rejection. That ordering matters because the picker's warm-up
+asks for all forty-one faces in one call: if a single face failed and the batch
+published only as a unit, no row would repaint and every specimen would sit on
+its fallback — a failure on an unloadable face would be visible on faces that are
+perfectly fine. The rethrow is preserved because the editor's cover gate awaits
+this promise and must not open a design whose own face is missing (task §3).
+
 **The divergence:** the docs call the `expo-font` **config plugin** the
 recommended method for Android and iOS. We do not use it, for two reasons. It
 embeds fonts at build time, which is the bloat this split exists to avoid; and
