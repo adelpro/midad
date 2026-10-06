@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   Button,
+  FittedLabel,
   Icon,
   IconButton,
   Reveal,
@@ -2840,7 +2841,8 @@ function ToolBtnRaw({
       >
         <Icon name={icon} size={18} color={active ? c.onInk : c.ink} />
       </IconButton>
-      <Text
+      <FittedLabel
+        label={label}
         style={[
           styles.toolLabel,
           {
@@ -2850,10 +2852,7 @@ function ToolBtnRaw({
             textAlign: 'center',
           },
         ]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
+      />
     </View>
   );
 }
