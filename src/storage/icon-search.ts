@@ -4,6 +4,7 @@ import {
   ICON_SEARCH_LIMIT,
   iconSearchUrl,
   isAllowedPrefix,
+  isImportableIcon,
   parseIconKey,
 } from '@/theme/icon-sets';
 
@@ -22,10 +23,12 @@ import {
  * ## Failure
  *
  * `searchIcons` throws when every host fails, so the picker has a single failure
- * path to render instead of a silently empty list. `fetchIcon` returns `null`
- * for an icon that cannot be represented (a palette icon, a body with elements
- * the resolver refuses) — that is a property of the icon, not a failure, and the
- * picker shows it as unavailable with a reason.
+ * path to render instead of a silently empty list. It also drops every hit the
+ * picker cannot import (a set outside the allowlist, a palette set) **before**
+ * returning, so an unsupported icon is never a row at all. The one refusal that
+ * needs the body — a monotone set whose single icon paints its own colour — is
+ * resolved later by `fetchIconPreviews`, which resolves that hit to `null`; the
+ * sheet then hides it. `fetchIcon` returns `null` for the same reasons.
  */
 
 /** One search hit, resolved enough to decide whether it can be imported. */
@@ -102,26 +105,30 @@ export async function searchIcons(query: string): Promise<IconSearchHit[]> {
   const icons = Array.isArray(payload.icons) ? payload.icons : [];
   const collections = payload.collections ?? {};
 
-  return icons
-    .map((key) => {
-      const parsed = parseIconKey(key);
-      if (!parsed) {
-        return null;
-      }
-      const collection = collections[parsed.prefix];
-      return {
-        key,
-        prefix: parsed.prefix,
-        name: parsed.name,
-        setName: collection?.name ?? parsed.prefix, // An absent `collections` entry means the response drifted from the
-        // documented shape; treating it as palette-bearing is the safe default,
-        // because that only ever disables a row rather than letting an
-        // un-inkable icon through.
-        palette: collection ? collection.palette === true : true,
-        allowed: isAllowedPrefix(parsed.prefix),
-      };
-    })
-    .filter((hit): hit is IconSearchHit => hit !== null);
+  return (
+    icons
+      .map((key) => {
+        const parsed = parseIconKey(key);
+        if (!parsed) {
+          return null;
+        }
+        const collection = collections[parsed.prefix];
+        return {
+          key,
+          prefix: parsed.prefix,
+          name: parsed.name,
+          setName: collection?.name ?? parsed.prefix, // An absent `collections` entry means the response drifted from the
+          // documented shape; treating it as palette-bearing is the safe default,
+          // because that only ever disables a row rather than letting an
+          // un-inkable icon through.
+          palette: collection ? collection.palette === true : true,
+          allowed: isAllowedPrefix(parsed.prefix),
+        };
+      })
+      .filter((hit): hit is IconSearchHit => hit !== null)
+      // Set-level refusals are knowable now, so they never reach the list.
+      .filter((hit) => isImportableIcon(hit))
+  );
 }
 
 /** What one hit's preview needs: the geometry, or why there is none. */
