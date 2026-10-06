@@ -377,6 +377,7 @@ export function FontPickerSheet({
           variant={script === 'all' ? 'primary' : 'secondary'}
           selected={script === 'all'}
           onPress={() => setScriptChoice('all')}
+          labelFit
           style={styles.filterItem}
         />
         <Button
@@ -384,6 +385,7 @@ export function FontPickerSheet({
           variant={script === 'arabic' ? 'primary' : 'secondary'}
           selected={script === 'arabic'}
           onPress={() => setScriptChoice('arabic')}
+          labelFit
           style={styles.filterItem}
         />
         <Button
@@ -391,6 +393,7 @@ export function FontPickerSheet({
           variant={script === 'latin' ? 'primary' : 'secondary'}
           selected={script === 'latin'}
           onPress={() => setScriptChoice('latin')}
+          labelFit
           style={styles.filterItem}
         />
       </View>
@@ -949,7 +952,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  filterItem: { flex: 1 },
+  // The three labels are long enough that `Button`'s default 24 dp side padding
+  // leaves too little for the largest Arabic face; the compact padding buys the
+  // room back and the fitted label covers the rest by scaling down.
+  filterItem: { flex: 1, paddingHorizontal: spacing.sm },
   search: {
     borderWidth: 1,
     borderRadius: radius.lg,
