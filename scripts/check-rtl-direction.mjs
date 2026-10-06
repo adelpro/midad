@@ -45,7 +45,10 @@ try {
 
 if (direction) {
   const { desiredRTL, needsDirectionReload } = direction;
-  if (typeof desiredRTL !== 'function' || typeof needsDirectionReload !== 'function') {
+  if (
+    typeof desiredRTL !== 'function' ||
+    typeof needsDirectionReload !== 'function'
+  ) {
     fail('the module must export desiredRTL and needsDirectionReload');
   } else {
     // Arabic is the only RTL language the app ships.
