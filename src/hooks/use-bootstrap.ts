@@ -1,12 +1,24 @@
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
+import { applyLayoutDirection } from '@/i18n/apply-direction';
 import { useSettings } from '@/storage/settings';
 import { coreFontAssets } from '@/theme';
 
 /** How long the launch waits for the settings store before using defaults. */
 const HYDRATION_GRACE_MS = 1_500;
+
+/**
+ * How long the launch waits for the direction check before proceeding anyway.
+ *
+ * Same reasoning as {@link HYDRATION_GRACE_MS}: a storage read that never
+ * settles must not hold the splash forever. The direction preference is written
+ * synchronously by `applyLayoutDirection`, so letting the launch through here
+ * only costs this session's direction — the next cold start is already correct.
+ */
+const DIRECTION_GRACE_MS = 1_500;
 
 /**
  * Whether the persisted settings store has finished rehydrating.
@@ -76,15 +88,51 @@ function useSettingsHydrated(): boolean {
 export function useBootstrap() {
   const [fontsLoaded, fontError] = useFonts(coreFontAssets);
   const settingsHydrated = useSettingsHydrated();
+  const language = useSettings((s) => s.language);
+
+  /**
+   * Whether the native interface direction agrees with the hydrated language.
+   *
+   * Web is ready immediately — `I18nProvider` sets `document.dir` synchronously.
+   * Native has to force the direction and may reload once; the splash must stay
+   * up through that, or the first frame paints LTR for an RTL language.
+   */
+  const [directionReady, setDirectionReady] = useState(
+    () => Platform.OS === 'web',
+  );
 
   useEffect(() => {
-    if (settingsHydrated) {
+    if (!settingsHydrated || directionReady) {
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (!cancelled) {
+        setDirectionReady(true);
+      }
+    }, DIRECTION_GRACE_MS);
+    void applyLayoutDirection(language).then((result) => {
+      // `reloaded` never resolves here: the JS context is being torn down, so
+      // the splash must stay up and the next launch starts ready.
+      if (!cancelled && result !== 'reloaded') {
+        clearTimeout(timer);
+        setDirectionReady(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [settingsHydrated, language, directionReady]);
+
+  useEffect(() => {
+    if (settingsHydrated && directionReady) {
       SplashScreen.hideAsync();
     }
-  }, [settingsHydrated]);
+  }, [settingsHydrated, directionReady]);
 
   return {
-    ready: !!fontsLoaded && !fontError && settingsHydrated,
+    ready: !!fontsLoaded && !fontError && settingsHydrated && directionReady,
     // Withheld until hydration, so a font error cannot let the root layout
     // render past the gate on defaults.
     error: settingsHydrated ? (fontError ?? null) : null,
