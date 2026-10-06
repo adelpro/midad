@@ -8,6 +8,8 @@ export { Card } from './card';
 export type { CardProps } from './card';
 export { EmptyState } from './empty-state';
 export type { EmptyStateProps } from './empty-state';
+export { FittedLabel } from './fitted-label';
+export type { FittedLabelProps } from './fitted-label';
 export { DirectionIcon, Icon } from './icon';
 export type { IconName, IconProps } from './icon';
 export { IconButton } from './icon-button';
