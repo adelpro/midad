@@ -178,7 +178,7 @@ export function FontPickerSheet({
    * repaints the specimens as their face arrives, which is the whole reason the
    * warm-up is visible rather than a silent stall behind a static row.
    */
-  useLoadedBundledFontKeys();
+  const loadedKeys = useLoadedBundledFontKeys();
   useEffect(() => {
     if (!visible) {
       return;
@@ -477,6 +477,7 @@ export function FontPickerSheet({
                         family={entry.family}
                         selected={selected}
                         pinned
+                        loaded={loadedKeys.has(entry.family.defaultVariant)}
                         onPress={() => onChange(entry.family.defaultVariant)}
                         onTogglePin={() => toggleFontPin(entry.id)}
                       />
@@ -552,6 +553,7 @@ export function FontPickerSheet({
                       family={family}
                       selected={selected}
                       pinned={pinnedIds.includes(familyPinId(family.key))}
+                      loaded={loadedKeys.has(family.defaultVariant)}
                       onPress={() => onChange(family.defaultVariant)}
                       onTogglePin={() => toggleFontPin(familyPinId(family.key))}
                     />
@@ -746,12 +748,15 @@ function BundledFamilyRow({
   family,
   selected,
   pinned,
+  loaded,
   onPress,
   onTogglePin,
 }: {
   family: FontFamily;
   selected: boolean;
   pinned: boolean;
+  /** Whether the family's default face is registered with the platform. */
+  loaded: boolean;
   onPress: () => void;
   onTogglePin: () => void;
 }) {
@@ -783,7 +788,14 @@ function BundledFamilyRow({
           numberOfLines={1}
           style={[
             styles.specimen,
-            { color: c.ink, fontFamily: family.defaultVariant },
+            {
+              color: c.ink,
+              // Never request a face the platform has not registered: an
+              // unloaded family name resolves to (and may cache) a fallback, so
+              // the row shows the UI face until `useLoadedBundledFontKeys`
+              // repaints it with the real one.
+              fontFamily: loaded ? family.defaultVariant : uiFont,
+            },
           ]}
         >
           {SPECIMENS[family.script]}
@@ -1005,7 +1017,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  specimen: { fontSize: 20 },
+  /**
+   * The face's own ink can reach past its line box — the same class the text
+   * preview fixed (`text-style-controls.tsx`) — so `numberOfLines` would clip a
+   * tall-ascent specimen (Amiri Quran is ~1.82 em). Carrying a little vertical
+   * headroom on the element moves the clip out to the padding box.
+   */
+  specimen: { fontSize: 20, paddingVertical: 2 },
   meta: {
     fontSize: typeScale.caption.size,
     lineHeight: typeScale.caption.lineHeight,
