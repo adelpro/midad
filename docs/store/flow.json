@@ -1,0 +1,10 @@
+{
+  "manifest": "./shots.json",
+  "out": "./store-assets",
+  "captures": [
+    {
+      "name": "web export (Playwright)",
+      "command": "node capture.mjs"
+    }
+  ]
+}

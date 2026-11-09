@@ -1,0 +1,46 @@
+{
+  "app": "midad",
+  "template": "paper-and-ink",
+  "out": "store-assets",
+  "structure": "stores",
+  "languages": ["ar-SA"],
+  "sizes": ["ios-6.9", "play-phone"],
+  "slides": [
+    {
+      "templateSlide": 0,
+      "headline": "اكتب *بمِداد*",
+      "subtitle": "لوحة رقمية للخط العربي، من أول حرف إلى آخر لمحة.",
+      "captures": {
+        "iphone": "captures/iphone-01-editor.png",
+        "android-phone": "captures/android-01-editor.png"
+      }
+    },
+    {
+      "templateSlide": 1,
+      "headline": "خطوط من *التراث*",
+      "subtitle": "من النسخ إلى الثلث والكوفي، بين يديك ودون إنترنت.",
+      "captures": {
+        "iphone": "captures/iphone-03-fonts.png",
+        "android-phone": "captures/android-03-fonts.png"
+      }
+    },
+    {
+      "templateSlide": 0,
+      "headline": "فكّك الكلمة *وأعِد تركيبها*",
+      "subtitle": "كل مقطع يتحرك وحده، والتشكيل العربي يبقى سليمًا.",
+      "captures": {
+        "iphone": "captures/iphone-04-split.png",
+        "android-phone": "captures/android-04-split.png"
+      }
+    },
+    {
+      "templateSlide": 4,
+      "headline": "صدّر لوحتك *حيث تشاء*",
+      "subtitle": "PNG وSVG بجودة الطباعة، ويبقى تصميمك على جهازك.",
+      "captures": {
+        "iphone": "captures/iphone-02-export.png",
+        "android-phone": "captures/android-02-export.png"
+      }
+    }
+  ]
+}

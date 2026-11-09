@@ -11,6 +11,8 @@ apart: split a line into words, a word into letter clusters, regroup the
 clusters in place, and export the result as PNG or SVG. Everything stays on the
 device — no account, no upload, no round trip.
 
+<img src="docs/media/editor.png" width="340" alt="An Amoshref Thuluth line on the A4 page in the midad editor">
+
 ## What is in here
 
 - **Arabic text that is actually shaped.** Text runs through the Paragraph API,

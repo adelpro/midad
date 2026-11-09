@@ -67,3 +67,7 @@ docs/superpowers/*
 # local agent skills and their lockfile (per-machine, not project source)
 .agents/
 skills-lock.json
+
+# generated store screenshots (see docs/store/README.md)
+docs/store/captures/
+docs/store/store-assets/
