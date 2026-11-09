@@ -1,107 +1,107 @@
 ---
 version: alpha
 name: midad-design-system
-description: "مِداد (midad) is an Arabic-first calligraphy editor whose interface behaves like a quiet desk: warm bone paper, iron-gall ink, and a single saffron accent that marks selection and state, never decoration. Every surface separates by tone and hairlines rather than stacked borders, type hierarchy is weight plus size plus leading as a set, and interactive elements settle by spring instead of duration because a tween cannot absorb an interruption mid-flight."
+description: 'مِداد (midad) is an Arabic-first calligraphy editor whose interface behaves like a quiet desk: warm bone paper, iron-gall ink, and a single saffron accent that marks selection and state, never decoration. Every surface separates by tone and hairlines rather than stacked borders, type hierarchy is weight plus size plus leading as a set, and interactive elements settle by spring instead of duration because a tween cannot absorb an interruption mid-flight.'
 
 colors:
-  primary: "#111111"
-  primary-dark: "#F2EFE7"
-  primary-foreground: "#FFFFFF"
-  primary-foreground-dark: "#16150F"
-  paper: "#F7F6F3"
-  paper-dark: "#16150F"
-  paper-bright: "#FBFBFA"
-  paper-bright-dark: "#1D1B14"
-  surface: "#FFFFFF"
-  surface-dark: "#211F18"
-  surface-alt: "#F9F9F8"
-  surface-alt-dark: "#26241C"
-  surface-pressed: "#EFEEE9"
-  surface-pressed-dark: "#2E2B22"
-  ink: "#111111"
-  ink-dark: "#F2EFE7"
-  ink-soft: "#2F3437"
-  ink-soft-dark: "#D8D4C9"
-  muted: "#787774"
-  muted-dark: "#9A968C"
-  faint: "#A9A69F"
-  faint-dark: "#6B675F"
-  on-ink: "#FFFFFF"
-  on-ink-dark: "#16150F"
-  border: "#EAEAEA"
-  border-dark: "#33312A"
-  border-strong: "#D8D5CE"
-  border-strong-dark: "#45423A"
-  accent: "#B0894F"
-  accent-dark: "#C9A05C"
-  accent-text: "#956400"
-  accent-text-dark: "#E0B878"
-  accent-soft: "#F5EEE2"
-  accent-soft-dark: "#2E2920"
-  danger: "#9F2F2D"
-  danger-dark: "#E8A6A3"
-  danger-bg: "#FDEBEC"
-  danger-bg-dark: "#2E1F1E"
-  success: "#346538"
-  success-dark: "#9CC694"
-  success-bg: "#EDF3EC"
-  success-bg-dark: "#1C2A1B"
+  primary: '#111111'
+  primary-dark: '#F2EFE7'
+  primary-foreground: '#FFFFFF'
+  primary-foreground-dark: '#16150F'
+  paper: '#F7F6F3'
+  paper-dark: '#16150F'
+  paper-bright: '#FBFBFA'
+  paper-bright-dark: '#1D1B14'
+  surface: '#FFFFFF'
+  surface-dark: '#211F18'
+  surface-alt: '#F9F9F8'
+  surface-alt-dark: '#26241C'
+  surface-pressed: '#EFEEE9'
+  surface-pressed-dark: '#2E2B22'
+  ink: '#111111'
+  ink-dark: '#F2EFE7'
+  ink-soft: '#2F3437'
+  ink-soft-dark: '#D8D4C9'
+  muted: '#787774'
+  muted-dark: '#9A968C'
+  faint: '#A9A69F'
+  faint-dark: '#6B675F'
+  on-ink: '#FFFFFF'
+  on-ink-dark: '#16150F'
+  border: '#EAEAEA'
+  border-dark: '#33312A'
+  border-strong: '#D8D5CE'
+  border-strong-dark: '#45423A'
+  accent: '#B0894F'
+  accent-dark: '#C9A05C'
+  accent-text: '#956400'
+  accent-text-dark: '#E0B878'
+  accent-soft: '#F5EEE2'
+  accent-soft-dark: '#2E2920'
+  danger: '#9F2F2D'
+  danger-dark: '#E8A6A3'
+  danger-bg: '#FDEBEC'
+  danger-bg-dark: '#2E1F1E'
+  success: '#346538'
+  success-dark: '#9CC694'
+  success-bg: '#EDF3EC'
+  success-bg-dark: '#1C2A1B'
 
 typography:
   display:
-    fontFamily: "Amiri, Amiri-Bold, serif"
-    fontSize: "40px"
+    fontFamily: 'Amiri, Amiri-Bold, serif'
+    fontSize: '40px'
     fontWeight: 400
     lineHeight: 1.1
     letterSpacing: 0
   title:
-    fontFamily: "Amiri, Amiri-Bold, serif"
-    fontSize: "32px"
+    fontFamily: 'Amiri, Amiri-Bold, serif'
+    fontSize: '32px'
     fontWeight: 400
     lineHeight: 1.13
     letterSpacing: 0
   heading:
-    fontFamily: "Cairo, Cairo-Bold, Geist, Geist-Bold, sans-serif"
-    fontSize: "24px"
+    fontFamily: 'Cairo, Cairo-Bold, Geist, Geist-Bold, sans-serif'
+    fontSize: '24px'
     fontWeight: 700
     lineHeight: 1.25
     letterSpacing: 0
   body:
-    fontFamily: "Cairo, Geist, sans-serif"
-    fontSize: "16px"
+    fontFamily: 'Cairo, Geist, sans-serif'
+    fontSize: '16px'
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: 0
   small:
-    fontFamily: "Cairo, Geist, sans-serif"
-    fontSize: "14px"
+    fontFamily: 'Cairo, Geist, sans-serif'
+    fontSize: '14px'
     fontWeight: 400
     lineHeight: 1.43
     letterSpacing: 0
   caption:
-    fontFamily: "Cairo, Geist, sans-serif"
-    fontSize: "12px"
+    fontFamily: 'Cairo, Geist, sans-serif'
+    fontSize: '12px'
     fontWeight: 400
     lineHeight: 1.33
     letterSpacing: 0
 
 spacing:
-  xxs: "2px"
-  xs: "4px"
-  sm: "8px"
-  md: "12px"
-  lg: "16px"
-  xl: "24px"
-  xxl: "32px"
-  xxxl: "48px"
-  huge: "64px"
+  xxs: '2px'
+  xs: '4px'
+  sm: '8px'
+  md: '12px'
+  lg: '16px'
+  xl: '24px'
+  xxl: '32px'
+  xxxl: '48px'
+  huge: '64px'
 
 rounded:
-  sm: "4px"
-  md: "6px"
-  lg: "8px"
-  xl: "12px"
-  pill: "9999px"
+  sm: '4px'
+  md: '6px'
+  lg: '8px'
+  xl: '12px'
+  pill: '9999px'
 ---
 
 ## Overview
@@ -116,23 +116,23 @@ Tokens live in `src/theme/tokens.ts` (palettes, spacing, radii, elevation, motio
 
 Two palettes, one system. The light palette is warm paper; the dark palette inverts paper and ink into warm charcoal, never neutral grey. Both are defined in `src/theme/tokens.ts` as `palettes.light` and `palettes.dark`, and no screen or component may hardcode a hex outside the named content-palette constants. The frontmatter uses kebab-case keys; the code uses the camelCase equivalents (`paperBright`, `surfaceAlt`, `onInk`).
 
-| Token | Light | Dark | Role |
-| --- | --- | --- | --- |
-| paper | #F7F6F3 | #16150F | App background |
-| surface | #FFFFFF | #211F18 | Cards, sheets, docks |
-| surface-alt | #F9F9F8 | #26241C | Subtle fills, secondary buttons |
-| surface-pressed | #EFEEE9 | #2E2B22 | Pressed states |
-| ink | #111111 | #F2EFE7 | Primary text, solid CTAs |
-| ink-soft | #2F3437 | #D8D4C9 | Strong secondary text |
-| muted | #787774 | #9A968C | Secondary text, AA on paper |
-| faint | #A9A69F | #6B675F | Disabled, tertiary, placeholders |
-| border | #EAEAEA | #33312A | Structural hairlines only |
-| border-strong | #D8D5CE | #45423A | Dividers that must read |
-| accent | #B0894F | #C9A05C | Selection rings, active tools, focus, undo links |
-| accent-text | #956400 | #E0B878 | Accent text on a light or dark ground |
-| accent-soft | #F5EEE2 | #2E2920 | Accent tint backgrounds |
-| danger | #9F2F2D | #E8A6A3 | Destructive, on danger-bg |
-| success | #346538 | #9CC694 | Confirmation, on success-bg |
+| Token           | Light   | Dark    | Role                                             |
+| --------------- | ------- | ------- | ------------------------------------------------ |
+| paper           | #F7F6F3 | #16150F | App background                                   |
+| surface         | #FFFFFF | #211F18 | Cards, sheets, docks                             |
+| surface-alt     | #F9F9F8 | #26241C | Subtle fills, secondary buttons                  |
+| surface-pressed | #EFEEE9 | #2E2B22 | Pressed states                                   |
+| ink             | #111111 | #F2EFE7 | Primary text, solid CTAs                         |
+| ink-soft        | #2F3437 | #D8D4C9 | Strong secondary text                            |
+| muted           | #787774 | #9A968C | Secondary text, AA on paper                      |
+| faint           | #A9A69F | #6B675F | Disabled, tertiary, placeholders                 |
+| border          | #EAEAEA | #33312A | Structural hairlines only                        |
+| border-strong   | #D8D5CE | #45423A | Dividers that must read                          |
+| accent          | #B0894F | #C9A05C | Selection rings, active tools, focus, undo links |
+| accent-text     | #956400 | #E0B878 | Accent text on a light or dark ground            |
+| accent-soft     | #F5EEE2 | #2E2920 | Accent tint backgrounds                          |
+| danger          | #9F2F2D | #E8A6A3 | Destructive, on danger-bg                        |
+| success         | #346538 | #9CC694 | Confirmation, on success-bg                      |
 
 The palette carries working names as well as tokens, and those names are how the colours are discussed: Bone Paper `#F7F6F3` (`paper`), Paper Bright `#FBFBFA` (`paperBright`), Pure Surface `#FFFFFF` (`surface`), Whisper Alt `#F9F9F8` (`surfaceAlt`), Pressed Cloth `#EFEEE9` (`surfacePressed`), Iron Ink `#111111` (`ink`), Soft Iron `#2F3437` (`inkSoft`), Graphite `#787774` (`muted`), Faded Ash `#A9A69F` (`faint`), On Ink `#FFFFFF` (`onInk`), Hairline `#EAEAEA` (`border`), Strong Hairline `#D8D5CE` (`borderStrong`), Saffron Accent `#B0894F` (`accent`), Saffron Text `#956400` (`accentText`), Saffron Wash `#F5EEE2` (`accentSoft`), Oxblood `#9F2F2D` (`danger`), and Success `#346538`.
 
@@ -220,13 +220,13 @@ Icon-only controls are square, radius 8, with the 44pt target enforced by auto h
 
 Engine is reanimated springs only. Presets live in `springs` in `src/theme/tokens.ts`, expressed as a damping ratio converted to the coefficient `withSpring` expects, because handing Reanimated a ratio produces a spring roughly thirty times underdamped that rings for seconds.
 
-| Token | Ratio and stiffness | Use |
-| --- | --- | --- |
-| ui | ratio 1.0, stiffness 260 | presses, toggles, thumbs |
-| momentum | ratio 0.8, stiffness 320 | flicks, throws |
-| elastic | ratio 0.6, stiffness 300 | a latch that should give, never a return |
-| sheet | ratio 0.85, stiffness 300 | snackbar enter and exit; sheets are native, so their motion is the OS's |
-| exit | ratio 1.0, stiffness 380 | dismissals and other system responses |
+| Token    | Ratio and stiffness       | Use                                                                     |
+| -------- | ------------------------- | ----------------------------------------------------------------------- |
+| ui       | ratio 1.0, stiffness 260  | presses, toggles, thumbs                                                |
+| momentum | ratio 0.8, stiffness 320  | flicks, throws                                                          |
+| elastic  | ratio 0.6, stiffness 300  | a latch that should give, never a return                                |
+| sheet    | ratio 0.85, stiffness 300 | snackbar enter and exit; sheets are native, so their motion is the OS's |
+| exit     | ratio 1.0, stiffness 380  | dismissals and other system responses                                   |
 
 A ratio of 1 is critically damped, the fastest approach that never overshoots; below 1 overshoots. Presets are authored as ratio plus stiffness, never as a bare `damping`, because `withSpring` takes an absolute coefficient (`damping = 2 * ratio * sqrt(stiffness * mass)`). `tokens.ts` performs the conversion in `dampingFor`, and `springDampingRatios` exposes the raw ratios for APIs that take one, notably React Native's `LayoutAnimation.springDamping`.
 
