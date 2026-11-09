@@ -1,7 +1,35 @@
 # midad
 
 An Arabic calligraphy studio for iOS, Android and the web — built with
-[Expo](https://expo.dev) and [Expo Router](https://docs.expo.dev/router/introduction/).
+[Expo](https://expo.dev), [React Native Skia](https://shopify.github.io/react-native-skia)
+and Skia's HarfBuzz-shaped Paragraph API.
+
+[Try it in the browser](https://midad.adelpro.us.kg) · `0.6.0-rc.2`
+
+Write a word in a calligraphic face, place it on an A4 canvas, then take it
+apart: split a line into words, a word into letter clusters, regroup the
+clusters in place, and export the result as PNG or SVG. Everything stays on the
+device — no account, no upload, no round trip.
+
+## What is in here
+
+- **Arabic text that is actually shaped.** Text runs through the Paragraph API,
+  so ligatures, contextual forms and diacritics come from the font rather than
+  from a layout approximation. The contract is
+  [`docs/editor-text-engine.md`](docs/editor-text-engine.md).
+- **Cluster split and rejoin.** A shaped word can be cut at cluster boundaries,
+  moved, recoloured and rejoined without breaking its shaping — the hard part
+  of the whole editor, written up in
+  [`docs/editor-split-and-rejoin.md`](docs/editor-split-and-rejoin.md).
+- **One render contract.** The canvas, the PNG export and the SVG export have
+  to agree, and the rules that keep them agreeing are in
+  [`docs/editor-render-contract.md`](docs/editor-render-contract.md).
+- **32 type families** in the picker (49 bundled faces), from Amiri and Aref
+  Ruqaa to the Thuluth cuts, plus a runtime picker for Google Fonts that are
+  never bundled.
+- **RTL-first UI** with Arabic copy as the source language.
+- **No backend.** Designs, collections and background images live in local
+  storage; the app makes no account or sync calls.
 
 ## Documentation
 
@@ -30,19 +58,17 @@ Also:
 - [`DESIGN.md`](DESIGN.md) — the midad visual language (single source of truth).
 - [`CHANGELOG.md`](CHANGELOG.md) — what changed, release by release.
 
-## Get started
+## Run it locally
 
-1. Install dependencies
+```bash
+yarn install
+npx expo start
+```
 
-   ```bash
-   yarn install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
+The dev server prints the targets it can open: a development build, an Android
+emulator, an iOS simulator, or the browser (`yarn web`). Expo Go runs the
+project as a sandbox; the native modules the editor depends on need a
+development build.
 
 ### Code quality and commits
 
@@ -66,27 +92,12 @@ Commit messages must follow the Conventional Commits format, for example:
 competing lockfiles, validates pull-request commit messages, and scans the
 repository for secrets.
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **`src/app`** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction/).
-
-### Other setup steps
-
-- ESLint is configured in `eslint.config.js` — the flat config built on
-  `eslint-config-expo` plus `eslint-config-prettier`. Run `yarn lint`.
-- There is no test runner. `yarn verify` is the gate: it runs the typecheck, the
-  lint, the format check and ten standalone behaviour checks in parallel.
-
 ## Checking your work
 
-`node scripts/verify.mjs` (or `yarn verify`) runs the typecheck, the lint, the
-format check and the ten standalone check scripts **in parallel** and fails if any
-of them did. `--serial` runs them one after another when you want to read them in order.
+There is no test runner. `yarn verify` is the gate: it runs the typecheck, the
+lint, the format check and ten standalone behaviour checks in parallel, and
+fails if any of them did. `--serial` runs them one after another when you want
+to read them in order.
 
 ```bash
 yarn verify                      # everything, in parallel
@@ -101,16 +112,18 @@ node scripts/check-help.mjs      # help catalog ↔ strings.ts ↔ shortcuts.ts
 
 The first run of each is the slow one: the typecheck writes `.cache/tsconfig.tsbuildinfo`, the lint writes `.eslintcache` and the format check writes `.prettiercache` at the repo root — all gitignored — and later runs only redo what changed. Delete those three to force a cold run.
 
-## Learn more
+## License
 
-To learn more about developing your project with Expo, look at the following resources:
+The code is [MIT](LICENSE). Bundled fonts are redistributed under their own
+licenses — OFL-1.1 for thirty-two families, MIT for Bouazzi Maghribi and
+Apache-2.0 for Yellowtail — recorded face by face with copyright and source in
+[`assets/fonts/LICENSES.md`](assets/fonts/LICENSES.md).
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+The MIT license covers the code. The name `midad`, the app icon and the splash
+art are not part of it.
 
-## Join the community
+## Contributing
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Issues and pull requests are welcome, especially around Arabic shaping and
+cluster segmentation. Run `yarn verify` before opening a pull request, and keep
+commits in Conventional Commits format.

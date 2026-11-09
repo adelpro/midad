@@ -63,3 +63,7 @@ docs/superpowers/*
 # generated native folders
 /ios
 /android
+
+# local agent skills and their lockfile (per-machine, not project source)
+.agents/
+skills-lock.json
