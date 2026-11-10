@@ -33,7 +33,7 @@ function gestureInFlight(): boolean {
  * the document is being edited. The periodic flush matters during a long
  * drag, where every frame keeps resetting the quiet-period timer.
  */
-export function useAutoSave() {
+export function useAutoSave(onPersisted?: () => void) {
   const enabled = useSettings((s) => s.autoSaveEnabled);
   const intervalMs = useSettings((s) => s.autoSaveIntervalMs);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -42,6 +42,17 @@ export function useAutoSave() {
   const dirty = useRef(false);
   const saving = useRef(false);
   const pending = useRef(false);
+  /**
+   * Runs after a successful write, never before it: the callback exists to
+   * project what was just persisted (the gallery thumbnail), so it must see the
+   * document on disk. Held in a ref so a new closure never re-subscribes the
+   * store, which would drop a queued flush.
+   */
+  const persisted = useRef(onPersisted);
+
+  useEffect(() => {
+    persisted.current = onPersisted;
+  }, [onPersisted]);
 
   const flush = useCallback(async () => {
     if (!enabled) {
@@ -60,6 +71,7 @@ export function useAutoSave() {
       pending.current = false;
       try {
         await saveWithHistory();
+        persisted.current?.();
       } catch {
         dirty.current = true;
       } finally {

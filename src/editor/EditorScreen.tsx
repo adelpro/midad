@@ -140,7 +140,7 @@ import {
   writeBackgroundImage,
 } from '@/storage/projects';
 import { useSettings } from '@/storage/settings';
-import { saveThumb, THUMB_MAX_WIDTH_PX } from '@/storage/thumbs';
+import { getThumb, saveThumb, THUMB_MAX_WIDTH_PX } from '@/storage/thumbs';
 import {
   boldSiblingForKey,
   familyForVariant,
@@ -468,8 +468,6 @@ export function EditorScreen() {
   // a short phone gets a shorter preview instead of a sheet off the top of the
   // screen.
   const { height: windowHeight } = useWindowDimensions();
-
-  useAutoSave();
 
   // The selection bar's order is a device-local preference (settings store),
   // and learn mode binds every selection control to its help entry.
@@ -1579,6 +1577,53 @@ export function EditorScreen() {
     }
   }, [skiaFonts]);
 
+  /**
+   * Rasterize a preview for a design that has none.
+   *
+   * A gallery card reads its thumbnail from storage, and until this existed a
+   * design only got one from an explicit Save or an export. A user who typed,
+   * let auto-save persist, and went back left a card with an empty frame — the
+   * document was on disk, its preview never was. This runs after every
+   * successful auto-save flush, and stops at the first one: a second render of
+   * an unchanged design buys nothing, and the explicit Save still refreshes a
+   * stale preview.
+   */
+  const backfillThumbnail = useCallback(async () => {
+    const live = useEditorStore.getState().project;
+    if (!live || (await getThumb(live.id))) {
+      return;
+    }
+    try {
+      const png = renderProjectToPng(live, skiaFonts?.fonts ?? null, {
+        maxWidthPx: THUMB_MAX_WIDTH_PX,
+      });
+      await saveThumb(live.id, png.base64DataUri);
+    } catch {
+      // Same contract as `save`: the preview is best-effort.
+    }
+  }, [skiaFonts]);
+
+  // Auto-save owns the preview: a design that only ever met the debounce timer
+  // still has to show something in the gallery.
+  useAutoSave(backfillThumbnail);
+
+  /**
+   * Leaving the editor the way the back control does: persist first, preview
+   * included, then navigate.
+   *
+   * The gallery reads projects and thumbnails synchronously on mount, so a save
+   * fired after `router.back()` would race the card it exists to fill — and on
+   * a design whose preview has never been written, the card would render its
+   * empty frame for the rest of the session.
+   */
+  const leaveEditor = useCallback(async () => {
+    try {
+      await save();
+    } finally {
+      router.back();
+    }
+  }, [router, save]);
+
   const runExport = useCallback(
     async (
       key: 'image' | 'svg' | 'file' | 'photos',
@@ -2089,7 +2134,7 @@ export function EditorScreen() {
         <View style={[styles.topBar, { borderColor: c.border }]}>
           <View style={[styles.barInner, rowStyle(isRTL)]}>
             <IconButton
-              onPress={() => router.back()}
+              onPress={() => void leaveEditor()}
               accessibilityLabel={t.editor.hints.back}
               hint={t.editor.hints.back}
             >

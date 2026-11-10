@@ -104,6 +104,27 @@ Consequences the callers must honour:
 - **Import** must write every image before saving the document.
 - **Rename** and **autosave** write only the document — correct by construction.
 
+### Thumbnails
+
+The gallery card's preview is **not** part of the document. It is a raster
+(`THUMB_MAX_WIDTH_PX` = 360) written by `saveThumb` under `midad:thumb:<id>`, and
+it is a _projection_ of the document: whenever the document is persisted with no
+preview yet, one is rendered. That is why the boundaries are these four, and why
+a fifth would be a bug:
+
+| Moment                               | Why                                                                                                         |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Explicit Save, and before an export  | the user asked for this document to be the one on disk, and the preview should agree                        |
+| Leaving the editor (back control)    | the gallery reads thumbnails synchronously on mount; a preview written after `router.back()` races its card |
+| Auto-save, **only when none exists** | a design that only ever met the debounce timer still has to show something                                  |
+| Import                               | the design arrived from outside and has never been rendered here                                            |
+
+The auto-save case deliberately stops at the first preview: re-rendering an
+unchanged design every flush buys nothing, and a stale preview is refreshed by
+the next explicit save. Rendering is best-effort everywhere — the document is the
+save, the preview is a convenience — so a failed render leaves the card empty and
+never blocks the write.
+
 ## 6. Versioning: v3, with a reader for v2
 
 `PROJECT_FILE_VERSION` is `3`. Placed images are what moved it: a v2 document has
