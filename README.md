@@ -59,6 +59,8 @@ Also:
 
 - [`DESIGN.md`](DESIGN.md) — the midad visual language (single source of truth).
 - [`CHANGELOG.md`](CHANGELOG.md) — what changed, release by release.
+- [`docs/web-hydration.md`](docs/web-hydration.md) — why the root layout renders
+  nothing on its first pass in the browser.
 
 ## Run it locally
 

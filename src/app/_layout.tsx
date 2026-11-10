@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -34,6 +35,30 @@ export default function RootLayout() {
   const { ready, error, hydrated } = useBootstrap();
   const { colors: c, isDark } = useTheme();
 
+  /**
+   * False for the first render, always — and that is the point.
+   *
+   * The web build is a static export, so `/gallery` ships as HTML rendered on a
+   * server with no storage and no `document`, and React hydrates it. Everything
+   * below reads state that only the client can know: `hasHydrated()` has always
+   * answered `true` by the time React first renders on the web (the store
+   * module hydrates while the route is being loaded), so the first client render
+   * mounted `<Stack>` — and its frame-measuring child — where the server HTML
+   * had only the empty shell. React cannot reconcile that and regenerates the
+   * whole tree (`#418`, four times per load).
+   *
+   * Holding the client-only branches until after mount makes the first client
+   * render byte-identical to the server's, which is what hydration needs. The
+   * cost is one extra render before the Stack mounts, inside a frame the launch
+   * cover already owns.
+   */
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration flag: the first render has to match the server, so it cannot be true yet
+    setMounted(true);
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <I18nProvider>
@@ -52,7 +77,7 @@ export default function RootLayout() {
             <link rel="stylesheet" href="/midad-web.css" />
           </Head>
         )}
-        {(ready || error) && (
+        {mounted && (ready || error) && (
           <Stack
             screenOptions={{
               headerShown: false,
@@ -67,7 +92,7 @@ export default function RootLayout() {
          * transition that mounts the Stack, so it adds no latency and can never
          * strand the app on a cover. Reduce Motion rests the mark (BrandLoader).
          */}
-        {hydrated && !ready && !error && (
+        {mounted && hydrated && !ready && !error && (
           <View style={StyleSheet.absoluteFill}>
             <BrandLoader height={LAUNCH_COVER_HEIGHT} />
           </View>

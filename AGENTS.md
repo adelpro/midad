@@ -26,6 +26,7 @@ one before changing that area. When a document and the code disagree, fix the co
 | `editor/help/**`                                                                                                                                                                         | `docs/editor-help-and-learn-mode.md`  |
 | selection semantics, multi-select, background flow                                                                                                                                       | `docs/editor-selection.md`            |
 | `storage/**`, the `.midad` format, import/export                                                                                                                                         | `docs/storage-format.md`              |
+| `src/app/_layout.tsx`, the launch gate, anything rendered before mount on web                                                                                                            | `docs/web-hydration.md`               |
 | `editor/skia/image-shape.ts`, `editor/skia/icon-shape.tsx`, `editor/icons/**`                                                                                                            | `docs/editor-render-contract.md` §5.1 |
 
 ## Checks

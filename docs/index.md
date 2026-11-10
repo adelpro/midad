@@ -64,6 +64,7 @@ the file to open first. Every path below is copied from a code map in this folde
 | [`editor-split-and-rejoin.md`](editor-split-and-rejoin.md)       | The cluster split/rejoin algorithm                                             | `src/editor/text/clusters.ts`, `src/editor/text/split.ts`                                                                                  | `check-clusters.mjs`     |
 | [`editor-state-and-history.md`](editor-state-and-history.md)     | Store slices, undo/redo, z-order                                               | `src/editor/store.ts`                                                                                                                      | —                        |
 | [`editor-text-engine.md`](editor-text-engine.md)                 | Arabic shaping, auto width, paragraph lifetime                                 | `src/editor/skia/text.ts`, `src/editor/skia/use-text-layouts.ts`                                                                           | —                        |
+| [`web-hydration.md`](web-hydration.md)                           | The static export's first render: the mount gate, the `#418` trap              | `src/app/_layout.tsx`, `src/hooks/use-bootstrap.ts`                                                                                        | —                        |
 
 ## 4. Executable specs
 
