@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0-rc.3] - 2026-10-06
+
+**A fix-only follow-up to rc.2: five defects the rc.2 build shipped with, all five
+found by using it on a device.** Two are pinned now — the cold-start direction
+decision and the icon importability predicate, both pure and driven by a
+`check-*.mjs` script — so the same regression fails the suite instead of reaching
+a device.
+
+### Fixed
+
+- **Arabic starts RTL on the first launch.** The interface applied its direction
+  with `I18nManager.forceRTL` after the first render, but native captures that
+  value once, before JS runs — so the first Arabic session rendered LTR and only a
+  manual restart flipped it. The direction is now settled once per cold start
+  behind the launch screen: it is forced on the language, and the JS bundle
+  reloads only when the direction actually changed. The decision is a pure
+  function (`src/i18n/rtl-direction.ts`, pinned by `check-rtl-direction.mjs`), and
+  an AsyncStorage sentinel stops a platform that refuses to flip from reloading on
+  every launch.
+- **Long Arabic captions no longer clip.** The font picker's three script filters
+  and the editor tool rail's six tiles both held labels longer than their fixed
+  width at a phone's narrowest size, so the text wrapped past a fixed height and
+  was sliced. A shared `FittedLabel` steps the size down until the label fits, the
+  filter's padding is tighter, and the rail's multi-select caption is the short
+  `متعدد` / `Multi` — its accessibility label and tooltip keep the full phrase.
+- **The icon picker only lists icons it can import.** The search returned every
+  hit, including palette sets and sets outside the allowlist, and rendered them
+  disabled with a reason — so a search for "heart" showed rows the app could never
+  place. The search now filters non-importable hits at its own boundary (a pure
+  `isImportableIcon`, pinned by `check-icons.mjs`), drops a body that resolves to
+  no paths once its preview arrives, and shows a "no icons" line when a query
+  matched only refusals.
+- **Font specimens render in the right face.** A specimen requested its family by
+  name before that face had registered, so the platform resolved — and could
+  cache — a fallback; and the picker's warm-up loaded all forty-one display faces
+  as one batch, so a single unloadable face suppressed every row's repaint. A
+  specimen now uses the UI face until the loaded set reports the real one, the
+  warm-up settles per face and publishes what loaded before it rethrows, and the
+  specimen carries a little vertical headroom so `numberOfLines` cannot clip a
+  tall-ascent face such as Amiri Quran.
+
 ## [0.6.0-rc.2] - 2026-10-05
 
 **A fix-only follow-up to the first candidate: three defects the rc.1 build shipped

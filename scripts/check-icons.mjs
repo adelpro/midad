@@ -109,6 +109,25 @@ if (sets) {
       fail(`parseIconKey accepted ${JSON.stringify(bad)}`);
     }
   }
+
+  // Importability: the search must never surface a hit the picker cannot
+  // import — a set outside the allowlist, or a palette set whose baked colours
+  // cannot be inked.
+  if (typeof sets.isImportableIcon !== 'function') {
+    fail('icon-sets must export isImportableIcon');
+  } else {
+    const table = [
+      [{ allowed: true, palette: false }, true],
+      [{ allowed: true, palette: true }, false],
+      [{ allowed: false, palette: false }, false],
+      [{ allowed: false, palette: true }, false],
+    ];
+    for (const [hit, expected] of table) {
+      if (sets.isImportableIcon(hit) !== expected) {
+        fail(`isImportableIcon(${JSON.stringify(hit)}) must be ${expected}`);
+      }
+    }
+  }
 }
 
 // ── the allowlist and its licence record ───────────────────────────────────

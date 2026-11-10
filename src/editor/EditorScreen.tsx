@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   Button,
+  FittedLabel,
   Icon,
   IconButton,
   Reveal,
@@ -2400,7 +2401,7 @@ export function EditorScreen() {
               icon="pen"
             />
             <ToolBtn
-              label={t.editor.multiSelect}
+              label={t.editor.multiSelectShort}
               accessibilityLabel={t.editor.hints.multiSelect}
               hint={shortcuts.hint(
                 t.editor.hints.multiSelect,
@@ -2840,7 +2841,8 @@ function ToolBtnRaw({
       >
         <Icon name={icon} size={18} color={active ? c.onInk : c.ink} />
       </IconButton>
-      <Text
+      <FittedLabel
+        label={label}
         style={[
           styles.toolLabel,
           {
@@ -2850,10 +2852,7 @@ function ToolBtnRaw({
             textAlign: 'center',
           },
         ]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
+      />
     </View>
   );
 }

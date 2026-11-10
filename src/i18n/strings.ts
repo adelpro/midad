@@ -127,6 +127,12 @@ export interface Translation {
     background: string;
     select: string;
     multiSelect: string;
+    /**
+     * The tool rail's visible caption for multi-select. Shorter than
+     * `multiSelect` so it fits a phone-width tile; the full phrase stays in the
+     * accessibility label and the tooltip.
+     */
+    multiSelectShort: string;
     text: string;
     glyphs: string;
     shapes: string;
@@ -173,10 +179,8 @@ export interface Translation {
     searchIcons: string;
     /** Shown when the icon catalogue could not be reached. */
     iconSearchFailed: string;
-    /** Row reason: the icon set bakes its own colours and cannot be inked. */
-    iconPaletteUnsupported: string;
-    /** Row reason: the icon uses elements that cannot be stored as paths. */
-    iconShapeUnsupported: string;
+    /** Shown when a query matched only icons the picker cannot import. */
+    noIconResults: string;
     /** Caption over the recents list, shown before any search. */
     recentIcons: string;
     /** Caption over the shipped defaults, shown when there are no recents. */
@@ -508,6 +512,7 @@ export const strings: Record<Language, Translation> = {
       background: 'الخلفية',
       select: 'تحديد',
       multiSelect: 'تحديد متعدد',
+      multiSelectShort: 'متعدد',
       text: 'نص',
       glyphs: 'زخارف',
       shapes: 'أشكال',
@@ -544,8 +549,7 @@ export const strings: Record<Language, Translation> = {
       icons: 'أيقونات',
       searchIcons: 'ابحث عن أيقونة',
       iconSearchFailed: 'تعذّر الوصول إلى مكتبة الأيقونات.',
-      iconPaletteUnsupported: 'أيقونة ملوّنة: لا يمكن صبغها بالحبر.',
-      iconShapeUnsupported: 'شكل غير مدعوم.',
+      noIconResults: 'لا توجد أيقونات',
       recentIcons: 'المستخدمة حديثًا',
       suggestedIcons: 'مقترحة',
       iconForget: 'إزالة من الأخيرة',
@@ -830,6 +834,7 @@ export const strings: Record<Language, Translation> = {
       background: 'Background',
       select: 'Select',
       multiSelect: 'Multi-select',
+      multiSelectShort: 'Multi',
       text: 'Text',
       glyphs: 'Ornaments',
       shapes: 'Shapes',
@@ -866,8 +871,7 @@ export const strings: Record<Language, Translation> = {
       icons: 'Icons',
       searchIcons: 'Search icons',
       iconSearchFailed: 'Couldn’t reach the icon library.',
-      iconPaletteUnsupported: 'Colour icon — cannot be inked.',
-      iconShapeUnsupported: 'Unsupported shape.',
+      noIconResults: 'No icons found',
       recentIcons: 'Recent',
       suggestedIcons: 'Suggested',
       iconForget: 'Forget',

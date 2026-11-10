@@ -64,6 +64,7 @@ const TASKS = [
       '.prettiercache',
     ],
   },
+  { id: 'rtl-direction', command: [join(here, 'check-rtl-direction.mjs')] },
   { id: 'clusters', command: [join(here, 'check-clusters.mjs')] },
   { id: 'groups', command: [join(here, 'check-groups.mjs')] },
   { id: 'handles', command: [join(here, 'check-handles.mjs')] },

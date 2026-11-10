@@ -64,10 +64,13 @@ export function subscribeLoadedBundledFonts(listener: Listener): () => void {
  * removed face) is ignored, and duplicates collapse — so opening a design that
  * names the same face three times loads it once.
  *
- * A face whose load rejects is left out of the snapshot: the `await` throws
- * before `publish` runs, which is the same rule the remote registry follows —
- * the snapshot mirrors what is actually registered, never what was asked for.
- * The next call retries it.
+ * A face whose load rejects is left out of the snapshot, but the snapshot is
+ * still published with the faces that did load — the picker's warm-up is one
+ * batch of forty-one, so suppressing `publish` on a single failure would strand
+ * every other row on its fallback. The `await` then throws, so the editor's
+ * cover gate still refuses to open on a design whose face is missing, and the
+ * next call retries the rejected key. The snapshot therefore mirrors what is
+ * actually registered, never what was asked for.
  *
  * Concurrent callers are safe because there are three of them — the editor's
  * open path, the cover gate's ensure, and the picker's warm-up — and the last two
@@ -86,18 +89,40 @@ export async function ensureBundledFonts(
   const missing = wanted.filter((key) => !inFlight.has(key));
 
   if (missing.length > 0) {
-    const batch = loadFontAsync(
-      Object.fromEntries(
-        missing.map((key) => [
-          key,
-          displayFontAssets[key as keyof typeof displayFontAssets],
-        ]),
+    // Load each face on its own and settle them all. The picker's warm-up asks
+    // for all forty-one at once, and one unloadable face must not stop the
+    // others from being published — `publish` is what repaints their rows, so a
+    // single failure would otherwise leave every loaded face showing its
+    // fallback.
+    const batch = Promise.allSettled(
+      missing.map((key) =>
+        loadFontAsync({
+          [key]: displayFontAssets[key as keyof typeof displayFontAssets],
+        }).then(() => key),
       ),
     )
-      .then(() => {
+      .then((results) => {
+        const fulfilled = results
+          .filter(
+            (result): result is PromiseFulfilledResult<string> =>
+              result.status === 'fulfilled',
+          )
+          .map((result) => result.value);
         // Read `loadedKeys` now, not before the await: a sibling batch may have
         // published in the meantime and this must not drop its faces.
-        publish(new Set([...loadedKeys, ...missing]));
+        publish(new Set([...loadedKeys, ...fulfilled]));
+        // A requested face that failed still rejects the batch: the editor's
+        // cover gate awaits this and must not open on a design whose face is
+        // missing. Publishing above already repaired what did load.
+        const rejection = results.find(
+          (result): result is PromiseRejectedResult =>
+            result.status === 'rejected',
+        );
+        if (rejection) {
+          throw rejection.reason instanceof Error
+            ? rejection.reason
+            : new Error(String(rejection.reason));
+        }
       })
       .finally(() => {
         for (const key of missing) {

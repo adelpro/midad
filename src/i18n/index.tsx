@@ -1,12 +1,6 @@
 import type { PropsWithChildren } from 'react';
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-} from 'react';
-import { I18nManager, Platform } from 'react-native';
+import { createContext, useContext, useLayoutEffect, useMemo } from 'react';
+import { Platform } from 'react-native';
 
 import { strings, type Language, type Translation } from '@/i18n/strings';
 import { useSettings } from '@/storage/settings';
@@ -23,14 +17,10 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 export function I18nProvider({ children }: PropsWithChildren) {
   const { language, setLanguage } = useSettings();
 
-  // Apply RTL on first render for the current language. `I18nManager.forceRTL`
-  // is a no-op after launch on iOS, so we persist the choice from settings.
-  useEffect(() => {
-    const isRTL = language === 'ar';
-    if (I18nManager.isRTL !== isRTL) {
-      I18nManager.forceRTL(isRTL);
-    }
-  }, [language]);
+  // Native direction is settled once per cold start, behind the launch screen:
+  // `applyLayoutDirection` (called from `use-bootstrap`) forces the direction
+  // and reloads if it changed. Applying it here, after the first render, was the
+  // bug — native had already fixed its direction for the launch.
 
   // On web, react-native-web compiles to real CSS flexbox, which mirrors
   // natively from the document direction — tab bar order, flex rows, logical
