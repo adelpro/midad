@@ -41,6 +41,12 @@ export interface ButtonProps {
    * buttons whose label is longer than a phone-width share of the row.
    */
   labelFit?: boolean;
+  /**
+   * Type override for the label, merged last. Dense controls shrink the type so
+   * every option fits whole — `labelFit` alone cannot do it on the web, where
+   * react-native-web ignores `adjustsFontSizeToFit` and ellipsizes instead.
+   */
+  labelStyle?: StyleProp<TextStyle>;
 }
 
 function variantColors(variant: ButtonVariant, c: MidadPalette) {
@@ -81,6 +87,7 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
     accessibilityHint,
     selected,
     labelFit,
+    labelStyle: labelStyleOverride,
   },
   ref,
 ) {
@@ -98,6 +105,7 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
       // Tracking breaks Arabic cursive joining — Latin-only.
       letterSpacing: language === 'ar' ? 0 : 0.01,
     },
+    labelStyleOverride,
   ];
 
   const restBg = vc.bg;

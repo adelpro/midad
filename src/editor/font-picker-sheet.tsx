@@ -370,14 +370,31 @@ export function FontPickerSheet({
           stacked put Latin below twenty-two Arabic rows, so the filter is what
           makes the other script reachable. The pinned section and the Google
           section are deliberately outside it: a pin is cross-script, and the
-          Google section is search-driven (see docs/editor-font-pins.md §3). */}
-      <View style={styles.filterRow}>
+          Google section is search-driven (see docs/editor-font-pins.md §3).
+
+          Equal thirds cannot hold these labels. The sheet's inner width is
+          299 dp on a 360 dp phone, so `flex: 1` gives each pill a 78 dp text box
+          while "الخطوط اللاتينية" is 108 dp at 15 px — and `FittedLabel`'s 0.75
+          floor only reaches 81 dp, on the platforms where
+          `adjustsFontSizeToFit` exists at all (react-native-web ignores it and
+          ellipsizes). The row sizes each pill to its label at 12 px instead —
+          291 dp for all three — and scrolls horizontally if a narrower device
+          still cannot fit them, so no label is ever truncated. `labelFit` stays
+          as the native safety net. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        accessibilityRole="tablist"
+        style={styles.filterRow}
+        contentContainerStyle={styles.filterRowBody}
+      >
         <Button
           label={t.editor.allFonts}
           variant={script === 'all' ? 'primary' : 'secondary'}
           selected={script === 'all'}
           onPress={() => setScriptChoice('all')}
           labelFit
+          labelStyle={styles.filterLabel}
           style={styles.filterItem}
         />
         <Button
@@ -386,6 +403,7 @@ export function FontPickerSheet({
           selected={script === 'arabic'}
           onPress={() => setScriptChoice('arabic')}
           labelFit
+          labelStyle={styles.filterLabel}
           style={styles.filterItem}
         />
         <Button
@@ -394,9 +412,10 @@ export function FontPickerSheet({
           selected={script === 'latin'}
           onPress={() => setScriptChoice('latin')}
           labelFit
+          labelStyle={styles.filterLabel}
           style={styles.filterItem}
         />
-      </View>
+      </ScrollView>
 
       <View
         style={[
@@ -960,14 +979,25 @@ function RemoteFamilyRow({
 
 const styles = StyleSheet.create({
   filterRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+    flexGrow: 0,
+    flexShrink: 0,
     marginBottom: spacing.md,
   },
-  // The three labels are long enough that `Button`'s default 24 dp side padding
-  // leaves too little for the largest Arabic face; the compact padding buys the
-  // room back and the fitted label covers the rest by scaling down.
-  filterItem: { flex: 1, paddingHorizontal: spacing.sm },
+  filterRowBody: {
+    flexGrow: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    // 4, not 8: the three pills at 12 px plus 8 dp gaps come to 299 dp — exactly
+    // the sheet's inner width on a 360 dp phone, with no slack.
+    gap: spacing.xs,
+  },
+  /**
+   * Sized by its label, never a third of the row: the compact padding plus a
+   * 12 px label is what lets "الخطوط اللاتينية" sit whole; `flex: 1` gave each
+   * pill a 78 dp text box against a 108 dp word.
+   */
+  filterItem: { flexGrow: 0, paddingHorizontal: spacing.sm },
+  filterLabel: { fontSize: 12 },
   search: {
     borderWidth: 1,
     borderRadius: radius.lg,
