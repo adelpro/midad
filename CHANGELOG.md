@@ -7,13 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.0-rc.3] - 2026-10-06
+## [0.6.0] - 2026-11-09
 
-**A fix-only follow-up to rc.2: five defects the rc.2 build shipped with, all five
-found by using it on a device.** Two are pinned now — the cold-start direction
-decision and the icon importability predicate, both pure and driven by a
-`check-*.mjs` script — so the same regression fails the suite instead of reaching
-a device.
+**The first stable release.** It is the `0.6.0-rc.3` tree, promoted rather than
+re-cut: the full suite (19 checks) and a device pass were green on it, so the
+release candidate became the release with only the version and this entry
+changing. Its five fixes are the defects the rc.2 build shipped with; two are
+pinned now — the cold-start direction decision and the icon importability
+predicate, both pure and driven by a `check-*.mjs` script — so the same
+regression fails the suite instead of reaching a device. The release also carries
+the `DESIGN.md` v2 rebuild, which replaces the old design document as the
+project's design source of truth, and the public-release README with the editor
+screenshot and the store-screenshot pipeline.
 
 ### Fixed
 
