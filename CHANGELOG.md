@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-09
+
+**A one-defect patch on the release.** The font picker's script filters still cut
+their labels on the web, and marginally on native, because the fix they shipped
+with asked the platform to shrink the text.
+
+### Fixed
+
+- **The script filters show their full labels on every platform.** `FittedLabel`
+  relies on `adjustsFontSizeToFit`, which react-native-web ignores — on the web
+  build it ellipsized to `الخطوط ال…` — and even natively the arithmetic did not
+  close: an equal third of the row left a 78 dp text box for a word that is
+  108 dp at 15 px, so the 0.75 floor (81 dp) stopped short. The row now sizes each
+  pill to its label at 12 px — 291 dp for all three, against a 299 dp sheet on a
+  360 dp phone — scrolls horizontally if a narrower device cannot fit them, and
+  keeps `labelFit` as the native safety net, so nothing is truncated at any width.
+
 ## [0.6.0] - 2026-11-09
 
 **The first stable release.** It is the `0.6.0-rc.3` tree, promoted rather than
