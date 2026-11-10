@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-10
+
+**A web-health patch: two defects the exported build showed and `expo start` hid.**
+One is a hydration mismatch that only exists when the routes are prerendered; the
+other is a preview that only goes missing when autosave, not Save, is what
+persisted the design.
+
+### Fixed
+
+- **Every web load threw `Minified React error #418` four times and rebuilt the
+  tree.** The static export ships one prerendered HTML per route and React
+  hydrates it. The root layout decided its branches from state only the client
+  has: `hasHydrated()` is already true by the first client render (the store
+  hydrates while the route module loads), so that render mounted `<Stack>` — and
+  expo-router's frame-measuring child — where the server HTML had only the launch
+  shell, and React discarded the server tree. A `mounted` flag, false on the
+  first render and flipped in an effect, gates the Stack and the cover, so the
+  first client render matches the server's; the contract is
+  [`docs/web-hydration.md`](docs/web-hydration.md).
+- **A design left through the back control kept an empty gallery card.** A
+  thumbnail was written only by an explicit Save or an export, so a design that
+  was typed, autosaved and closed showed no preview: the document was on disk,
+  its raster never was. Autosave now backfills a preview when a design has none
+  (and stops after the first, so a flush cannot rasterize on every keystroke),
+  and the back control saves before navigating — the gallery reads previews
+  synchronously on mount, so a save after `router.back()` would race its own card.
+
 ## [0.6.1] - 2026-11-09
 
 **A one-defect patch on the release.** The font picker's script filters still cut
